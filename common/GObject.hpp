@@ -11,6 +11,7 @@
 #include "glm/gtx/euler_angles.hpp"
 #include "glm/common.hpp"
 #include "Transform.hpp"
+#include <iostream>
 #include <vector>
 #include <string> 
 #include <algorithm>

@@ -42,7 +42,8 @@ void main(void)
     // on peut egalement tester les valeurs xyz pour eviter 
     // l'influence de la bordure qui se repeterait
 
-    o_FragColor = projColor * texture(u_Sampler, v_TexCoords);
+    //o_FragColor = projColor * texture(u_Sampler, v_TexCoords);
+    o_FragColor = texture(u_Sampler, v_TexCoords);
 
     // debug des normales
     //o_FragColor = vec4(v_Normal * 0.5 + 0.5, 1.0);

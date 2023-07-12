@@ -26,18 +26,28 @@ bool Application::initialize()
     m_opaqueShader.LoadFragmentShader("opaque.fs.glsl");
     m_opaqueShader.Create();
 
-    {
-        Mesh object;
-        Mesh::ParseObj(&object, "../data/lightning/lightning_obj.obj");        
-        m_objects.push_back(object);
-        m_objects.push_back(object);
-    }
+    Mesh* m = new Mesh();
+    Mesh::ParseObj(m, "../data/lightning/lightning_obj.obj");
+    m_objects.push_back(m);
+    m->setScale(glm::vec3(0.025f));
+
+    m = new Mesh();
+    Mesh::ParseObj(m, "../data/plane.obj");
+    m_objects.push_back(m);    
+
+    m->setPosition(glm::vec3(0.0f, -2.5f, 0.0f));
+
+    m = new Mesh();
+    Mesh::ParseObj(m, "../data/suzanne.obj");
+    m_objects.push_back(m);
+    m->setPosition(glm::vec3(2.0f, 0.0f, 0.0f));
 
     uint32_t program = m_opaqueShader.GetProgram();
-    for (Mesh& obj : m_objects) 
+    for (int i = 0; i < m_objects.size();i++) 
     {
-        obj.Setup(program);
+        m_objects[i]->Setup(program);        
     }
+
 
     // UBO
     glGenBuffers(1, &m_UBO);
@@ -51,7 +61,6 @@ bool Application::initialize()
     // note: le '0' (zero) ici correspond au meme '0' 
     // de glBindBufferBase() lors de l'initialisation
     glUniformBlockBinding(program, MatBlockIndex, 0);
-
 
     // data pour le projecteur 
     {
@@ -75,6 +84,11 @@ bool Application::initialize()
 
 void Application::deinitialize()
 {
+    for (Mesh* obj : m_objects)
+    {
+        delete obj;
+    }
+    m_objects.clear();
     glDeleteBuffers(1, &m_UBO);
 
     glDeleteBuffers(1, &m_lightUBO);
@@ -86,6 +100,20 @@ void Application::deinitialize()
 
 void Application::update()
 {
+}
+
+void Application::printMat4(const glm::mat4& matrix)
+{
+    const float* data = glm::value_ptr(matrix);
+
+    for (int i = 0; i < 4; ++i)
+    {
+        for (int j = 0; j < 4; ++j)
+        {
+            std::cout << std::setw(10) << std::setprecision(4) << data[j * 4 + i] << " ";
+        }
+        std::cout << std::endl;
+    }
 }
 
 void Application::render()
@@ -102,11 +130,10 @@ void Application::render()
     uint32_t program = m_opaqueShader.GetProgram();
     glUseProgram(program);
     
-    glm::vec3 up{ 0.0f, 1.f, 0.f };    
-    glm::mat4 worldMatrix = glm::rotate(glm::mat4(1.0f), m_elapsedTime, up);
+    glm::vec3 up{ 0.0f, 1.f, 0.f };        
     
     // Camera et projection
-    glm::vec3 camera_position{ 0.f, 0.f, 150.f };
+    glm::vec3 camera_position{ 0.f, 0.f, 10.f };
 
     glm::mat4 matrices[2];
     // 0 = camera (view matrix)- notez le '-' devant camera_position car on deplace en fait l'objet
@@ -138,17 +165,15 @@ void Application::render()
     glUniform1i(PROJTEXTURE, 1);
     //
     // --------------------------------------------
-    
-    uint32_t WM = glGetUniformLocation(program, "u_WorldMatrix");
-    glUniformMatrix4fv(WM, 1, false, glm::value_ptr(worldMatrix));
+        
+    for (Mesh * obj : m_objects)
+    {        
+        uint32_t WM = glGetUniformLocation(program, "u_WorldMatrix");
+        glUniformMatrix4fv(WM, 1, false, glm::value_ptr(obj->getModelMatrix()));
 
-    uint32_t WM = glGetUniformLocation(program, "UniformBufferModel");
-
-    for (auto& obj : m_objects)
-    {
-        for (auto& submesh : obj.meshes)
+        for (auto& submesh : obj->meshes)
         {
-            const Material& mat = submesh.materialId > -1 ? obj.materials[submesh.materialId] : Material::defaultMaterial;
+            const Material& mat = submesh.materialId > -1 ? obj->materials[submesh.materialId] : Material::defaultMaterial;
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, mat.diffuseTexture);
@@ -159,5 +184,6 @@ void Application::render()
             glDrawElements(GL_TRIANGLES, submesh.indicesCount, GL_UNSIGNED_INT, 0);
         }
     }
+
 }
 

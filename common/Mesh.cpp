@@ -57,11 +57,13 @@ void Mesh::Setup(uint32_t program)
 	}
 }
 
+Mesh::Mesh() : GObject()
+{
+}
+
 bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 {
 	std::string warning, error;
-
-	memset(obj, 0, sizeof(Mesh));
 
 	std::map<std::string, int> material_map;
 	std::vector<tinyobj::material_t> materials;

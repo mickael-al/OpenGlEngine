@@ -13,11 +13,6 @@ out vec3 v_Normal;
 
 uniform mat4 u_WorldMatrix;
 
-uniform UniformBufferModel
-{
-    mat4 model;
-} ubo[];
-
 // un 'uniform block' pour nos matrices communes
 uniform Matrices {
 	mat4 u_ViewMatrix;

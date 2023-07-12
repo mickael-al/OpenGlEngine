@@ -5,10 +5,12 @@
 	GObject::GObject()
 	{
 		m_nom = "NoName";
-		m_transform.position = glm::vec3(0.0f);
-		m_transform.rotation = glm::quat(0,0,0,0);
+		Transform t;		
+		t.position = glm::vec3(0.0f);
+		t.rotation = glm::quat(0,0,0,0);
 		m_eulerAngles = glm::vec3(0.0f);
-		m_transform.scale = glm::vec3(1.0f);		
+		t.scale = glm::vec3(1.0f);
+		m_transform = t;
 		s_gobjects.push_back(this);
 	}
 
@@ -165,7 +167,8 @@
 	glm::mat4 GObject::getModelMatrix() const
 	{
 		glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), m_transform.position);
-		glm::mat4 rotationMatrix = glm::toMat4(glm::quat(m_transform.rotation));
+		glm::mat4 rotationMatrix = glm::toMat4(m_transform.rotation);
 		glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), m_transform.scale);
+		//std::cout << m_transform.scale.x << std::endl;
 		return translationMatrix * rotationMatrix * scaleMatrix;
 	}
