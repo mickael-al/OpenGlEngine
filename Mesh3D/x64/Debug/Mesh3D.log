@@ -1,0 +1,2 @@
+﻿D:\Program Files\MVS2022\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(534,5): warning MSB8028: Le répertoire intermédiaire (x64\Debug\) contient des fichiers partagés provenant d'un autre projet (Dragon3D.vcxproj). Cela peut entraîner un comportement de nettoyage et de regénération incorrect.
+  Mesh3D.vcxproj -> D:\Projet\Cpp\OpenGlEngine\x64\Debug\Mesh3D.exe
