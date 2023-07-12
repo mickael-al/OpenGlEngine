@@ -1,1 +1,10 @@
-﻿  Dragon3D.vcxproj -> D:\Projet\Cpp\OpenGlEngine\x64\Debug\Dragon3D.exe
+﻿  GLShader.cpp
+  Application.cpp
+D:\Projet\Cpp\OpenGlEngine\Dragon\DragonData.h(4,974090): warning C4305: 'initialisation' : troncation de 'double' à 'float'
+  Dragon3D.cpp
+D:\Projet\Cpp\OpenGlEngine\Dragon\Dragon3D.cpp(48,39): warning C4244: 'argument' : conversion de 'double' en 'float', perte possible de données
+  RenderTarget.cpp
+  Génération de code en cours...
+glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' n'a pu être trouvé avec 'glew32s.lib(glew.obj)' ou sur 'D:\Projet\Cpp\OpenGlEngine\x64\Debug\vc120.pdb' ; l'objet sera lié sans informations de débogage
+LINK : warning LNK4098: conflit entre la bibliothèque par défaut 'LIBCMT' et les autres bibliothèques ; utilisez /NODEFAULTLIB:library
+  Dragon3D.vcxproj -> D:\Projet\Cpp\OpenGlEngine\x64\Debug\Dragon3D.exe

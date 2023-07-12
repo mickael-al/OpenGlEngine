@@ -36,6 +36,9 @@
     <ClCompile Include="..\common\OpenGLcore.cpp">
       <Filter>Fichiers sources\Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\common\GObject.cpp">
+      <Filter>Fichiers sources\Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h">
@@ -51,6 +54,12 @@
       <Filter>Fichiers sources\Common</Filter>
     </ClInclude>
     <ClInclude Include="..\common\Vertex.h">
+      <Filter>Fichiers sources\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\Transform.hpp">
+      <Filter>Fichiers sources\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\common\GObject.hpp">
       <Filter>Fichiers sources\Common</Filter>
     </ClInclude>
   </ItemGroup>

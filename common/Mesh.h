@@ -2,7 +2,7 @@
 
 #include "Vertex.h"
 #include "Material.h"
-
+#include "GObject.hpp"
 #include <vector>
 
 struct SubMesh
@@ -15,15 +15,15 @@ struct SubMesh
 	int32_t materialId;
 };
 
-struct Mesh
-{
-	std::vector<SubMesh> meshes;
-	std::vector<Material> materials;	
-
+class Mesh : public GObject
+{	
+public:
+	static bool ParseObj(Mesh* obj, const char* filepath);
 	void Setup(uint32_t program);
 	void Destroy();
-
-	static bool ParseObj(Mesh* obj, const char* filepath);
+	void mapMemory();
+	std::vector<SubMesh> meshes;
+	std::vector<Material> materials;	
 };
 
 

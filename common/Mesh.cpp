@@ -31,6 +31,11 @@ void Mesh::Destroy()
 	meshes.shrink_to_fit();
 }
 
+void Mesh::mapMemory()
+{
+
+}
+
 void Mesh::Setup(uint32_t program)
 {
 	uint32_t POSITION = glGetAttribLocation(program, "a_Position");

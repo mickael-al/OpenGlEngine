@@ -1,0 +1,13 @@
+﻿D:\Program Files\MVS2022\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(534,5): warning MSB8028: Le répertoire intermédiaire (x64\Debug\) contient des fichiers partagés provenant d'un autre projet (Mesh3D_projecteur.vcxproj). Cela peut entraîner un comportement de nettoyage et de regénération incorrect.
+  GLShader.cpp
+  GObject.cpp
+  Mesh.cpp
+  OpenGLcore.cpp
+  Texture.cpp
+  Application.cpp
+  main.cpp
+D:\Projet\Cpp\OpenGlEngine\ShadowPBR\main.cpp(47,39): warning C4244: 'argument' : conversion de 'double' en 'float', perte possible de données
+  Génération de code en cours...
+glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' n'a pu être trouvé avec 'glew32s.lib(glew.obj)' ou sur 'D:\Projet\Cpp\OpenGlEngine\x64\Debug\vc120.pdb' ; l'objet sera lié sans informations de débogage
+LINK : warning LNK4098: conflit entre la bibliothèque par défaut 'LIBCMT' et les autres bibliothèques ; utilisez /NODEFAULTLIB:library
+  ShadowPBR.vcxproj -> D:\Projet\Cpp\OpenGlEngine\x64\Debug\ShadowPBR.exe

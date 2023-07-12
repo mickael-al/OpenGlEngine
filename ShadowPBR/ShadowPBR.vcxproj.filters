@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\common\GLShader.cpp" />
+    <ClCompile Include="..\common\Mesh.cpp" />
+    <ClCompile Include="..\common\OpenGLcore.cpp" />
+    <ClCompile Include="..\common\Texture.cpp" />
+    <ClCompile Include="Application.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="..\common\GObject.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\common\Material.h" />
+    <ClInclude Include="..\common\Mesh.h" />
+    <ClInclude Include="..\common\Texture.h" />
+    <ClInclude Include="..\common\Vertex.h" />
+    <ClInclude Include="Application.h" />
+    <ClInclude Include="..\common\GObject.hpp" />
+    <ClInclude Include="..\common\Transform.hpp" />
+  </ItemGroup>
+</Project>

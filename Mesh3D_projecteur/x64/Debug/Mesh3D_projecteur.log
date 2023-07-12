@@ -1,4 +1,5 @@
 ﻿  GLShader.cpp
+  GObject.cpp
   Mesh.cpp
   OpenGLcore.cpp
   Texture.cpp
