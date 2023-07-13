@@ -10,18 +10,7 @@
 #include "Texture.h"
 
 // materiau par defaut (couleur ambiante, couleur diffuse, couleur speculaire, shininess, tex ambient, tex diffuse, tex specular)
-Material Material::defaultMaterial = { 
-	{
-		{ 1.0f, 1.0f, 1.0f },
-		{ 0.0f, 0.0f },
-		{ 1.0f, 1.0f },
-		0.0f,
-		1.0f,
-		1.0f,
-		1.0f
-	}
-	, 1, 1,1,1,1
-};
+Material Material::defaultMaterial;
 
 void Mesh::Destroy()
 {
@@ -84,7 +73,38 @@ void Mesh::Setup(uint32_t program)
 Mesh::Mesh() : GObject()
 {
 }
+/*
+void ModelManager::ComputationTangent(std::vector<Vertex>& vertices)
+{
+	glm::vec3 edge1;
+	glm::vec3 edge2;
+	glm::vec2 deltaUV1;
+	glm::vec2 deltaUV2;
+	glm::vec3 tangents;
 
+	float r;
+	for (int i = 0; i + 2 < vertices.size(); i += 3)
+	{
+		edge1 = vertices[i + 1].pos - vertices[i].pos;
+		edge2 = vertices[i + 2].pos - vertices[i].pos;
+
+		deltaUV1 = vertices[i + 1].texCoord - vertices[i].texCoord;
+		deltaUV2 = vertices[i + 2].texCoord - vertices[i].texCoord;
+
+		r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+		tangents.x = r * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+		tangents.y = r * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+		tangents.z = r * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+		tangents = glm::normalize(tangents);
+
+		vertices[i + 0].tangents = tangents;
+		vertices[i + 1].tangents = tangents;
+		vertices[i + 2].tangents = tangents;
+	}
+}
+*/
 bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 {
 	std::string warning, error;
@@ -121,11 +141,9 @@ bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 			memcpy(&sm.diffuseColor, material.diffuse, sizeof(vec3));
 			sm.normal = 1.0f;
 			sm.ao = 1.0f;
-			sm.metallic = 0.8f;
-			sm.roughness = 0.2f;
+			sm.metallic = material.metallic;
+			sm.roughness = material.roughness;
 			mat.submat = sm;
-			//sm.metallic = material.metallic;
-			//sm.roughness = material.roughness;
 			mat.submat.offset = glm::vec2(0.0f);
 			mat.submat.tilling = glm::vec2(1.0f);
 			mat.diffuseTexture = Texture::LoadTexture((mtlPath + "/" + material.diffuse_texname).c_str());

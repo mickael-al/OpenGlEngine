@@ -1,6 +1,12 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(513,5): warning MSB8028: Le répertoire intermédiaire (x64\Debug\) contient des fichiers partagés provenant d'un autre projet (Mesh3D_projecteur.vcxproj). Cela peut entraîner un comportement de nettoyage et de regénération incorrect.
+  Mesh.cpp
   Application.cpp
 C:\Users\micka\Documents\Projet\Cpp\OpenGlEngine\ShadowPBR\Application.h(103,1): warning C4244: '-=' : conversion de 'double' en 'float', perte possible de données
 C:\Users\micka\Documents\Projet\Cpp\OpenGlEngine\ShadowPBR\Application.h(104,1): warning C4244: '-=' : conversion de 'double' en 'float', perte possible de données
 C:\Users\micka\Documents\Projet\Cpp\OpenGlEngine\ShadowPBR\Application.cpp(91,44): warning C4267: '=' : conversion de 'size_t' en 'glm::uint', perte possible de données
+  main.cpp
+C:\Users\micka\Documents\Projet\Cpp\OpenGlEngine\ShadowPBR\Application.h(103,1): warning C4244: '-=' : conversion de 'double' en 'float', perte possible de données
+C:\Users\micka\Documents\Projet\Cpp\OpenGlEngine\ShadowPBR\Application.h(104,1): warning C4244: '-=' : conversion de 'double' en 'float', perte possible de données
+C:\Users\micka\Documents\Projet\Cpp\OpenGlEngine\ShadowPBR\main.cpp(46,39): warning C4244: 'argument' : conversion de 'double' en 'float', perte possible de données
+  Génération de code en cours...
   ShadowPBR.vcxproj -> C:\Users\micka\Documents\Projet\Cpp\OpenGlEngine\x64\Debug\ShadowPBR.exe

@@ -1,12 +1,6 @@
-﻿  GLShader.cpp
-  GObject.cpp
-  Mesh.cpp
-  OpenGLcore.cpp
-  Texture.cpp
+﻿  Mesh.cpp
   Application.cpp
   main.cpp
 C:\Users\micka\Documents\Projet\Cpp\OpenGlEngine\Mesh3D_projecteur\main.cpp(45,39): warning C4244: 'argument' : conversion de 'double' en 'float', perte possible de données
   Génération de code en cours...
-LINK : warning LNK4098: conflit entre la bibliothèque par défaut 'LIBCMT' et les autres bibliothèques ; utilisez /NODEFAULTLIB:library
-glew32s.lib(glew.obj) : warning LNK4099: PDB 'vc120.pdb' n'a pu être trouvé avec 'glew32s.lib(glew.obj)' ou sur 'C:\Users\micka\Documents\Projet\Cpp\OpenGlEngine\x64\Debug\vc120.pdb' ; l'objet sera lié sans informations de débogage
   Mesh3D_projecteur.vcxproj -> C:\Users\micka\Documents\Projet\Cpp\OpenGlEngine\x64\Debug\Mesh3D_projecteur.exe
