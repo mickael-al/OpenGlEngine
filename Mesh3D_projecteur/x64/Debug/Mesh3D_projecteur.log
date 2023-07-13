@@ -1,2 +1,6 @@
 ﻿  Mesh.cpp
-  Mesh3D_projecteur.vcxproj -> D:\Projet\Cpp\OpenGlEngine\x64\Debug\Mesh3D_projecteur.exe
+  Application.cpp
+  main.cpp
+C:\Users\micka\Documents\Projet\Cpp\OpenGlEngine\Mesh3D_projecteur\main.cpp(45,39): warning C4244: 'argument' : conversion de 'double' en 'float', perte possible de données
+  Génération de code en cours...
+  Mesh3D_projecteur.vcxproj -> C:\Users\micka\Documents\Projet\Cpp\OpenGlEngine\x64\Debug\Mesh3D_projecteur.exe

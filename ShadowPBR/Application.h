@@ -7,6 +7,32 @@
 #include <iostream>
 #include <iomanip>
 
+struct LightMatrices
+{
+    glm::vec3 position;
+    glm::vec3 color;
+    glm::vec3 direction;
+    float range;
+    float spotAngle;
+    uint status;//DirLight = 0 ; PointLight = 1 ; SpotLight = 2
+};
+
+
+struct MatrixCamera
+{
+    alignas(16) glm::vec3 position;
+    alignas(16) glm::mat4 u_ViewMatrix;
+    alignas(16) glm::mat4 u_ProjectionMatrix;
+};
+
+struct UniformBufferDiver
+{
+    uint maxLight;
+    uint maxShadow;
+    float u_time;
+    float gamma;
+};
+
 struct Application
 {
     int32_t m_width;
@@ -15,14 +41,17 @@ struct Application
     GLShader m_opaqueShader;
 
     std::vector<Mesh*> m_objects;
+    std::vector<LightMatrices> m_lightMatrix;
+    UniformBufferDiver ubd;
 
     uint32_t m_indexCount = 0;
     uint32_t m_indexType = 0;
     uint32_t m_vertexCount = 0;
-    uint32_t m_UBO = 0;
 
+    uint32_t m_UBOCamera = 0;
     uint32_t m_lightUBO = 0;
-    uint32_t m_projTextureID = 0;
+    uint32_t m_UBD = 0;
+    uint32_t m_UBM = 0;
 
     float m_elapsedTime = 0.f;
 

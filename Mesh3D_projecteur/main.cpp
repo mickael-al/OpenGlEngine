@@ -21,7 +21,7 @@ int main(void)
     /* Initialize the library */
     if (!glfwInit())
         return -1;
-
+    
     /* Create a windowed mode window and its OpenGL context */
     window = glfwCreateWindow(1280, 720, "Mesh3D", NULL, NULL);
     if (!window)

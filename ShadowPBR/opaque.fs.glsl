@@ -1,50 +1,179 @@
-#version 330
+#version 430
 
-// il n'y a plus de variable predefinie en sortie: au revoir gl_FragColor
-// on peut appeler la variable comme on veut mais doit etre marquee 'out vec4'
+const float PI = 3.14159265359;
 
-uniform sampler2D u_Sampler; // GL_TEXTURE0
+uniform sampler2D albedoMap;
+uniform sampler2D normalMap;
+uniform sampler2D metallicMap;
+uniform sampler2D roughnessMap;
+uniform sampler2D aoMap;
+
+uniform Materials
+{
+	vec3 diffuseColor;
+	vec2 offset;
+	vec2 tilling;
+	float metallic;
+	float roughness;
+	float normal;
+	float ao;	
+}mat;
 
 out vec4 o_FragColor;
 
-in vec3 v_FragPosition; // dans le repere du monde
+uniform MatrixCamera
+{
+    vec3 position;
+    mat4 u_ViewMatrix;
+    mat4 u_ProjectionMatrix;
+}mc;
+
+uniform UniformBufferDiver
+{
+	uint maxLight;
+	uint maxShadow;
+	float u_time;
+	float gamma;
+}ubd;
+
+struct LUBO
+{
+    vec3 position;
+    vec3 color;
+    vec3 direction;
+    float range;
+    float spotAngle;
+    uint status;//DirLight = 0 ; PointLight = 1 ; SpotLight = 2
+};
+
+buffer LightUBO
+{
+    LUBO[] lubo;
+} ubl;
+
+
+in vec3 v_FragPosition; 
 in vec3 v_Normal;
 in vec2 v_TexCoords;
 
-uniform sampler2D u_ProjSampler; // GL_TEXTURE1
-in vec4 v_ShadowCoords; // 
+
+float DistributionGGX(vec3 N, vec3 H, float roughness)
+{
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+
+    float num = a2;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
+
+    return num / denom;
+}
+
+float GeometrySchlickGGX(float NdotV, float roughness)
+{
+    float r = (roughness + 1.0);
+    float k = (r * r) / 8.0;
+
+    float num = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+
+    return num / denom;
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+
+    return ggx1 * ggx2;
+}
+
+vec3 fresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
 
 void main(void)
 {
-    // attention, une normale passee par le rasterizer a ete interpolee lineaire
-    // un n-lerp (normalized lerp) permet generalement de fixer ce probleme
+    vec3 color = texture(albedoMap, v_TexCoords).rgb * mat.diffuseColor;
+    vec3 ambient = color * mat.ao * texture(aoMap, v_TexCoords).rgb;
+    vec3 metallic = texture(metallicMap, v_TexCoords).rgb * mat.metallic;
+    float roughness = texture(roughnessMap, v_TexCoords).r * mat.roughness;
+    vec3 normal = texture(normalMap, v_TexCoords).rgb * 2.0;
     vec3 N = normalize(v_Normal);
 
+    o_FragColor = vec4(ambient, 1.0);
+    return;
 
-    // cette fonction effectue la projection 4D->3D->2D : 
-    // xyz' = xyz/w
-    // xy'' = xy'/z
+    vec3 V = normalize(mc.position - v_FragPosition);
 
-    vec4 projColor = textureProj(u_ProjSampler, v_ShadowCoords);
-    // il y'a des effets de bord avec cette technique
-    // - d'une part il n'y a pas de clamping a [0,1], meme en changeant le mode 
-    // de clamping de la texture, il est preferable de le faire manuellement
-    // (ou bien d'utiliser le parametre 'border' de glTexImage2D)
-    // - on peut eviter les back-projection avec un test
-    // (dues aux coordonnees homogenes qui se chevauchent au dela de -1/+1)
-    vec3 projectorTexCoords = v_ShadowCoords.xyz/v_ShadowCoords.z;
-    if (projectorTexCoords.x < 0.0 || projectorTexCoords.x > 1.0 
-     || projectorTexCoords.y < 0.0 || projectorTexCoords.y > 1.0) 
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, color, metallic);
+
+    vec3 Lo = vec3(0.0);
+    for (uint i = 0; i < ubd.maxLight; i++)
     {
-        projColor = vec4(1.0);
+        vec3 L = normalize(ubl.lubo[i].position - v_FragPosition);
+        vec3 H = normalize(V + L);
+        float distance = length(ubl.lubo[i].position - v_FragPosition);
+        float attenuation = 1.0 / (distance * distance);
+        vec3 radiance = ubl.lubo[i].color * attenuation * ubl.lubo[i].range;
+        if (ubl.lubo[i].status == 0)
+        {
+            L = -ubl.lubo[i].direction;
+            H = normalize(V + L);
+        }
+
+        // Cook-Torrance BRDF
+        float NDF = DistributionGGX(N, H, roughness);
+        float G = GeometrySmith(N, V, L, roughness);
+        vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 kS = F;
+        vec3 kD = vec3(1.0) - kS;
+        kD *= 1.0 - metallic;
+
+        vec3 numerator = NDF * G * F;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+        vec3 specular = (numerator / denominator);
+
+        // Add to outgoing radiance Lo
+        float NdotL = max(dot(N, L), 0.0);
+
+        if (ubl.lubo[i].status == 0) // DirLight
+        {
+            Lo += (kD * color + specular) * ubl.lubo[i].color * ubl.lubo[i].range / 10.0f * NdotL;
+        }
+        else if (ubl.lubo[i].status == 1) // PointLight
+        {
+            Lo += (kD * color / PI + specular) * radiance * NdotL;
+        }
+        else if (ubl.lubo[i].status == 2) // SpotLight
+        {
+            vec3 lightDir = normalize(ubl.lubo[i].direction);
+            float spotAngle = radians(ubl.lubo[i].spotAngle);
+            float spotEffect = dot(lightDir, -L);
+
+            if (spotEffect > cos(spotAngle / 2.0))
+            {
+                float transitionAngle = radians(4.0);
+                float edge0 = cos(spotAngle / 2.0 - transitionAngle);
+                float edge1 = cos(spotAngle / 2.0);
+                float smoothFactor = smoothstep(edge1, edge0, spotEffect);
+
+                Lo += (kD * color / PI + specular) * radiance * NdotL * pow(smoothFactor, 2.0);
+            }
+        }
     }
 
-    // on peut egalement tester les valeurs xyz pour eviter 
-    // l'influence de la bordure qui se repeterait
+    color = ambient + Lo;
 
-    //o_FragColor = projColor * texture(u_Sampler, v_TexCoords);
-    o_FragColor = texture(u_Sampler, v_TexCoords);
+    color = color / (color + vec3(1.0));
+    color = pow(color, vec3(1.0 / 2.2));
 
-    // debug des normales
-    //o_FragColor = vec4(v_Normal * 0.5 + 0.5, 1.0);
+    o_FragColor = vec4(color, 1.0);
 }

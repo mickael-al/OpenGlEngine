@@ -10,7 +10,18 @@
 #include "Texture.h"
 
 // materiau par defaut (couleur ambiante, couleur diffuse, couleur speculaire, shininess, tex ambient, tex diffuse, tex specular)
-Material Material::defaultMaterial = { { 0.f, 0.f, 0.f }, { 1.f, 1.f, 1.f }, { 0.f, 0.f, 0.f }, 256.f, 0, 1, 0 };
+Material Material::defaultMaterial = { 
+	{
+		{ 1.0f, 1.0f, 1.0f },
+		{ 0.0f, 0.0f },
+		{ 1.0f, 1.0f },
+		0.0f,
+		1.0f,
+		1.0f,
+		1.0f
+	}
+	, 1, 1,1,1,1
+};
 
 void Mesh::Destroy()
 {
@@ -89,11 +100,18 @@ bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 		for (tinyobj::material_t& material : materials)
 		{
 			Material& mat = obj->materials[materialCount];
-			memcpy(&mat.ambientColor, material.ambient, sizeof(vec3));
-			memcpy(&mat.diffuseColor, material.diffuse, sizeof(vec3));
-			memcpy(&mat.specularColor, material.specular, sizeof(vec3));
-			mat.shininess = material.shininess;
+			memcpy(&mat.submat.diffuseColor, material.diffuse, sizeof(vec3));
+			mat.submat.metallic = material.metallic;
+			mat.submat.normal = 1.0f;
+			mat.submat.ao = 1.0f;
+			mat.submat.roughness = material.roughness;
+			mat.submat.offset = glm::vec2(0.0f);
+			mat.submat.tilling = glm::vec2(1.0f);
 			mat.diffuseTexture = Texture::LoadTexture((mtlPath + "/" + material.diffuse_texname).c_str());
+			mat.metallicMap = Texture::LoadTexture((mtlPath + "/" + material.metallic_texname).c_str());
+			mat.normalMap = Texture::LoadTexture((mtlPath + "/" + material.normal_texname).c_str());
+			mat.roughnessMap = Texture::LoadTexture((mtlPath + "/" + material.roughness_texname).c_str());
+			mat.aoMap = Texture::LoadTexture((mtlPath + "/ao.png").c_str());
 			++materialCount;
 		}
 
