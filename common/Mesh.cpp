@@ -66,6 +66,19 @@ void Mesh::Setup(uint32_t program)
 		glEnableVertexAttribArray(TEXCOORDS);
 		glVertexAttribPointer(TEXCOORDS, 3, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, texcoords));
 	}
+	uint32_t base_id = Texture::textures[0].id;
+	Material::defaultMaterial = {
+	{
+		{ 1.0f, 1.0f, 1.0f },
+		{ 0.0f, 0.0f },
+		{ 1.0f, 1.0f },
+		0.8f,
+		0.2f,
+		1.0f,
+		1.0f
+	}
+	, base_id, base_id,base_id,base_id,base_id
+	};
 }
 
 Mesh::Mesh() : GObject()
@@ -88,9 +101,13 @@ bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 
 		bool ok = tinyobj::LoadObj(&attrib, &shapes, &materials, &warning, &error, filepath, mtlPath.c_str());
 		if (warning.length())
+		{
 			std::cout << "[warning]: " << warning << std::endl;
+		}
 		if (error.length())
+		{
 			std::cout << "[error]: " << error << std::endl;
+		}
 
 		obj->materials.resize(materials.size());
 		// voir le warning plus bas 
@@ -100,18 +117,22 @@ bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 		for (tinyobj::material_t& material : materials)
 		{
 			Material& mat = obj->materials[materialCount];
-			memcpy(&mat.submat.diffuseColor, material.diffuse, sizeof(vec3));
-			mat.submat.metallic = material.metallic;
-			mat.submat.normal = 1.0f;
-			mat.submat.ao = 1.0f;
-			mat.submat.roughness = material.roughness;
+			SubMat sm;
+			memcpy(&sm.diffuseColor, material.diffuse, sizeof(vec3));
+			sm.normal = 1.0f;
+			sm.ao = 1.0f;
+			sm.metallic = 0.8f;
+			sm.roughness = 0.2f;
+			mat.submat = sm;
+			//sm.metallic = material.metallic;
+			//sm.roughness = material.roughness;
 			mat.submat.offset = glm::vec2(0.0f);
 			mat.submat.tilling = glm::vec2(1.0f);
 			mat.diffuseTexture = Texture::LoadTexture((mtlPath + "/" + material.diffuse_texname).c_str());
 			mat.metallicMap = Texture::LoadTexture((mtlPath + "/" + material.metallic_texname).c_str());
 			mat.normalMap = Texture::LoadTexture((mtlPath + "/" + material.normal_texname).c_str());
 			mat.roughnessMap = Texture::LoadTexture((mtlPath + "/" + material.roughness_texname).c_str());
-			mat.aoMap = Texture::LoadTexture((mtlPath + "/ao.png").c_str());
+			mat.aoMap = Texture::textures[0].id;
 			++materialCount;
 		}
 
@@ -149,7 +170,9 @@ bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 				// materiaux differents il faudrait créer un SubMesh à chaque matériaux dans une shape.
 				// ici, je me contente de selectionner le dernier material_id pour le SubMesh actuel
 				if (currentMaterialId != materialId)
+				{
 					materialId = currentMaterialId;
+				}
 
 				v.position.x = attrib.vertices[3 * index.vertex_index + 0];
 				v.position.y = attrib.vertices[3 * index.vertex_index + 1];

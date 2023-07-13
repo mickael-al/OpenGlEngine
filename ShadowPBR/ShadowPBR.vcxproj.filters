@@ -8,6 +8,7 @@
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="..\common\GObject.cpp" />
+    <ClCompile Include="InputManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\common\Material.h" />
@@ -17,5 +18,6 @@
     <ClInclude Include="Application.h" />
     <ClInclude Include="..\common\GObject.hpp" />
     <ClInclude Include="..\common\Transform.hpp" />
+    <ClInclude Include="InputManager.hpp" />
   </ItemGroup>
 </Project>

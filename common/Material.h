@@ -5,8 +5,8 @@
 struct SubMat
 {
 	alignas(16) vec3 diffuseColor;
-	vec2 offset;
-	vec2 tilling;
+	alignas(8) vec2 offset;
+	alignas(8) vec2 tilling;
 	float metallic;
 	float roughness;
 	float normal;

@@ -30,11 +30,10 @@ int main(void)
     {
         glfwTerminate();
         return -1;
-    }
-
+    }    
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
-
+    app.setWindow(window);
     app.initialize();
 
     /* Loop until the user closes the window */

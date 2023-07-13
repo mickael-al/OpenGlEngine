@@ -139,6 +139,7 @@
     <ClCompile Include="..\common\OpenGLcore.cpp" />
     <ClCompile Include="..\common\Texture.cpp" />
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="InputManager.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -149,6 +150,7 @@
     <ClInclude Include="..\common\Transform.hpp" />
     <ClInclude Include="..\common\Vertex.h" />
     <ClInclude Include="Application.h" />
+    <ClInclude Include="InputManager.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

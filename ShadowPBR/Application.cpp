@@ -22,14 +22,14 @@ bool Application::initialize()
     m_opaqueShader.Create();
 
     Mesh* m = new Mesh();
+    Mesh::ParseObj(m, "../data/plane.obj");
+    m_objects.push_back(m);
+    m->setPosition(glm::vec3(0.0f, -2.5f, 0.0f));
+
+    m = new Mesh();
     Mesh::ParseObj(m, "../data/lightning/lightning_obj.obj");
     m_objects.push_back(m);
     m->setScale(glm::vec3(0.025f));
-
-    m = new Mesh();
-    Mesh::ParseObj(m, "../data/plane.obj");
-    m_objects.push_back(m);    
-    m->setPosition(glm::vec3(0.0f, -2.5f, 0.0f));
 
     m = new Mesh();
     Mesh::ParseObj(m, "../data/suzanne.obj");
@@ -37,13 +37,22 @@ bool Application::initialize()
     m->setPosition(glm::vec3(2.0f, 0.0f, 0.0f));
 
     LightMatrices lm;
-    lm.position = glm::vec3(0.0f);
+    lm.position = glm::vec3(0.0f,0.0f,1.0f);
     lm.color = glm::vec3(1.0f);
     lm.direction = glm::vec3(0.0f);
-    lm.range = 10.0f;
+    lm.range = 25.0f;
     lm.spotAngle = 0.0f;
-    lm.status = 0;
+    lm.status = 1;
     m_lightMatrix.push_back(lm);
+    lm.position = glm::vec3(5,0,0);
+    m_lightMatrix.push_back(lm);
+    lm.position = glm::vec3(0, 0, 5);
+    lm.color = glm::vec3(0.0f, 0.0f, 1.0f);
+    m_lightMatrix.push_back(lm);
+
+    m_im = new InputManager(m_window);
+    cam = new FlyCamera(m_im,m_width, m_height);
+    cam->setPosition(glm::vec3(0.0f, 0.0f, 5.0f));
 
     uint32_t program = m_opaqueShader.GetProgram();
     for (int i = 0; i < m_objects.size();i++) 
@@ -98,6 +107,8 @@ bool Application::initialize()
 
 void Application::deinitialize()
 {
+    delete cam;
+    delete m_im;
     for (Mesh* obj : m_objects)
     {
         delete obj;
@@ -114,6 +125,10 @@ void Application::deinitialize()
 
 void Application::update()
 {
+    m_im->updateAxis();
+    m_deltaTime = m_elapsedTime - m_lastElapsedTime;
+    m_lastElapsedTime = m_elapsedTime;
+    cam->updateCamera(m_deltaTime);
 }
 
 void Application::printMat4(const glm::mat4& matrix)
@@ -141,11 +156,10 @@ void Application::render()
     uint32_t program = m_opaqueShader.GetProgram();
     glUseProgram(program);
     
-    MatrixCamera mc;
-    glm::vec3 up{ 0.0f, 1.f, 0.f };        
-    mc.position = glm::vec3( 0.f, 0.f, -10.f);
-    mc.u_ViewMatrix = glm::translate(glm::mat4(1.f), mc.position);
-    mc.u_ProjectionMatrix = glm::perspectiveFov(glm::radians(45.f), (float)m_width, (float)m_height, 0.1f, 1000.f);
+    MatrixCamera mc;   
+    mc.position = cam->getPosition();    
+    mc.u_ViewMatrix = cam->getViewMatrix();
+    mc.u_ProjectionMatrix = cam->getProjectionMatrix();
 
     glBindBuffer(GL_UNIFORM_BUFFER, m_UBOCamera);
     glBufferData(GL_UNIFORM_BUFFER, sizeof(MatrixCamera), &mc, GL_STATIC_DRAW);
@@ -160,11 +174,11 @@ void Application::render()
     for (Mesh * obj : m_objects)
     {        
         uint32_t WM = glGetUniformLocation(program, "u_WorldMatrix");
-        glUniformMatrix4fv(WM, 1, false, glm::value_ptr(obj->getModelMatrix()));
-
+        glUniformMatrix4fv(WM, 1, false, glm::value_ptr(obj->getModelMatrix()));        
         for (auto& submesh : obj->meshes)
         {
-            const Material& mat = submesh.materialId > -1 ? obj->materials[submesh.materialId] : Material::defaultMaterial;
+            Material& mat = submesh.materialId > -1 ? obj->materials[submesh.materialId] : Material::defaultMaterial;
+
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, mat.diffuseTexture);
             int32_t albedoText = glGetUniformLocation(program, "albedoMap");
@@ -192,6 +206,7 @@ void Application::render()
 
             glBindBuffer(GL_UNIFORM_BUFFER, m_UBM);
             glBufferData(GL_UNIFORM_BUFFER, sizeof(SubMat), &mat.submat, GL_STATIC_DRAW);
+
             glBindVertexArray(submesh.VAO);
             glDrawElements(GL_TRIANGLES, submesh.indicesCount, GL_UNSIGNED_INT, 0);
         }

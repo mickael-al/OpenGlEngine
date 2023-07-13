@@ -39,7 +39,8 @@ uniform UniformBufferDiver
 void main(void)
 {
 	v_TexCoords = mat.offset + a_TexCoords * mat.tilling;
-	v_Normal = mat3(transpose(inverse(u_WorldMatrix))) * a_Normal;
+	//v_Normal = mat3(transpose(inverse(u_WorldMatrix))) * a_Normal;
+	v_Normal = (u_WorldMatrix * vec4(a_Normal,0.0)).xyz;
 	vec4 position_world = u_WorldMatrix * vec4(a_Position, 1.0);
 	v_FragPosition = position_world.xyz;
 	gl_Position = mc.u_ProjectionMatrix * mc.u_ViewMatrix * position_world;

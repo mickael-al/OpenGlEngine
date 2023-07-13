@@ -46,9 +46,9 @@ struct LUBO
     uint status;//DirLight = 0 ; PointLight = 1 ; SpotLight = 2
 };
 
-buffer LightUBO
+layout(binding = 1) buffer LightUBO
 {
-    LUBO[] lubo;
+    LUBO lubo[];
 } ubl;
 
 
@@ -100,15 +100,14 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 void main(void)
 {
     vec3 color = texture(albedoMap, v_TexCoords).rgb * mat.diffuseColor;
-    vec3 ambient = color * mat.ao * texture(aoMap, v_TexCoords).rgb;
+    vec3 ambient = vec3(0.1) * color * mat.ao * texture(aoMap, v_TexCoords).rgb;
     vec3 metallic = texture(metallicMap, v_TexCoords).rgb * mat.metallic;
     float roughness = texture(roughnessMap, v_TexCoords).r * mat.roughness;
     vec3 normal = texture(normalMap, v_TexCoords).rgb * 2.0;
     vec3 N = normalize(v_Normal);
 
-    o_FragColor = vec4(ambient, 1.0);
-    return;
-
+    //o_FragColor = vec4(N, 1.0);
+    //return;
     vec3 V = normalize(mc.position - v_FragPosition);
 
     vec3 F0 = vec3(0.04);
