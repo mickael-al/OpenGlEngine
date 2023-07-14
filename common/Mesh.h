@@ -21,6 +21,7 @@ public:
 	Mesh();
 	static bool ParseObj(Mesh* obj, const char* filepath);
 	void Setup(uint32_t program);
+	void SetupOnlyVertex(uint32_t program);
 	void Destroy();
 	void mapMemory();
 	std::vector<SubMesh> meshes;

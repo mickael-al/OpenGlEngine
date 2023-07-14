@@ -18,11 +18,14 @@ uint32_t Texture::CheckExist(const char* path)
 void Texture::SetupManager()
 {
 	// création d'une texture par défaut 1x1 blanche
-	if (textures.size() == 0) {
+	if (textures.size() == 0) 
+	{
 		const uint8_t data[] = { 255,255,255,255 };
 		uint32_t textureID = CreateTextureRGBA(1, 1, data);
 		textures.push_back({ "", textureID });
 	}
+
+	normalTexture = LoadTexture("../data/default_normal.png");
 }
 
 void Texture::PurgeTextures()
@@ -59,3 +62,4 @@ uint32_t Texture::LoadTexture(const char* path)
 
 // version très basique d'un texture manager
 std::vector<Texture> Texture::textures;
+uint32_t Texture::normalTexture;

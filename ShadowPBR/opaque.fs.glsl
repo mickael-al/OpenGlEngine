@@ -7,6 +7,7 @@ uniform sampler2D normalMap;
 uniform sampler2D metallicMap;
 uniform sampler2D roughnessMap;
 uniform sampler2D aoMap;
+uniform sampler2D shadowMap;
 
 uniform Materials
 {
@@ -36,6 +37,14 @@ uniform UniformBufferDiver
 	float gamma;
 }ubd;
 
+uniform MatrixShadow
+{
+    vec3 position;
+    mat4 u_ViewMatrix;
+    mat4 u_ProjectionMatrix;
+}ms;
+
+
 struct LUBO
 {
     vec3 position;
@@ -51,10 +60,10 @@ layout(binding = 1) buffer LightUBO
     LUBO lubo[];
 } ubl;
 
-
-in vec3 v_FragPosition; 
-in vec3 v_Normal;
+in vec3 v_FragPosition;
 in vec2 v_TexCoords;
+in vec3 v_ShadowCoord;
+in mat3 v_TBN;
 
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
@@ -100,14 +109,15 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 void main(void)
 {
     vec3 color = texture(albedoMap, v_TexCoords).rgb * mat.diffuseColor;
-    vec3 ambient = vec3(0.1) * color * mat.ao * texture(aoMap, v_TexCoords).rgb;
+    vec3 ambient = vec3(0.003) * color * mat.ao * texture(aoMap, v_TexCoords).rgb;
     vec3 metallic = texture(metallicMap, v_TexCoords).rgb * mat.metallic;
     float roughness = texture(roughnessMap, v_TexCoords).r * mat.roughness;
     vec3 normal = texture(normalMap, v_TexCoords).rgb * 2.0;
-    vec3 N = normalize(v_Normal);
+    normal = mix(vec3(0.5, 0.5, 1.0), normal, mat.normal);
+    normal = normalize(normal * 2.0 - 1.0);
 
-    //o_FragColor = vec4(N, 1.0);
-    //return;
+    vec3 N = normalize(v_TBN * vec3(0,0,1));
+
     vec3 V = normalize(mc.position - v_FragPosition);
 
     vec3 F0 = vec3(0.04);
@@ -157,14 +167,20 @@ void main(void)
             float spotAngle = radians(ubl.lubo[i].spotAngle);
             float spotEffect = dot(lightDir, -L);
 
-            if (spotEffect > cos(spotAngle / 2.0))
-            {
-                float transitionAngle = radians(4.0);
-                float edge0 = cos(spotAngle / 2.0 - transitionAngle);
-                float edge1 = cos(spotAngle / 2.0);
-                float smoothFactor = smoothstep(edge1, edge0, spotEffect);
+            float bias = 0.005*tan(acos(dot(N, L)));
+            bias = clamp(bias, 0.0,0.01);
 
-                Lo += (kD * color / PI + specular) * radiance * NdotL * pow(smoothFactor, 2.0);
+            if(texture(shadowMap, v_ShadowCoord.xy).r >= v_ShadowCoord.z-bias)
+            {
+                if (spotEffect > cos(spotAngle / 2.0))
+                {
+                    float transitionAngle = radians(4.0);
+                    float edge0 = cos(spotAngle / 2.0 - transitionAngle);
+                    float edge1 = cos(spotAngle / 2.0);
+                    float smoothFactor = smoothstep(edge1, edge0, spotEffect);
+
+                    Lo += (kD * color / PI + specular) * radiance * NdotL * pow(smoothFactor, 2.0);
+                }
             }
         }
     }

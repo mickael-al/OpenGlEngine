@@ -36,10 +36,26 @@ void Mesh::mapMemory()
 
 }
 
+void Mesh::SetupOnlyVertex(uint32_t program)
+{
+	uint32_t POSITION = glGetAttribLocation(program, "a_Position");
+
+	for (auto& submesh : meshes)
+	{
+		glGenVertexArrays(1, &submesh.VAO);
+		glBindVertexArray(submesh.VAO);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, submesh.IBO);
+		glBindBuffer(GL_ARRAY_BUFFER, submesh.VBO);
+		glEnableVertexAttribArray(POSITION);
+		glVertexAttribPointer(POSITION, 3, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, position));
+	}
+}
+
 void Mesh::Setup(uint32_t program)
 {
 	uint32_t POSITION = glGetAttribLocation(program, "a_Position");
 	uint32_t NORMAL = glGetAttribLocation(program, "a_Normal");
+	uint32_t TANGENTS = glGetAttribLocation(program, "a_Tangents");
 	uint32_t TEXCOORDS = glGetAttribLocation(program, "a_TexCoords");
 
 	for (auto& submesh : meshes)
@@ -52,59 +68,30 @@ void Mesh::Setup(uint32_t program)
 		glVertexAttribPointer(POSITION, 3, GL_FLOAT, false, sizeof(Vertex), (void *)offsetof(Vertex, position));
 		glEnableVertexAttribArray(NORMAL);
 		glVertexAttribPointer(NORMAL, 3, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+		glEnableVertexAttribArray(TANGENTS);
+		glVertexAttribPointer(TANGENTS, 3, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, tangents));
 		glEnableVertexAttribArray(TEXCOORDS);
-		glVertexAttribPointer(TEXCOORDS, 3, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, texcoords));
+		glVertexAttribPointer(TEXCOORDS, 2, GL_FLOAT, false, sizeof(Vertex), (void*)offsetof(Vertex, texcoords));
 	}
+}
+
+Mesh::Mesh() : GObject()
+{
 	uint32_t base_id = Texture::textures[0].id;
 	Material::defaultMaterial = {
 	{
 		{ 1.0f, 1.0f, 1.0f },
 		{ 0.0f, 0.0f },
 		{ 1.0f, 1.0f },
-		0.8f,
-		0.2f,
+		0.4f,
+		0.4f,
 		1.0f,
 		1.0f
 	}
-	, base_id, base_id,base_id,base_id,base_id
+	, base_id, Texture::normalTexture,base_id,base_id,base_id
 	};
 }
 
-Mesh::Mesh() : GObject()
-{
-}
-/*
-void ModelManager::ComputationTangent(std::vector<Vertex>& vertices)
-{
-	glm::vec3 edge1;
-	glm::vec3 edge2;
-	glm::vec2 deltaUV1;
-	glm::vec2 deltaUV2;
-	glm::vec3 tangents;
-
-	float r;
-	for (int i = 0; i + 2 < vertices.size(); i += 3)
-	{
-		edge1 = vertices[i + 1].pos - vertices[i].pos;
-		edge2 = vertices[i + 2].pos - vertices[i].pos;
-
-		deltaUV1 = vertices[i + 1].texCoord - vertices[i].texCoord;
-		deltaUV2 = vertices[i + 2].texCoord - vertices[i].texCoord;
-
-		r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-		tangents.x = r * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-		tangents.y = r * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-		tangents.z = r * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-
-		tangents = glm::normalize(tangents);
-
-		vertices[i + 0].tangents = tangents;
-		vertices[i + 1].tangents = tangents;
-		vertices[i + 2].tangents = tangents;
-	}
-}
-*/
 bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 {
 	std::string warning, error;
@@ -149,6 +136,10 @@ bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 			mat.diffuseTexture = Texture::LoadTexture((mtlPath + "/" + material.diffuse_texname).c_str());
 			mat.metallicMap = Texture::LoadTexture((mtlPath + "/" + material.metallic_texname).c_str());
 			mat.normalMap = Texture::LoadTexture((mtlPath + "/" + material.normal_texname).c_str());
+			if (mat.normalMap == Texture::textures[0].id)
+			{
+				mat.normalMap = Texture::normalTexture;
+			}
 			mat.roughnessMap = Texture::LoadTexture((mtlPath + "/" + material.roughness_texname).c_str());
 			mat.aoMap = Texture::textures[0].id;
 			++materialCount;
@@ -196,7 +187,8 @@ bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 				v.position.y = attrib.vertices[3 * index.vertex_index + 1];
 				v.position.z = attrib.vertices[3 * index.vertex_index + 2];
 				
-				if (index.normal_index > -1) {
+				if (index.normal_index > -1) 
+				{
 					v.normal.x = attrib.normals[3 * index.normal_index + 0];
 					v.normal.y = attrib.normals[3 * index.normal_index + 1];
 					v.normal.z = attrib.normals[3 * index.normal_index + 2];
@@ -206,11 +198,14 @@ bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 					// todo : générer des normales
 					bool useSmoothingGroup = false;
 					if (shape.mesh.smoothing_group_ids.size() != 0)
+					{
 						useSmoothingGroup = true;
+					}
 				}
 
 				v.texcoords = { 0.f, 0.f };
-				if (index.texcoord_index > -1) {
+				if (index.texcoord_index > -1) 
+				{
 					v.texcoords.x = attrib.texcoords[2 * index.texcoord_index + 0];
 					v.texcoords.y = attrib.texcoords[2 * index.texcoord_index + 1];
 					// Important à savoir
@@ -220,7 +215,7 @@ bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 					// en C++ ou dans le shader, par exemple ici 
 					v.texcoords.y = 1.f - v.texcoords.y;
 				}
-
+				v.tangents = { 0, 0, 0 };
 				// tinyobj loader affecte du blanc par defaut lorsqu'il ne trouve pas de couleur
 				// c'est généralement le cas car les couleurs sont une extension non standard du format OBJ
 				// ce qui rend cet attribut purement optionnel
@@ -235,7 +230,8 @@ bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 				for (; vertexIndex < submesh.verticesCount; ++vertexIndex)
 				{
 					const Vertex &vi = vertices[vertexIndex];
-					if (v.IsSame(vi)) {
+					if (v.IsSame(vi)) 
+					{
 						break;
 					}
 				}
@@ -251,10 +247,41 @@ bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 				faceId++;
 			}
 
+			uint32_t index0, index1, index2;
+			glm::vec3 edge1, edge2, tangent;
+			glm::vec2 deltaUV1, deltaUV2;
+			float r;
+			for (size_t i = 0; i < submesh.indicesCount; i += 3)
+			{
+				index0 = indices[i];
+				index1 = indices[i + 1];
+				index2 = indices[i + 2];
+
+				Vertex vertex0 = vertices[index0];
+				Vertex vertex1 = vertices[index1];
+				Vertex vertex2 = vertices[index2];
+
+				edge1 = vertex1.position - vertex0.position;
+				edge2 = vertex2.position - vertex0.position;
+
+				deltaUV1 = vertex1.texcoords - vertex0.texcoords;
+				deltaUV2 = vertex2.texcoords - vertex0.texcoords;
+
+				r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+				tangent = glm::normalize(r * (deltaUV2.y * edge1 - deltaUV1.y * edge2));
+
+				vertices[index0].tangents = tangent;
+				vertices[index1].tangents = tangent;
+				vertices[index2].tangents = tangent;
+			}
+
+
 			submesh.materialId = materialId;
 
 			// notez que je ne cree pas le VAO ici
 			// Un VAO fait le lien entre le VBO (+ EBO/IBO) et les attributs d'un vertex shader
+
 			submesh.VBO = CreateBufferObject(BufferType::VBO, sizeof(Vertex) * submesh.verticesCount, vertices);
 			submesh.IBO = CreateBufferObject(BufferType::IBO, sizeof(uint32_t) * submesh.indicesCount, indices);
 

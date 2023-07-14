@@ -13,12 +13,11 @@ bool Application::initialize()
 {
     GLenum error = glewInit();
     if (error != GLEW_OK)
+    {
         return false;
+    }
 
-    // on utilise un texture manager afin de ne pas recharger une texture deja en memoire
-    // de meme on va definir une ou plusieurs textures par defaut
     Texture::SetupManager();
-    // 
 
     m_opaqueShader.LoadVertexShader("opaque.vs.glsl");
     m_opaqueShader.LoadFragmentShader("opaque.fs.glsl");
@@ -31,7 +30,8 @@ bool Application::initialize()
     }
 
     uint32_t program = m_opaqueShader.GetProgram();
-    for (Mesh& obj : m_objects) {
+    for (Mesh& obj : m_objects) 
+    {
         obj.Setup(program);
     }
 

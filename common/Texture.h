@@ -16,6 +16,7 @@ struct Texture
 	
 	// version tres basique d'un texture manager
 	static std::vector<Texture> textures;
+	static uint32_t normalTexture;
 	static void SetupManager();
 	static uint32_t CheckExist(const char* path);
 	static void PurgeTextures();

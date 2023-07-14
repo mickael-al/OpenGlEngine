@@ -75,6 +75,72 @@ protected:
     float m_orthoSize;
 };
 
+class Light : public GObject
+{
+public:
+    Light() : GObject()    
+    {
+        m_far = 500.0f;
+        m_fov = 60.0f;
+        m_near = 0.1f;
+        m_ortho = false;
+        m_orthoSize = 10.0f;
+        m_width = 1024;
+        m_height = 1024;
+    }
+
+    float aspectRatio() const
+    {
+        return (float)m_width / (float)m_height;
+    }
+    LightMatrices * getLigthsMatrix()
+    {
+        m_lm.position = m_transform.position;
+        m_lm.direction = getDirection();        
+        return &m_lm;
+    }
+
+    glm::mat4 getViewMatrix() const
+    {
+        return glm::inverse(getModelMatrix());
+    }
+
+    MatrixCamera * getShadowMatrix()
+    {
+        m_cam.position = m_transform.position;
+        m_cam.u_ViewMatrix = getViewMatrix();
+        m_cam.u_ProjectionMatrix = getProjectionMatrix();
+        return &m_cam;
+    }
+    glm::mat4 getProjectionMatrix() const
+    {
+        glm::mat4 projectionMatrix;
+        if (m_ortho)
+        {
+            float halfHeight = m_orthoSize * 0.5f;
+            float halfWidth = halfHeight * aspectRatio();
+            projectionMatrix = glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight, m_near, m_far);
+        }
+        else
+        {
+            projectionMatrix = glm::perspective(glm::radians(m_fov), aspectRatio(), m_near, m_far);
+        }
+
+        return projectionMatrix;
+    }
+    void mapMemory() {}
+private:
+    LightMatrices m_lm;
+    MatrixCamera m_cam;
+    float m_fov = 60.0f;
+    float m_near = 0.1f;
+    float m_far = 500.0f;
+    bool m_ortho = false;
+    int32_t m_width;
+    int32_t m_height;
+    float m_orthoSize;
+};
+
 class FlyCamera : public Camera
 {
 public:
@@ -156,9 +222,11 @@ struct Application
     int32_t m_width;
     int32_t m_height;
 
-    GLShader m_opaqueShader;
+    GLShader m_PbrShader;
+    GLShader m_ShadowShader;
 
     std::vector<Mesh*> m_objects;
+    std::vector<Light*> m_lights;
     std::vector<LightMatrices> m_lightMatrix;
     UniformBufferDiver ubd;
     InputManager* m_im;
@@ -169,9 +237,13 @@ struct Application
     uint32_t m_vertexCount = 0;
 
     uint32_t m_UBOCamera = 0;
+    uint32_t m_UBOShadow = 0;
     uint32_t m_lightUBO = 0;
     uint32_t m_UBD = 0;
     uint32_t m_UBM = 0;
+    uint32_t m_framebufferName = 0;
+    uint32_t m_depthTexture = 0;
+
     GLFWwindow* m_window;
     float m_elapsedTime = 0.0f;
     float m_lastElapsedTime = 0.0f;
