@@ -81,7 +81,7 @@ public:
     Light() : GObject()    
     {
         m_far = 500.0f;
-        m_fov = 60.0f;
+        m_fov = 55.0f;
         m_near = 0.1f;
         m_ortho = false;
         m_orthoSize = 10.0f;

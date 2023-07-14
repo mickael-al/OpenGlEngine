@@ -7,7 +7,7 @@ in vec2 a_TexCoords;
 
 out vec3 v_FragPosition;
 out vec2 v_TexCoords;
-out vec3 v_ShadowCoord;
+out vec4 v_ShadowCoord;
 out mat3 v_TBN;
 
 uniform mat4 u_WorldMatrix;
@@ -62,7 +62,7 @@ void main(void)
 	v_TBN = mat3(T, B, N);
 	vec4 position_world = u_WorldMatrix * vec4(a_Position, 1.0);
 	v_FragPosition = position_world.xyz;
-	v_ShadowCoord = vec3((biasMatrix*(ms.u_ProjectionMatrix*ms.u_ViewMatrix*u_WorldMatrix))*vec4(a_Position, 1.0));
+	v_ShadowCoord = ((ms.u_ProjectionMatrix*ms.u_ViewMatrix*u_WorldMatrix))*vec4(a_Position, 1.0);
 
 	gl_Position = mc.u_ProjectionMatrix * mc.u_ViewMatrix * position_world;
 }

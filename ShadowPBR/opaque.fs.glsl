@@ -62,7 +62,7 @@ layout(binding = 1) buffer LightUBO
 
 in vec3 v_FragPosition;
 in vec2 v_TexCoords;
-in vec3 v_ShadowCoord;
+in vec4 v_ShadowCoord;
 in mat3 v_TBN;
 
 
@@ -105,6 +105,22 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
+
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+    // perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    float closestDepth = texture(shadowMap, projCoords.xy).r; 
+    // get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // check whether current frag pos is in shadow
+    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
+
+    return shadow;
+}  
 
 void main(void)
 {
@@ -167,11 +183,14 @@ void main(void)
             float spotAngle = radians(ubl.lubo[i].spotAngle);
             float spotEffect = dot(lightDir, -L);
 
-            float bias = 0.005*tan(acos(dot(N, L)));
+            float bias = 0.005*tan(acos(clamp(dot(N, L),0.0,1.0)));
             bias = clamp(bias, 0.0,0.01);
 
-            if(texture(shadowMap, v_ShadowCoord.xy).r >= v_ShadowCoord.z-bias)
-            {
+                float visibility = 1.0;
+                if(ShadowCalculation(v_ShadowCoord) > 0.0)
+                {
+                    visibility = 0.0f;
+                }
                 if (spotEffect > cos(spotAngle / 2.0))
                 {
                     float transitionAngle = radians(4.0);
@@ -179,9 +198,9 @@ void main(void)
                     float edge1 = cos(spotAngle / 2.0);
                     float smoothFactor = smoothstep(edge1, edge0, spotEffect);
 
-                    Lo += (kD * color / PI + specular) * radiance * NdotL * pow(smoothFactor, 2.0);
+                    Lo += (kD * color / PI + specular) * radiance * NdotL * pow(smoothFactor, 2.0) * visibility;
                 }
-            }
+            
         }
     }
 

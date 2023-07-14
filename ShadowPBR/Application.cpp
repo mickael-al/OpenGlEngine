@@ -187,6 +187,8 @@ void Application::update()
     m_deltaTime = m_elapsedTime - m_lastElapsedTime;
     m_lastElapsedTime = m_elapsedTime;
     cam->updateCamera(m_deltaTime);
+    m_objects[1]->setEulerAngles(glm::vec3(0, m_elapsedTime*20.0f, 0));
+    m_objects[2]->setEulerAngles(glm::vec3(m_elapsedTime * 40.0f, 0, 0));
 }
 
 void Application::printMat4(const glm::mat4& matrix)
