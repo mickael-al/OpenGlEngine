@@ -5,6 +5,7 @@
 #include "Application.h"
 #include <cstdint>
 #include "../common/Texture.h"
+#include "../libs/stb/stb_image.h"
 
 bool Application::initialize()
 {
@@ -159,6 +160,35 @@ bool Application::initialize()
         glBindBufferBase(GL_UNIFORM_BUFFER, 4, m_UBOShadow);
         int32_t MatBlockIndex = glGetUniformBlockIndex(program, "MatrixShadow");
         glUniformBlockBinding(program, MatBlockIndex, 4);
+    }
+
+    //CubeMap
+    {
+        std::vector<std::string> textures_faces;
+        textures_faces.push_back("../data/envmaps/test_px.png");
+        textures_faces.push_back("../data/envmaps/test_nx.png");
+        textures_faces.push_back("../data/envmaps/test_py.png");
+        textures_faces.push_back("../data/envmaps/test_ny.png");
+        textures_faces.push_back("../data/envmaps/test_pz.png");
+        textures_faces.push_back("../data/envmaps/test_nz.png");
+        glGenTextures(1, &m_UBOCubeMap);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, m_UBOCubeMap);
+        int width, height, nrChannels;
+        unsigned char* data;
+        for (unsigned int i = 0; i < textures_faces.size(); i++)
+        {
+            data = stbi_load(textures_faces[i].c_str(), &width, &height, &nrChannels, 0);
+            glTexImage2D(
+                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+            );
+        }
+
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     }
     return true;
 }

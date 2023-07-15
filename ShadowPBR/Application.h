@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-
 #include "../common/GLShader.h"
 #include "../common/Mesh.h"
 #include <iostream>
@@ -238,6 +237,7 @@ struct Application
 
     uint32_t m_UBOCamera = 0;
     uint32_t m_UBOShadow = 0;
+    uint32_t m_UBOCubeMap = 0;
     uint32_t m_lightUBO = 0;
     uint32_t m_UBD = 0;
     uint32_t m_UBM = 0;
