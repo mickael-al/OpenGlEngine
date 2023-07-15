@@ -26,6 +26,10 @@ bool Application::initialize()
     m_ShadowShader.LoadFragmentShader("shadow.fs.glsl");
     m_ShadowShader.Create();
 
+    m_SkyboxShader.LoadVertexShader("skybox.vs.glsl");
+    m_SkyboxShader.LoadFragmentShader("skybox.fs.glsl");
+    m_SkyboxShader.Create();
+
     Mesh* m = new Mesh();
     Mesh::ParseObj(m, "../data/plane.obj");
     m_objects.push_back(m);
@@ -40,6 +44,9 @@ bool Application::initialize()
     Mesh::ParseObj(m, "../data/suzanne.obj");
     m_objects.push_back(m);
     m->setPosition(glm::vec3(2.0f, 0.0f, 0.0f));
+
+    m_skybox = new Mesh();
+    Mesh::ParseObj(m_skybox, "../data/skybox.obj");
 
     Light * lm = new Light();
     lm->setPosition(glm::vec3(-8.0f,0.0f,-8.0f));
@@ -75,6 +82,7 @@ bool Application::initialize()
 
     uint32_t program = m_PbrShader.GetProgram();
     uint32_t program2 = m_ShadowShader.GetProgram();
+    uint32_t program3 = m_SkyboxShader.GetProgram();
     for (int i = 0; i < m_objects.size();i++) 
     {        
         m_objects[i]->Setup(program);
@@ -92,6 +100,9 @@ bool Application::initialize()
 
         MatBlockIndex = glGetUniformBlockIndex(program2, "MatrixCamera");
         glUniformBlockBinding(program2, MatBlockIndex, 0);
+
+        MatBlockIndex = glGetUniformBlockIndex(program3, "MatrixCamera");
+        glUniformBlockBinding(program3, MatBlockIndex, 0);        
     }
 
     //Lights
@@ -171,8 +182,8 @@ bool Application::initialize()
         textures_faces.push_back("../data/envmaps/test_ny.png");
         textures_faces.push_back("../data/envmaps/test_pz.png");
         textures_faces.push_back("../data/envmaps/test_nz.png");
-        glGenTextures(1, &m_UBOCubeMap);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, m_UBOCubeMap);
+        glGenTextures(1, &m_cubeMapTexture);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, m_cubeMapTexture);
         int width, height, nrChannels;
         unsigned char* data;
         for (unsigned int i = 0; i < textures_faces.size(); i++)
@@ -189,6 +200,7 @@ bool Application::initialize()
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        m_skybox->SetupOnlyVertex(program3);
     }
     return true;
 }
@@ -236,17 +248,35 @@ void Application::printMat4(const glm::mat4& matrix)
 }
 
 void Application::render()
-{    
+{   
+    MatrixCamera mc;
+    mc.position = cam->getPosition();
+    mc.u_ViewMatrix = cam->getViewMatrix();
+    mc.u_ProjectionMatrix = cam->getProjectionMatrix();
+
     glViewport(0, 0, m_width, m_height);
     glClearColor(0.0f, 0.0f, 0.0f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    //skybox
+    {        
+        glDepthMask(GL_FALSE);
+        int32_t program3 = m_SkyboxShader.GetProgram();
+        glUseProgram(program3);
+        
+        glBindBuffer(GL_UNIFORM_BUFFER, m_UBOCamera);
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(MatrixCamera), &mc, GL_STATIC_DRAW);
+
+
+        glBindVertexArray(m_skybox->meshes[0].VAO);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, m_cubeMapTexture);
+        glDrawElements(GL_TRIANGLES, m_skybox->meshes[0].indicesCount, GL_UNSIGNED_INT, 0);
+        glDepthMask(GL_TRUE);
+    }
+   
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);    
-    
-    MatrixCamera mc;   
-    mc.position = cam->getPosition();    
-    mc.u_ViewMatrix = cam->getViewMatrix();
-    mc.u_ProjectionMatrix = cam->getProjectionMatrix();
+   
 
     //shadow
     {

@@ -222,6 +222,7 @@ struct Application
     int32_t m_height;
 
     GLShader m_PbrShader;
+    GLShader m_SkyboxShader;
     GLShader m_ShadowShader;
 
     std::vector<Mesh*> m_objects;
@@ -230,19 +231,20 @@ struct Application
     UniformBufferDiver ubd;
     InputManager* m_im;
     FlyCamera* cam = nullptr;
+    Mesh* m_skybox;
 
     uint32_t m_indexCount = 0;
     uint32_t m_indexType = 0;
     uint32_t m_vertexCount = 0;
 
     uint32_t m_UBOCamera = 0;
-    uint32_t m_UBOShadow = 0;
-    uint32_t m_UBOCubeMap = 0;
+    uint32_t m_UBOShadow = 0;    
     uint32_t m_lightUBO = 0;
     uint32_t m_UBD = 0;
     uint32_t m_UBM = 0;
     uint32_t m_framebufferName = 0;
     uint32_t m_depthTexture = 0;
+    uint32_t m_cubeMapTexture = 0;
 
     GLFWwindow* m_window;
     float m_elapsedTime = 0.0f;
