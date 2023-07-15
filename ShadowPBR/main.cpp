@@ -34,6 +34,7 @@ int main(void)
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
     app.setWindow(window);
+    app.setSize(1280, 720);
     app.initialize();
 
     /* Loop until the user closes the window */

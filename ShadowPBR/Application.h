@@ -15,6 +15,7 @@ struct LightMatrices
     float range;
     float spotAngle;
     uint status;//DirLight = 0 ; PointLight = 1 ; SpotLight = 2
+    uint shadow;
 };
 
 
@@ -77,25 +78,66 @@ protected:
 class Light : public GObject
 {
 public:
-    Light() : GObject()    
+    Light() : GObject()
     {
         m_far = 500.0f;
         m_fov = 45.0f;
         m_near = 0.1f;
-        m_ortho = true;
+        m_ortho = false;
         m_orthoSize = 10.0f;
-        m_width = 1280;
-        m_height = 720;
+        m_lm.shadow = 0;
+    }
+
+    void GenerateShadow()
+    {
+        if (!m_shadow)
+        {
+            return;
+        }
+
+        {
+            m_framebuffers = 0;
+            glGenFramebuffers(1, &m_framebuffers);
+            glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffers);
+
+            glGenTextures(1, &m_depthTextures);
+            glBindTexture(GL_TEXTURE_2D, m_depthTextures);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_depthTextures, 0);
+
+            glEnable(GL_DEPTH_TEST);
+
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            {
+                std::cerr << "Error : GL_FRAMEBUFFER_COMPLETE imcomplete" << std::endl;
+            }
+        }
+    }
+
+    bool GetShadow()
+    {
+        return m_shadow;
+    }
+
+    void SetShadow(bool state)
+    {
+        m_shadow = state;
+        m_lm.shadow = 1;
     }
 
     float aspectRatio() const
     {
         return (float)m_width / (float)m_height;
     }
-    LightMatrices * getLigthsMatrix()
+    LightMatrices* getLigthsMatrix()
     {
         m_lm.position = m_transform.position;
-        m_lm.direction = getDirection();        
+        m_lm.direction = getDirection();
         return &m_lm;
     }
 
@@ -104,7 +146,7 @@ public:
         return glm::inverse(getModelMatrix());
     }
 
-    MatrixCamera * getShadowMatrix()
+    MatrixCamera* getShadowMatrix()
     {
         m_cam.position = m_transform.position;
         m_cam.u_ViewMatrix = getViewMatrix();
@@ -127,7 +169,38 @@ public:
 
         return projectionMatrix;
     }
+    void Status(int i)
+    {
+        m_lm.status = i;
+        if (i == 0)
+        {
+            m_far = 500.0f;
+            m_fov = 45.0f;
+            m_near = 0.1f;
+            m_ortho = true;
+            m_orthoSize = 10.0f;
+        }
+        else if(i == 2)
+        {
+            m_far = 500.0f;
+            m_fov = 45.0f;
+            m_near = 0.1f;
+            m_ortho = false;
+            m_orthoSize = 10.0f;
+        }
+    }
+    void setSize(int w, int h) { m_width = w; m_height = h; }
     void mapMemory() {}
+
+    uint32_t getFramebuffers()
+    {
+        return m_framebuffers;
+    }
+
+    uint32_t getDepthTextures()
+    {
+        return m_depthTextures;
+    }
 private:
     LightMatrices m_lm;
     MatrixCamera m_cam;
@@ -135,9 +208,12 @@ private:
     float m_near = 0.1f;
     float m_far = 500.0f;
     bool m_ortho = false;
-    int32_t m_width;
-    int32_t m_height;
+    bool m_shadow = false;
+    int m_width;
+    int m_height;
     float m_orthoSize;
+    uint32_t m_framebuffers;
+    uint32_t m_depthTextures;
 };
 
 class FlyCamera : public Camera
@@ -242,8 +318,6 @@ struct Application
     uint32_t m_lightUBO = 0;
     uint32_t m_UBD = 0;
     uint32_t m_UBM = 0;
-    uint32_t m_framebufferName = 0;
-    uint32_t m_depthTexture = 0;
     uint32_t m_cubeMapTexture = 0;
 
     GLFWwindow* m_window;
@@ -251,7 +325,18 @@ struct Application
     float m_lastElapsedTime = 0.0f;
     float m_deltaTime = 0.0f;
 
-    inline void setSize(int w, int h) { m_width = w; m_height = h; if (cam != nullptr) { cam->setSize(w, h); } }
+    inline void setSize(int w, int h) 
+    { 
+        m_width = w; m_height = h; 
+        if (cam != nullptr) 
+        { 
+            cam->setSize(w, h);         
+        }
+        for (int i = 0; i < m_lights.size(); i++)
+        {
+            m_lights[i]->setSize(w,h);
+        }
+    }
     inline void setElapsedTime(float t) { m_elapsedTime = t; }
     inline void setWindow(GLFWwindow* window) { m_window = window; }
 

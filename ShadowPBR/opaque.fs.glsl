@@ -53,6 +53,7 @@ struct LUBO
     float range;
     float spotAngle;
     uint status;//DirLight = 0 ; PointLight = 1 ; SpotLight = 2
+    uint shadow;
 };
 
 layout(binding = 1) buffer LightUBO
@@ -171,7 +172,16 @@ void main(void)
 
         if (ubl.lubo[i].status == 0) // DirLight
         {
-            Lo += (kD * color + specular) * ubl.lubo[i].color * ubl.lubo[i].range / 10.0f * NdotL;
+                    float bias = 0.005*tan(acos(clamp(dot(N, L),0.0,1.0)));
+            bias = clamp(bias, 0.0,0.0001);
+
+                float visibility = 1.0;
+                if(ShadowCalculation(v_ShadowCoord, bias) > 0.0 && ubl.lubo[i].shadow == 1)
+                {
+                    visibility = 0.0;
+                }
+
+            Lo += (kD * color + specular) * ubl.lubo[i].color * ubl.lubo[i].range / 10.0f * NdotL * visibility;
         }
         else if (ubl.lubo[i].status == 1) // PointLight
         {
@@ -187,9 +197,9 @@ void main(void)
             bias = clamp(bias, 0.0,0.0001);
 
                 float visibility = 1.0;
-                if(ShadowCalculation(v_ShadowCoord, bias) > 0.0)
+                if(ShadowCalculation(v_ShadowCoord, bias) > 0.0 && ubl.lubo[i].shadow == 1)
                 {
-                    visibility = 0.0f;
+                    visibility = 0.0;
                 }
                 if (spotEffect > cos(spotAngle / 2.0))
                 {

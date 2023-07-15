@@ -34,41 +34,94 @@ bool Application::initialize()
     Mesh::ParseObj(m, "../data/plane.obj");
     m_objects.push_back(m);
     m->setPosition(glm::vec3(0.0f, -2.5f, 0.0f));
-    
+    m->setScale(glm::vec3(2.0f, 1.0f, 2.0f));
+
+    for (auto& submesh : m->meshes)
+    {
+        Material mat = m->materials[submesh.materialId];
+        mat.submat.tilling = glm::vec2(10.0f, 10.0f);
+        mat.diffuseTexture = Texture::LoadTexture("../data/rusted-steel-unity/rusted-steel_albedo.png");
+        mat.metallicMap = Texture::LoadTexture("../data/rusted-steel-unity/rusted-steel_metallic.png");
+        mat.normalMap = Texture::LoadTexture("../data/rusted-steel-unity/rusted-steel_normal-ogl.png");
+        mat.aoMap = Texture::LoadTexture("../data/rusted-steel-unity/rusted-steel_ao.png");
+        mat.roughnessMap = Texture::LoadTexture("../data/rusted-steel-unity/rusted-steel_metallic.png");
+        mat.submat.roughness = 0.35f;
+        mat.submat.metallic = 0.7f;
+        m->materials[submesh.materialId] = mat;
+    }
+
     m = new Mesh();
     Mesh::ParseObj(m, "../data/lightning/lightning_obj.obj");
     m_objects.push_back(m);
     m->setScale(glm::vec3(0.025f));
+    m->setPosition(glm::vec3(-7.0f, 0.0f, 0.0f));
 
     m = new Mesh();
     Mesh::ParseObj(m, "../data/suzanne.obj");
     m_objects.push_back(m);
-    m->setPosition(glm::vec3(2.0f, 0.0f, 0.0f));
+    m->setPosition(glm::vec3(7.0f, 0.0f, 0.0f));
 
     m_skybox = new Mesh();
     Mesh::ParseObj(m_skybox, "../data/skybox.obj");
 
-    Light * lm = new Light();
-    lm->setPosition(glm::vec3(-8.0f,0.0f,-8.0f));
-    lm->getLigthsMatrix()->color = glm::vec3(0.0f,1.0f,0.0f);
-    lm->getLigthsMatrix()->range = 2.0f;
+
+    m = new Mesh();
+    Mesh::ParseObj(m, "../data/cube.obj");
+    m_objects.push_back(m);
+    m->setPosition(glm::vec3(0.0f, 0.5f, -7.5f));
+    m->setEulerAngles(glm::vec3(0.0f, 45.0f, 0.f));
+
+    m = new Mesh();
+    Mesh::ParseObj(m, "../data/cube.obj");
+    m_objects.push_back(m);
+    m->setPosition(glm::vec3(0.0f, 0.5f, 7.5f));
+    m->setEulerAngles(glm::vec3(40.0f, 45.0f, 0.f));
+
+    Light* lm = new Light();
+    lm->setPosition(glm::vec3(-8.0f, 0.0f, -8.0f));
+    lm->getLigthsMatrix()->color = glm::vec3(0.0f, 1.0f, 0.0f);
+    lm->getLigthsMatrix()->range = 10.0f;
     lm->getLigthsMatrix()->status = 1;
     m_lights.push_back(lm);
 
     lm = new Light();
     lm->setPosition(glm::vec3(-7.5, 0, 7.5));
     lm->getLigthsMatrix()->color = glm::vec3(0.0f, 0.0f, 1.0f);
-    lm->getLigthsMatrix()->range = 2.0f;
+    lm->getLigthsMatrix()->range = 10.0f;
     lm->getLigthsMatrix()->status = 1;
     m_lights.push_back(lm);
 
     lm = new Light();
-    lm->setPosition(glm::vec3(0.0f, 1.0f, 6.0f));
+    lm->setPosition(glm::vec3(0.0f, 1.5f, 0.0f));
     lm->getLigthsMatrix()->color = glm::vec3(1.0f, 0.0f, 0.0f);
-    lm->getLigthsMatrix()->status = 2;
-    lm->getLigthsMatrix()->range = 30.0f;
-    lm->getLigthsMatrix()->spotAngle = 50;
-    lm->setEulerAngles(glm::vec3(-20.0f,00.0f,0.0f));    
+    lm->getLigthsMatrix()->range = 400.0f;
+    lm->getLigthsMatrix()->spotAngle = 80;
+    lm->Status(2);
+    lm->SetShadow(true);
+    lm->setEulerAngles(glm::vec3(-25.0f, 00.0f, 0.0f));
+    m_lights.push_back(lm);
+
+    lm = new Light();
+    lm->setPosition(glm::vec3(0.0, 20.0f, 0.0));
+    lm->setEulerAngles(glm::vec3(-90.0f, 00.0f, 0.0f));
+    lm->getLigthsMatrix()->color = glm::vec3(1.0f, 1.0f, 0.7f);
+    lm->getLigthsMatrix()->range = 2.0f;
+    lm->getLigthsMatrix()->spotAngle = 80;
+    lm->Status(0);
+    m_lights.push_back(lm);
+
+    lm = new Light();
+    lm->setPosition(glm::vec3(8.0f, 0.0f, -8.0f));
+    lm->getLigthsMatrix()->color = glm::vec3(1.0f, 1.0f, 0.0f);
+    lm->getLigthsMatrix()->range = 10.0f;
+    lm->getLigthsMatrix()->status = 1;
+    m_lights.push_back(lm);
+
+    lm = new Light();
+    lm->setPosition(glm::vec3(7.5, 0, 7.5));
+    lm->getLigthsMatrix()->color = glm::vec3(1.0f, 0.5f, 0.25f);
+    lm->getLigthsMatrix()->range = 10.0f;
+    lm->getLigthsMatrix()->status = 1;
     m_lights.push_back(lm);
 
     for (int i = 0; i < m_lights.size(); i++)
@@ -77,16 +130,17 @@ bool Application::initialize()
     }
 
     m_im = new InputManager(m_window);
-    cam = new FlyCamera(m_im,m_width, m_height);
+    cam = new FlyCamera(m_im, m_width, m_height);
     cam->setPosition(glm::vec3(0.0f, 0.0f, 5.0f));
 
     uint32_t program = m_PbrShader.GetProgram();
     uint32_t program2 = m_ShadowShader.GetProgram();
     uint32_t program3 = m_SkyboxShader.GetProgram();
-    for (int i = 0; i < m_objects.size();i++) 
-    {        
+    for (int i = 0; i < m_objects.size(); i++)
+    {
         m_objects[i]->Setup(program);
     }
+    setSize(m_width, m_height);
 
     // UBO Camera
     {
@@ -102,7 +156,7 @@ bool Application::initialize()
         glUniformBlockBinding(program2, MatBlockIndex, 0);
 
         MatBlockIndex = glGetUniformBlockIndex(program3, "MatrixCamera");
-        glUniformBlockBinding(program3, MatBlockIndex, 0);        
+        glUniformBlockBinding(program3, MatBlockIndex, 0);
     }
 
     //Lights
@@ -141,29 +195,15 @@ bool Application::initialize()
 
     //shadow
     {
-        m_framebufferName = 0;
-        glGenFramebuffers(1, &m_framebufferName);
-        glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferName);
-
-        glGenTextures(1, &m_depthTexture);
-        glBindTexture(GL_TEXTURE_2D, m_depthTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 1280, 720, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_depthTexture, 0);
-
-        glEnable(GL_DEPTH_TEST);
-
-        // Always check that our framebuffer is ok
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        for (int i = 0; i < m_lights.size(); i++)
         {
-            return false;
+            if (m_lights[i]->GetShadow())
+            {
+                m_lights[i]->GenerateShadow();
+                break;
+            }
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 
         glGenBuffers(1, &m_UBOShadow);
         glBindBuffer(GL_UNIFORM_BUFFER, m_UBOShadow);
@@ -182,16 +222,23 @@ bool Application::initialize()
         textures_faces.push_back("../data/envmaps/test_ny.png");
         textures_faces.push_back("../data/envmaps/test_pz.png");
         textures_faces.push_back("../data/envmaps/test_nz.png");*/
-        textures_faces.push_back("../data/envmaps/pisa_posx.jpg");
+        /*textures_faces.push_back("../data/envmaps/pisa_posx.jpg");
         textures_faces.push_back("../data/envmaps/pisa_negx.jpg");
         textures_faces.push_back("../data/envmaps/pisa_posy.jpg");
         textures_faces.push_back("../data/envmaps/pisa_negy.jpg");
         textures_faces.push_back("../data/envmaps/pisa_posz.jpg");
-        textures_faces.push_back("../data/envmaps/pisa_negz.jpg");
+        textures_faces.push_back("../data/envmaps/pisa_negz.jpg");*/
+
+        textures_faces.push_back("../data/envmaps/iceflats_ft.tga");
+        textures_faces.push_back("../data/envmaps/iceflats_bk.tga");
+        textures_faces.push_back("../data/envmaps/iceflats_up.tga");
+        textures_faces.push_back("../data/envmaps/iceflats_dn.tga");
+        textures_faces.push_back("../data/envmaps/iceflats_rt.tga");
+        textures_faces.push_back("../data/envmaps/iceflats_lf.tga");        
         glGenTextures(1, &m_cubeMapTexture);
         glBindTexture(GL_TEXTURE_CUBE_MAP, m_cubeMapTexture);
         int width, height, nrChannels;
-        unsigned char* data;        
+        unsigned char* data;
         for (unsigned int i = 0; i < textures_faces.size(); i++)
         {
             data = stbi_load(textures_faces[i].c_str(), &width, &height, &nrChannels, 0);
@@ -236,12 +283,18 @@ void Application::deinitialize()
 
 void Application::update()
 {
+    m_lightMatrix.clear();
+    for (int i = 0; i < m_lights.size(); i++)
+    {
+        m_lightMatrix.push_back(*(m_lights[i]->getLigthsMatrix()));
+    }
     m_im->updateAxis();
     m_deltaTime = m_elapsedTime - m_lastElapsedTime;
     m_lastElapsedTime = m_elapsedTime;
     cam->updateCamera(m_deltaTime);
-    m_objects[1]->setEulerAngles(glm::vec3(0, m_elapsedTime*20.0f, 0));
+    m_objects[1]->setEulerAngles(glm::vec3(0, m_elapsedTime * 20.0f, 0));
     m_objects[2]->setEulerAngles(glm::vec3(m_elapsedTime * 40.0f, 0, 0));
+    m_lights[2]->setEulerAngles(glm::vec3(0, m_elapsedTime * 40.0f, 0));
 }
 
 void Application::printMat4(const glm::mat4& matrix)
@@ -259,7 +312,7 @@ void Application::printMat4(const glm::mat4& matrix)
 }
 
 void Application::render()
-{   
+{
     MatrixCamera mc;
     mc.position = cam->getPosition();
     mc.u_ViewMatrix = cam->getViewMatrix();
@@ -270,11 +323,11 @@ void Application::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     //skybox
-    {        
+    {
         glDepthMask(GL_FALSE);
         int32_t program3 = m_SkyboxShader.GetProgram();
         glUseProgram(program3);
-        
+
         glBindBuffer(GL_UNIFORM_BUFFER, m_UBOCamera);
         glBufferData(GL_UNIFORM_BUFFER, sizeof(MatrixCamera), &mc, GL_STATIC_DRAW);
 
@@ -288,27 +341,38 @@ void Application::render()
         glDrawElements(GL_TRIANGLES, m_skybox->meshes[0].indicesCount, GL_UNSIGNED_INT, 0);
         glDepthMask(GL_TRUE);
     }
-   
+
     glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);    
-   
+    glEnable(GL_DEPTH_TEST);
+
+
+    Light* ltarget = nullptr;
+    for (int i = 0; i < m_lights.size(); i++)
+    {
+        if (m_lights[i]->GetShadow())
+        {
+            ltarget = m_lights[i];
+            break;
+        }
+    }
 
     //shadow
     {
+
         uint32_t program2 = m_ShadowShader.GetProgram();
-        for (int i = 0; i < m_objects.size(); i++)
+        /*for (int i = 0; i < m_objects.size(); i++)
         {
             m_objects[i]->SetupOnlyVertex(program2);
-        }
+        }*/
         glUseProgram(program2);
-        glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferName);
+        glBindFramebuffer(GL_FRAMEBUFFER, ltarget->getFramebuffers());
         glClear(GL_DEPTH_BUFFER_BIT);
         glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
 
         glBindBuffer(GL_UNIFORM_BUFFER, m_UBOCamera);
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(MatrixCamera), m_lights[2]->getShadowMatrix(), GL_STATIC_DRAW);
-        
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(MatrixCamera), ltarget->getShadowMatrix(), GL_STATIC_DRAW);
+
         for (Mesh* obj : m_objects)
         {
             uint32_t WM = glGetUniformLocation(program2, "u_WorldMatrix");
@@ -322,17 +386,17 @@ void Application::render()
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         uint32_t program = m_PbrShader.GetProgram();
-        for (int i = 0; i < m_objects.size(); i++)
+        /*for (int i = 0; i < m_objects.size(); i++)
         {
             m_objects[i]->Setup(program);
-        }
+        }*/
     }
 
     uint32_t program = m_PbrShader.GetProgram();
     glUseProgram(program);
 
     glActiveTexture(GL_TEXTURE5);
-    glBindTexture(GL_TEXTURE_2D, m_depthTexture);
+    glBindTexture(GL_TEXTURE_2D, ltarget->getDepthTextures());
     int32_t shadowTex = glGetUniformLocation(program, "shadowMap");
     glUniform1i(shadowTex, 5);
 
@@ -343,17 +407,16 @@ void Application::render()
     glBufferData(GL_UNIFORM_BUFFER, sizeof(MatrixCamera), m_lights[2]->getShadowMatrix(), GL_STATIC_DRAW);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_lightUBO);
-
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(LightMatrices) * m_lightMatrix.size(), m_lightMatrix.data(), GL_STATIC_DRAW);
     ubd.u_time = m_elapsedTime;
-        
+
     glBindBuffer(GL_UNIFORM_BUFFER, m_UBD);
     glBufferData(GL_UNIFORM_BUFFER, sizeof(UniformBufferDiver), &ubd, GL_STATIC_DRAW);
 
-    for (Mesh * obj : m_objects)
-    {        
+    for (Mesh* obj : m_objects)
+    {
         uint32_t WM = glGetUniformLocation(program, "u_WorldMatrix");
-        glUniformMatrix4fv(WM, 1, false, glm::value_ptr(obj->getModelMatrix()));        
+        glUniformMatrix4fv(WM, 1, false, glm::value_ptr(obj->getModelMatrix()));
         for (auto& submesh : obj->meshes)
         {
             Material& mat = submesh.materialId > -1 ? obj->materials[submesh.materialId] : Material::defaultMaterial;
