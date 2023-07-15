@@ -13,5 +13,7 @@ uniform MatrixCamera
 void main()
 {
 	V_TexCoords = a_Position;
-    gl_Position = mc.u_ProjectionMatrix * mc.u_ViewMatrix * vec4(a_Position, 1.0);
+	mat4 modelView = mc.u_ViewMatrix;
+	modelView[3] = vec4(0.0, 0.0, 0.0, 1.0);
+    gl_Position = mc.u_ProjectionMatrix * modelView * vec4(a_Position, 1.0);
 }

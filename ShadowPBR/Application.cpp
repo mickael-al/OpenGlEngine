@@ -176,22 +176,33 @@ bool Application::initialize()
     //CubeMap
     {
         std::vector<std::string> textures_faces;
-        textures_faces.push_back("../data/envmaps/test_px.png");
+        /*textures_faces.push_back("../data/envmaps/test_px.png");
         textures_faces.push_back("../data/envmaps/test_nx.png");
         textures_faces.push_back("../data/envmaps/test_py.png");
         textures_faces.push_back("../data/envmaps/test_ny.png");
         textures_faces.push_back("../data/envmaps/test_pz.png");
-        textures_faces.push_back("../data/envmaps/test_nz.png");
+        textures_faces.push_back("../data/envmaps/test_nz.png");*/
+        textures_faces.push_back("../data/envmaps/pisa_posx.jpg");
+        textures_faces.push_back("../data/envmaps/pisa_negx.jpg");
+        textures_faces.push_back("../data/envmaps/pisa_posy.jpg");
+        textures_faces.push_back("../data/envmaps/pisa_negy.jpg");
+        textures_faces.push_back("../data/envmaps/pisa_posz.jpg");
+        textures_faces.push_back("../data/envmaps/pisa_negz.jpg");
         glGenTextures(1, &m_cubeMapTexture);
         glBindTexture(GL_TEXTURE_CUBE_MAP, m_cubeMapTexture);
         int width, height, nrChannels;
-        unsigned char* data;
+        unsigned char* data;        
         for (unsigned int i = 0; i < textures_faces.size(); i++)
         {
             data = stbi_load(textures_faces[i].c_str(), &width, &height, &nrChannels, 0);
+            if (data == nullptr)
+            {
+                std::cerr << "Error: load CubeMap texture" << std::endl;
+                return false;
+            }
             glTexImage2D(
                 GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+                0, nrChannels == 3 ? GL_RGB : GL_RGBA, width, height, 0, nrChannels == 3 ? GL_RGB : GL_RGBA, GL_UNSIGNED_BYTE, data
             );
         }
 
@@ -267,9 +278,13 @@ void Application::render()
         glBindBuffer(GL_UNIFORM_BUFFER, m_UBOCamera);
         glBufferData(GL_UNIFORM_BUFFER, sizeof(MatrixCamera), &mc, GL_STATIC_DRAW);
 
+        glActiveTexture(GL_TEXTURE_CUBE_MAP);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, m_cubeMapTexture);
+        int32_t skyboxText = glGetUniformLocation(program3, "skybox");
+        glUniform1i(skyboxText, 0);
 
         glBindVertexArray(m_skybox->meshes[0].VAO);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, m_cubeMapTexture);
+
         glDrawElements(GL_TRIANGLES, m_skybox->meshes[0].indicesCount, GL_UNSIGNED_INT, 0);
         glDepthMask(GL_TRUE);
     }
