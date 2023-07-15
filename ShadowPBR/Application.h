@@ -81,12 +81,12 @@ public:
     Light() : GObject()    
     {
         m_far = 500.0f;
-        m_fov = 55.0f;
+        m_fov = 45.0f;
         m_near = 0.1f;
-        m_ortho = false;
+        m_ortho = true;
         m_orthoSize = 10.0f;
-        m_width = 1024;
-        m_height = 1024;
+        m_width = 1280;
+        m_height = 720;
     }
 
     float aspectRatio() const

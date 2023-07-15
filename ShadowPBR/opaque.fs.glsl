@@ -106,18 +106,18 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-float ShadowCalculation(vec4 fragPosLightSpace)
+float ShadowCalculation(vec4 fragPosLightSpace, float bias)
 {
     // perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // transform to [0,1] range
-    projCoords = projCoords * 0.5 + 0.5;
+    //projCoords = projCoords * 0.5 + 0.5;
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
     float closestDepth = texture(shadowMap, projCoords.xy).r; 
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
     // check whether current frag pos is in shadow
-    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
+    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
     return shadow;
 }  
@@ -184,10 +184,10 @@ void main(void)
             float spotEffect = dot(lightDir, -L);
 
             float bias = 0.005*tan(acos(clamp(dot(N, L),0.0,1.0)));
-            bias = clamp(bias, 0.0,0.01);
+            bias = clamp(bias, 0.0,0.0001);
 
                 float visibility = 1.0;
-                if(ShadowCalculation(v_ShadowCoord) > 0.0)
+                if(ShadowCalculation(v_ShadowCoord, bias) > 0.0)
                 {
                     visibility = 0.0f;
                 }

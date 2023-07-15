@@ -55,12 +55,12 @@ bool Application::initialize()
     m_lights.push_back(lm);
 
     lm = new Light();
-    lm->setPosition(glm::vec3(4.0f, 1.0f, 6.0f));
+    lm->setPosition(glm::vec3(0.0f, 1.0f, 6.0f));
     lm->getLigthsMatrix()->color = glm::vec3(1.0f, 0.0f, 0.0f);
     lm->getLigthsMatrix()->status = 2;
     lm->getLigthsMatrix()->range = 30.0f;
-    lm->getLigthsMatrix()->spotAngle = 40;
-    lm->setEulerAngles(glm::vec3(-20.0f,30.0f,0.0f));    
+    lm->getLigthsMatrix()->spotAngle = 50;
+    lm->setEulerAngles(glm::vec3(-20.0f,00.0f,0.0f));    
     m_lights.push_back(lm);
 
     for (int i = 0; i < m_lights.size(); i++)
@@ -135,7 +135,7 @@ bool Application::initialize()
 
         glGenTextures(1, &m_depthTexture);
         glBindTexture(GL_TEXTURE_2D, m_depthTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 1024, 1024, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 1280, 720, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
