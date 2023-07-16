@@ -45,8 +45,8 @@ bool Application::initialize()
         mat.normalMap = Texture::LoadTexture("../data/rusted-steel-unity/rusted-steel_normal-ogl.png");
         mat.aoMap = Texture::LoadTexture("../data/rusted-steel-unity/rusted-steel_ao.png");
         mat.roughnessMap = Texture::LoadTexture("../data/rusted-steel-unity/rusted-steel_metallic.png");
-        mat.submat.roughness = 0.35f;
-        mat.submat.metallic = 0.7f;
+        mat.submat.roughness = 0.1f;
+        mat.submat.metallic = 0.5f;
         m->materials[submesh.materialId] = mat;
     }
 
@@ -79,22 +79,22 @@ bool Application::initialize()
 
     Light* lm = new Light();
     lm->setPosition(glm::vec3(-8.0f, 0.0f, -8.0f));
-    lm->getLigthsMatrix()->color = glm::vec3(0.0f, 1.0f, 0.0f);
-    lm->getLigthsMatrix()->range = 10.0f;
+    lm->getLigthsMatrix()->color = glm::vec3(0.1f, 1.0f, 0.2f);
+    lm->getLigthsMatrix()->range = 15.0f;
     lm->getLigthsMatrix()->status = 1;
     m_lights.push_back(lm);
 
     lm = new Light();
     lm->setPosition(glm::vec3(-7.5, 0, 7.5));
-    lm->getLigthsMatrix()->color = glm::vec3(0.0f, 0.0f, 1.0f);
-    lm->getLigthsMatrix()->range = 10.0f;
+    lm->getLigthsMatrix()->color = glm::vec3(0.1f, 0.4f, 1.0f);
+    lm->getLigthsMatrix()->range = 15.0f;
     lm->getLigthsMatrix()->status = 1;
     m_lights.push_back(lm);
 
     lm = new Light();
     lm->setPosition(glm::vec3(0.0f, 1.5f, 0.0f));
-    lm->getLigthsMatrix()->color = glm::vec3(1.0f, 0.0f, 0.0f);
-    lm->getLigthsMatrix()->range = 400.0f;
+    lm->getLigthsMatrix()->color = glm::vec3(1.0f, 0.4f, 0.2f);
+    lm->getLigthsMatrix()->range = 500.0f;
     lm->getLigthsMatrix()->spotAngle = 80;
     lm->Status(2);
     lm->SetShadow(true);
@@ -104,8 +104,8 @@ bool Application::initialize()
     lm = new Light();
     lm->setPosition(glm::vec3(0.0, 20.0f, 0.0));
     lm->setEulerAngles(glm::vec3(-90.0f, 00.0f, 0.0f));
-    lm->getLigthsMatrix()->color = glm::vec3(1.0f, 1.0f, 0.7f);
-    lm->getLigthsMatrix()->range = 2.0f;
+    lm->getLigthsMatrix()->color = glm::vec3(0.4f, 0.4f, 1.0f);
+    lm->getLigthsMatrix()->range = 3.0f;
     lm->getLigthsMatrix()->spotAngle = 80;
     lm->Status(0);
     m_lights.push_back(lm);
@@ -113,14 +113,43 @@ bool Application::initialize()
     lm = new Light();
     lm->setPosition(glm::vec3(8.0f, 0.0f, -8.0f));
     lm->getLigthsMatrix()->color = glm::vec3(1.0f, 1.0f, 0.0f);
-    lm->getLigthsMatrix()->range = 10.0f;
+    lm->getLigthsMatrix()->range = 15.0f;
     lm->getLigthsMatrix()->status = 1;
     m_lights.push_back(lm);
 
     lm = new Light();
     lm->setPosition(glm::vec3(7.5, 0, 7.5));
     lm->getLigthsMatrix()->color = glm::vec3(1.0f, 0.5f, 0.25f);
-    lm->getLigthsMatrix()->range = 10.0f;
+    lm->getLigthsMatrix()->range = 15.0f;
+    lm->getLigthsMatrix()->status = 1;
+    m_lights.push_back(lm);
+
+
+    lm = new Light();
+    lm->setPosition(glm::vec3(15.0f, 0.0f, 15.0f));
+    lm->getLigthsMatrix()->color = glm::vec3(0.8f, 1.0f, 0.5f);
+    lm->getLigthsMatrix()->range = 15.0f;
+    lm->getLigthsMatrix()->status = 1;
+    m_lights.push_back(lm);
+
+    lm = new Light();
+    lm->setPosition(glm::vec3(-15.0f, 0.0f, 15.0f));
+    lm->getLigthsMatrix()->color = glm::vec3(0.5f, 1.0f, 0.8f);
+    lm->getLigthsMatrix()->range = 15.0f;
+    lm->getLigthsMatrix()->status = 1;
+    m_lights.push_back(lm);
+
+    lm = new Light();
+    lm->setPosition(glm::vec3(15.0f, 0.0f, -15.0f));
+    lm->getLigthsMatrix()->color = glm::vec3(0.8f, 0.8f, 0.3f);
+    lm->getLigthsMatrix()->range = 15.0f;
+    lm->getLigthsMatrix()->status = 1;
+    m_lights.push_back(lm);
+
+    lm = new Light();
+    lm->setPosition(glm::vec3(-15.0f, 0.0f, -15.0f));
+    lm->getLigthsMatrix()->color = glm::vec3(0.4f, 0.9f, 0.3f);
+    lm->getLigthsMatrix()->range = 15.0f;
     lm->getLigthsMatrix()->status = 1;
     m_lights.push_back(lm);
 
@@ -399,6 +428,11 @@ void Application::render()
     glBindTexture(GL_TEXTURE_2D, ltarget->getDepthTextures());
     int32_t shadowTex = glGetUniformLocation(program, "shadowMap");
     glUniform1i(shadowTex, 5);
+
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, m_cubeMapTexture);
+    int32_t skyboxText = glGetUniformLocation(program, "skybox");
+    glUniform1i(skyboxText, 6);
 
     glBindBuffer(GL_UNIFORM_BUFFER, m_UBOCamera);
     glBufferData(GL_UNIFORM_BUFFER, sizeof(MatrixCamera), &mc, GL_STATIC_DRAW);

@@ -8,6 +8,7 @@ uniform sampler2D metallicMap;
 uniform sampler2D roughnessMap;
 uniform sampler2D aoMap;
 uniform sampler2D shadowMap;
+uniform samplerCube skybox;
 
 uniform Materials
 {
@@ -214,7 +215,16 @@ void main(void)
         }
     }
 
+    vec3 I = normalize(v_FragPosition - mc.position);
+    vec3 R = reflect(I, N);
+    vec3 skyColor = texture(skybox, R).rgb;    
+
     color = ambient + Lo;
+
+    if(roughness > 0.0)
+    {
+        color = mix((color*skyColor),color,roughness);
+    }
 
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0 / 2.2));

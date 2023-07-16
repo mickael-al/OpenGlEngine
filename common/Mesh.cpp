@@ -83,8 +83,8 @@ Mesh::Mesh() : GObject()
 		{ 1.0f, 1.0f, 1.0f },
 		{ 0.0f, 0.0f },
 		{ 1.0f, 1.0f },
-		0.7f,
-		0.15f,
+		0.0f,
+		0.1f,
 		1.0f,
 		1.0f
 	}
@@ -275,7 +275,6 @@ bool Mesh::ParseObj(Mesh* obj, const char* filepath)
 				vertices[index1].tangents = tangent;
 				vertices[index2].tangents = tangent;
 			}
-
 
 			submesh.materialId = materialId;
 
