@@ -1,3 +1,0 @@
-﻿  Application.cpp
-C:\Users\Malek\Desktop\ESGI4A\OpenGL\Dragon\DragonData.h(4,974090): warning C4305: 'initialisation' : troncation de 'double' à 'float'
-  Dragon3D.vcxproj -> C:\Users\Malek\Desktop\ESGI4A\OpenGL\x64\Debug\Dragon3D.exe
