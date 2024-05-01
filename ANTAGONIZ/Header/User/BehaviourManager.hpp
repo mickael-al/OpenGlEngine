@@ -22,4 +22,4 @@ namespace Ge
 	};
 }
 
-#endif//__ENGINE_BEHAVIOUR_MANAGER__
+#endif //__ENGINE_BEHAVIOUR_MANAGER__

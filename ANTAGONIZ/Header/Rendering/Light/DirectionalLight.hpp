@@ -8,9 +8,8 @@ namespace Ge
 	class DirectionalLight : public Lights
 	{
 	public:
-		DirectionalLight(int index);
-
+		DirectionalLight(int index, GraphicsDataMisc * gdm);
 	};
 }
 
-#endif //__ENGINE_DIRECTIONAL_LIGHT__
+#endif //!__ENGINE_DIRECTIONAL_LIGHT__

@@ -1,37 +1,51 @@
 #ifndef __ENGINE_LIGHT__
 #define __ENGINE_LIGHT__
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm/glm.hpp"
-#include "glm/gtc/quaternion.hpp"
-#include "glm/gtx/euler_angles.hpp"
-#include "glm/common.hpp"
 #include "GObject.hpp"
+#include "UniformBufferLight.hpp"
+#include "ShadowMatrix.hpp"
+
+#define TEXTURE_DIM 1024
+#define SHADOW_MAP_CASCADE_COUNT 4
+#define SHADOW_MAP_CUBE_COUNT 6
+#define SHADOW_MAP_SPOT_COUNT 1
+
+struct GraphicsDataMisc;
 
 namespace Ge
 {
 	class Lights : public GObject
 	{
 	public:
-		Lights(int index);
-		void setColors(glm::vec3 color);
-		glm::vec3 getColors() const;		
+		Lights(unsigned int index, GraphicsDataMisc *gdm);		
+		glm::vec3 getColors() const;
 		float getRange() const;
 		float getSpotAngle() const;
 		int getStatus() const; //Statut directional spotlight pointlight
-		bool getShadow() const;
+		unsigned int getIndex() const;
+		unsigned int getShadowIndex() const;
+		void setColors(glm::vec3 color);
 		void setRange(float r);
 		void setSpotAngle(float r);
-		void setIndex(int i);
+		void setIndex(unsigned int i);
+		void setShadowIndex(unsigned int i);
+		void mapMemory();
+		void mapMemoryShadow();
+		void setshadow(bool state);
+		bool getshadow() const;
 		void onGUI() override;
-		void setShadow(bool state);		
-		virtual ~Lights();
+		virtual ~Lights();		
 	protected:
-		float m_nearPlane = 1.0f;
-		float m_farPlane = 7.5f;
-		int m_index = 0;
+		UniformBufferLight m_ubl{};
+		std::vector<ShadowMatrix> m_shadowMatrix;
+		GraphicsDataMisc * m_gdm;
+		unsigned int m_index = 0;
+		unsigned int m_ssbo;
+		unsigned int m_ssboShadow;
 		bool m_shadow = false;
+		//shadow Dir
+		float cascadeSplitLambda = 0.95f;
+		glm::vec3 frustumCorners[8];
 	};
 }
 

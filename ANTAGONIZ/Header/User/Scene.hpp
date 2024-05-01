@@ -8,4 +8,4 @@ public:
 	virtual void unload() = 0;
 };
 
-#endif //__ENGINE_SCENE__
+#endif //!__ENGINE_SCENE__

@@ -1,21 +1,28 @@
 #ifndef __ENGINE_MATERIALS__
 #define __ENGINE_MATERIALS__
 
-#include "Textures.hpp"
-#include "Debug.hpp"
-#include "VulkanMisc.hpp"
-#include "BufferManager.hpp"
+#include <glm/glm.hpp>
 #include "UniformBufferMaterial.hpp"
-#include "imgui-cmake/Header/imgui.h"
-#include "GraphiquePipeline.hpp"
 #include "Component.hpp"
+#include <vector>
 
 namespace Ge
 {
-	class Materials : Component
+	class Textures;
+	class GraphiquePipeline;
+	class Model;	
+}
+
+struct ptrClass;
+struct GraphicsDataMisc;
+
+namespace Ge
+{
+	class Materials : public Component
 	{
 	public:
-		Materials(int index, VulkanMisc * vM);
+		Materials(unsigned int index, GraphicsDataMisc * gdm);
+		~Materials();
 		void setColor(glm::vec3 color);
 		void setMetallic(float metal);
 		void setRoughness(float roughness);
@@ -26,6 +33,11 @@ namespace Ge
 		void setMetallicTexture(Textures * metallic);
 		void setRoughnessTexture(Textures * roughness);
 		void setOclusionTexture(Textures * oclu);
+		void setOffset(glm::vec2 off);
+		void setTilling(glm::vec2 tilling);
+		void setPipeline(GraphiquePipeline * p);		
+		void setIndex(int i);
+		int getIndex() const;
 		glm::vec3 getColor() const;
 		float getMetallic() const;
 		float getRoughness() const;
@@ -35,40 +47,45 @@ namespace Ge
 		Textures * getNormalTexture() const;
 		Textures * getMetallicTexture() const;
 		Textures * getRoughnessTexture() const;
-		Textures * getOclusionTexture() const;
-		VkBuffer getUniformBuffers() const;
-		void updateUniformBufferMaterial();
-		int getIndex() const;
-		void setIndex(int i);
-		void majTextureIndex();
-		int getShadowCast() const;
-		void setShadowCast(int state);
-		int getOrientation() const;
-		void setOrientation(int state);
+		Textures * getOclusionTexture() const;		
 		glm::vec2 getOffset() const;
 		glm::vec2 getTilling() const;
-		void setOffset(glm::vec2 off);
-		void setTilling(glm::vec2 tilling);
-		void setPipeline(GraphiquePipeline * p);
-		void setPipelineIndex(int p);
-		int getPipelineIndex() const;
+		GraphiquePipeline * getPipeline() const;
+		std::vector<unsigned int> & getAditionalSSBO();
+		unsigned int getAditionalInstanced() const;		
+		void setAditionalInstanced(unsigned int instance);
+		void updateUniformBufferMaterial();
 		void onGUI();
-		~Materials();
+		bool getDraw() const;
+		void setDraw(bool draw);
+		bool * getDrawAddr();
+		void setDepthTest(bool state);
+		bool getDepthTest() const;
+	public:
+		friend class Model;
+		void addModel(Model * model);
+		void removeModel(Model * model);
 	private:
+		const ptrClass * m_pc;
+		bool m_draw = true;
+		bool m_depthTest = true;
 		UniformBufferMaterial m_ubm{};
-		VulkanMisc * vulkanM;
-		VmaBuffer m_vmaUniformBuffer;
+		GraphicsDataMisc * m_gdm;
 		Textures * m_albedoMap;
 		Textures * m_normalMap;
 		Textures * m_metallicMap;
 		Textures * m_RoughnessMap;
 		Textures * m_aoMap;
-		int m_pipelineIndex;
+		GraphiquePipeline * m_pipeline;
+		std::vector<Model*> m_model;
+		std::vector<unsigned int> m_aditionalSSBO;
+		unsigned int m_aditionalInstanced = 0;
 		float m_color[3];
 		float m_offset[2];
 		float m_tilling[2];
-		int m_index = 0;
+		unsigned int m_ssbo;
+		unsigned int m_index = 0;
 	};
 }
 
-#endif//__ENGINE_MATERIALS__
+#endif //!__ENGINE_MATERIALS__

@@ -9,12 +9,16 @@
 #include "LightManager.hpp"
 #include "CameraManager.hpp"
 #include "MaterialManager.hpp"
+#include "Hud.hpp"
 #include "BehaviourManager.hpp"
 #include "SceneManager.hpp"
 #include "GraphiquePipelineManager.hpp"
-#include "SkyboxManager.hpp"
 
 using namespace Ge;
+namespace Ge
+{
+	class RenderingEngine;
+};
 
 struct ptrClass
 {
@@ -22,11 +26,15 @@ struct ptrClass
     InputManager * inputManager;	
 	Time * time;
 	ModelManager * modelManager;
+	TextureManager * textureManager;
 	LightManager * lightManager;
 	CameraManager * cameraManager;
+	MaterialManager * materialManager;
 	BehaviourManager * behaviourManager;
 	SceneManager * sceneManager;
-	SkyboxManager * skyboxManager;
+	Hud * hud;
+	GraphiquePipelineManager * graphiquePipelineManager;
+	RenderingEngine * renderingEngine;
 };
 
 #endif //__ENGINE_POINTEUR_CLASS__

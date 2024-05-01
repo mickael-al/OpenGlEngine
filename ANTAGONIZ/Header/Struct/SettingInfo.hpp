@@ -13,8 +13,10 @@ struct SettingInfo
     float m_gamma = 2.2f;
     glm::vec3 m_gravity = glm::vec3(0, -9.81f, 0);
     Version m_version;
-	glm::vec4 m_clearColor = glm::vec4(0.1f);
+	glm::vec4 m_clearColor = glm::vec4(0.0f,0.0f,0.0f,0.0f);
 	const char * iconPath = "";
+	bool m_vsync = false;
+	float * m_framerate;
 };
 
 #endif //__ENGINE_SETTING_INFO__

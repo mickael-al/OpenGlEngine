@@ -8,4 +8,4 @@ struct Version
 	int patch = 0;
 };
 
-#endif //__ENGINE_VERSION__
+#endif //!__ENGINE_VERSION__

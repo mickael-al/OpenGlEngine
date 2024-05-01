@@ -1,21 +1,23 @@
 #ifndef __ENGINE_INPUT_MANAGER__
 #define __ENGINE_INPUT_MANAGER__
 
-#include "Window.hpp"
-#include "GLFW/glfw3.h"
 #include <map>
-#include "Debug.hpp"
-#include "glm/glm.hpp"
+#include "Initializer.hpp"
+#include <glm/glm.hpp>
+#include <GLFW/glfw3.h>
+struct GraphicsDataMisc;
+class GLFWwindow;
 
 namespace Ge
 {
-	class InputManager
+	class InputManager final : InitializerAPI
 	{
-	private:
-		friend class GameEngine;
-		bool initialize(const VulkanMisc * vM);
-		void updateAxis();
+	public:
+		bool initialize(GraphicsDataMisc * gdm);
 		void release();
+	private:
+		friend class Engine;
+		void updateAxis();		
 	public:
 		const char * getGamepadName(int jid) const;
 		bool getGamepadState(int jid,int key) const;
@@ -23,7 +25,7 @@ namespace Ge
 		bool getKey(int key) const;
 		bool getKeyUp(int key);
 		bool getKeyDown(int key);
-		bool getMouse(int key) const;
+		bool getMouse(int key, int pressType = GLFW_PRESS) const;
 		void HideMouse(bool state);
 		double axisMouseX();
 		double axisMouseY();
@@ -39,4 +41,4 @@ namespace Ge
 	};
 }
 
-#endif //__ENGINE_INPUT_MANAGER__
+#endif //!__ENGINE_INPUT_MANAGER__

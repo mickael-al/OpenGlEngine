@@ -2,6 +2,7 @@
 #define __ENGINE_TRANSFORM__
 
 #include "glm/glm.hpp"
+#include "glm/gtc/quaternion.hpp"
 
 struct Transform
 {
@@ -10,4 +11,4 @@ struct Transform
     glm::vec3 scale;
 };
 
-#endif //__ENGINE_TRANSFORM__
+#endif //!__ENGINE_TRANSFORM__

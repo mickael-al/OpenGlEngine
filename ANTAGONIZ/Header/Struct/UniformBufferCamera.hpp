@@ -10,4 +10,4 @@ struct UniformBufferCamera
 	alignas(16) glm::mat4 proj;
 };
 
-#endif //__ENGINE_UNIFORM_BUFFER_CAMERA__
+#endif //!__ENGINE_UNIFORM_BUFFER_CAMERA__

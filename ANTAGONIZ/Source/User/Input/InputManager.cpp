@@ -1,11 +1,13 @@
 #include "InputManager.hpp"
+#include "GraphicsDataMisc.hpp"
+#include "Debug.hpp"
 
 namespace Ge
 {
-	bool InputManager::initialize(const VulkanMisc * vM)
+	bool InputManager::initialize(GraphicsDataMisc * gdm)
 	{
 		Debug::Info("Initialisation de l'InputManager");
-		m_window = vM->str_VulkanDeviceMisc->str_window;
+		m_window = gdm->str_window;
 		glfwGetCursorPos(m_window, &m_lastMousePos.x, &m_lastMousePos.y);
 		return true;
 	}
@@ -99,9 +101,9 @@ namespace Ge
 		return false;
 	}
 
-	bool InputManager::getMouse(int key) const
+	bool InputManager::getMouse(int key,int pressType) const
 	{
-		return glfwGetMouseButton(m_window, key) == GLFW_PRESS;
+		return glfwGetMouseButton(m_window, key) == pressType;
 	}
 	
 	void InputManager::HideMouse(bool state)

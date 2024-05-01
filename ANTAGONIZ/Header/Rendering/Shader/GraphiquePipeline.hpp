@@ -1,29 +1,44 @@
 #ifndef __ENGINE_GRAPHIQUE_PIPELINE__
 #define __ENGINE_GRAPHIQUE_PIPELINE__
 
-/*
-#include "Debug.hpp"
+#include <iostream>
+
+struct GraphicsDataMisc;
+namespace Ge
+{
+	class ShaderPair;
+}
 
 namespace Ge
 {
-    class GraphiquePipeline
-    {
-    public:
-        GraphiquePipeline(VulkanMisc *vM, ShaderPair * sp);
-        ~GraphiquePipeline();
-		int getIndex() const;
+	enum ShaderType
+	{
+		VertexShader,
+		GeometryShader,
+		FragmentShader,
+		ComputeShaderType,
+	};
+
+	class GraphiquePipeline
+	{
+	public:
+		GraphiquePipeline(GraphicsDataMisc * gdm, ShaderPair * sp);
+		~GraphiquePipeline();		
+		inline unsigned int getProgram() { return m_program; }
 		ShaderPair * getShaderPair() const;
-        static ShaderElement LoadShader(const std::string &filename, const char *entry, VkDevice device, bool isVertex,VulkanMisc * vM);
-        static void DestroyShaderElement(VkDevice device, ShaderElement se);
-        static std::vector<char> readFile(const std::string &filename);
-        static VkShaderModule createShaderModule(const std::vector<char> &code, VkDevice device);
-    public:
-        GraphiquePipelineElement m_graphiquePipelineElement;		
-    private:
+	private:
+		friend class ComputeShader;
+		static bool LoadShader(std::string filename, ShaderType type, unsigned int * shader);
+		static bool ValidateShader(unsigned int shader);
+		bool Create();
+	private:
 		ShaderPair * m_shaderPair;
-        VulkanMisc *vulkanM;
-		int m_index;
-    };
+		GraphicsDataMisc * m_gdm;
+		unsigned int m_program;
+		unsigned int m_vertexShader = 0;
+		unsigned int m_geometryShader = 0;
+		unsigned int m_fragmentShader = 0;
+	};
 }
-*/
-#endif //__ENGINE_GRAPHIQUE_PIPELINE__
+
+#endif //!__ENGINE_GRAPHIQUE_PIPELINE__

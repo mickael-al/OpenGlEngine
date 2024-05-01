@@ -6,6 +6,7 @@
 struct UniformBufferObject
 {
 	alignas(16) glm::mat4 model;
+	int mat_index;
 };
 
-#endif //__ENGINE_UNIFORM_BUFFER_OBJECTS__
+#endif //!__ENGINE_UNIFORM_BUFFER_OBJECTS__

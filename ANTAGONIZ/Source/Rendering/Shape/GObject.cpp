@@ -1,6 +1,17 @@
 #include "GObject.hpp"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/transform.hpp"
+#include "glm/gtc/quaternion.hpp"
+#include "glm/gtx/quaternion.hpp"
+#include "glm/gtx/euler_angles.hpp"
+#include "glm/common.hpp"
+#include "Component.hpp"
+#include "imgui-cmake/Header/imgui.h"
+#include "Transform.hpp"
 #include "Debug.hpp"
-/*
+#include <algorithm>
+
 namespace Ge
 {
 	std::vector<GObject *> GObject::s_gobjects;
@@ -202,11 +213,11 @@ namespace Ge
 		if (ImGui::DragFloat3("Scale", (float *)&m_transform.scale, 0.2f))
 		{
 			setScale(m_transform.scale);
-		}		
+		}
 
 		for (Component *comp : m_component)
 		{
 			comp->onGUI();
 		}
 	}
-}*/
+}

@@ -16,11 +16,10 @@ namespace Ge
 		void loadEntryScene();
 		void release();
 	private:
-		float* m_lag = nullptr;
 		std::string entryScene = "";
 		std::map<std::string,Scene *> m_mapScene;
 		Scene * currentScene;
 	};
 }
 
-#endif//__ENGINE_SCENE_MANAGER__
+#endif//!__ENGINE_SCENE_MANAGER__

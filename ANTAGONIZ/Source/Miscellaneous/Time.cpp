@@ -1,4 +1,6 @@
 #include "Time.hpp"
+#include "Debug.hpp"
+#include <GLFW/glfw3.h>
 
 namespace Ge
 {

@@ -1,73 +1,92 @@
+#include "glcore.hpp"
 #include "CameraManager.hpp"
+#include "Debug.hpp"
+#include "UniformBufferCamera.hpp"
+#include "Camera.hpp"
+#include "FlyCamera.hpp"
+#include "GraphicsDataMisc.hpp"
+#include <algorithm>
 
 namespace Ge
 {
-    bool CameraManager::initialize()
+    bool CameraManager::initialize(GraphicsDataMisc * gdm)
     {        
-		/*Instance = this;
-        m_flyCamera = new FlyCamera(vM, im);      
-		((Camera *)m_flyCamera)->setName("FlyCamera");
-		m_cameras.push_back((Camera *)m_flyCamera);
-        CameraManager::updatePriorityCamera(); 
-		Debug::INITSUCCESS("CameraManager");		*/
+        m_gdm = gdm;
+		glGenBuffers(1, &m_ssbo);
+		m_gdm->str_ssbo.str_camera = m_ssbo;
+		updateStorage();
+        m_flyCamera = new FlyCamera(gdm);
+		m_currentCamera = (Camera *)m_flyCamera;
+		m_gdm->current_camera = m_currentCamera;
+		m_currentCamera->setName("FlyCamera");
+		m_cameras.push_back(m_currentCamera);
+		updateStorage(); 
+		Debug::INITSUCCESS("CameraManager");		
         return true;
     }
 
     Camera *CameraManager::createCamera(std::string name)
     {
-        /*Camera* cam = new Camera(vulkanM);
+        Camera * cam = new Camera(m_gdm);
 		m_cameras.push_back(cam);
 		cam->setName(name);
-		CameraManager::updatePriorityCamera();
-		return cam;*/
+		updatePriorityCamera();
+		return cam;
     }
 
 	void CameraManager::updateFlyCam()
 	{
-		/*if (currentCamera == (Camera*)m_flyCamera)
+		if (m_currentCamera == (Camera *)m_flyCamera)
 		{
 			m_flyCamera->updateCamera();
-		}*/
+		}
 	}
     
     void CameraManager::releaseCamera(Camera *camera)
     {
-		/*m_cameras.erase(std::remove(m_cameras.begin(), m_cameras.end(), camera), m_cameras.end());
+		m_cameras.erase(std::remove(m_cameras.begin(), m_cameras.end(), camera), m_cameras.end());
         delete (camera);
-        CameraManager::updatePriorityCamera();*/
+        updatePriorityCamera();
     }
 
     void CameraManager::updatePriorityCamera()
     {
-       /* int minimum = INT_MAX;
+        int minimum = INT_MAX;
         for (int i = 0 ; i < m_cameras.size();i++)
 		{
 		   	if (m_cameras[i]->getPriority() < minimum)
 			{
 				minimum = m_cameras[i]->getPriority();
-				currentCamera = m_cameras[i];
+				m_currentCamera = m_cameras[i];
+				m_gdm->current_camera = m_currentCamera;
 			}
-		}    
-		*/
+		}    		
     }
 
-    /*Camera* CameraManager::getCurrentCamera()
+    Camera *CameraManager::getCurrentCamera()
     {
-        return currentCamera;
-    }*/
+        return m_currentCamera;
+    }
+
+	void CameraManager::updateStorage()
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ssbo);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(UniformBufferCamera), nullptr, GL_DYNAMIC_DRAW);
+		if (m_currentCamera != nullptr)
+		{
+			m_currentCamera->mapMemory();
+		}
+	}
 
     void CameraManager::release()
     {
-		/*if (m_flyCamera != nullptr)
-		{
-			m_cameras.erase(std::remove(m_cameras.begin(), m_cameras.end(), (Camera *)m_flyCamera), m_cameras.end());
-			delete (m_flyCamera);
-		}
 		for (int i = 0; i < m_cameras.size(); i++)
 		{
 			delete(m_cameras[i]);
 		}
 		m_cameras.clear();
-        Debug::RELEASESUCCESS("CameraManager");*/
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+		glDeleteBuffers(1, &m_ssbo);
+        Debug::RELEASESUCCESS("CameraManager");
     }
 }

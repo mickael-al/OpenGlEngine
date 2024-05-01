@@ -4,13 +4,11 @@ namespace Ge
 {
     double SettingManager::getFps() const
     {
-
         return m_settingInfo.m_fps;
     }
 
     void SettingManager::setFps(double fps)
     {
-
         m_settingInfo.m_fps = fps;
     }
 
@@ -21,7 +19,6 @@ namespace Ge
 
     void SettingManager::setName(const char *name)
     {
-
         m_settingInfo.m_name = name;
     }
     double SettingManager::getWindowHeight() const
@@ -71,7 +68,7 @@ namespace Ge
         m_settingInfo.m_clearColor = color;
     }
 
-	glm::vec4 SettingManager::getClearColor() const
+	const glm::vec4 & SettingManager::getClearColor() const
     {
         return m_settingInfo.m_clearColor;
     }
@@ -89,6 +86,26 @@ namespace Ge
 	void SettingManager::setIconPath(const char * path)
 	{
 		m_settingInfo.iconPath = path;
+	}
+
+	void SettingManager::setVSync(float vsync)
+	{
+		m_settingInfo.m_vsync = vsync;
+	}
+
+	float SettingManager::getVsync() const
+	{
+		return m_settingInfo.m_vsync;
+	}
+
+	float const * SettingManager::getFramerate() const
+	{
+		return m_settingInfo.m_framerate;
+	}
+
+	void SettingManager::setFramerate(float * fr)
+	{
+		m_settingInfo.m_framerate = fr;
 	}
 
 	const char * SettingManager::getIconPath() const

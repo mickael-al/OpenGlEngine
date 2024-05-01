@@ -2,11 +2,12 @@
 #define __ENGINE_SETTING_MANAGER__
 
 #include "Initializer.hpp"
+#include "Debug.hpp"
 #include "SettingInfo.hpp"
 
 namespace Ge
-{
-    class SettingManager final
+{	
+    class SettingManager
     {
     public:
         double getFps() const;
@@ -22,15 +23,20 @@ namespace Ge
         void setVersion(Version v);
         Version getVersion() const;
         void setClearColor(glm::vec4 color);
-		glm::vec4 getClearColor() const;
+		const glm::vec4 & getClearColor() const;
         void setGamma(float gamma);
         float getGamma() const;
+		void setVSync(float vsync);
+		float getVsync() const;
 		void setIconPath(const char * path);
 		const char * getIconPath() const;
-
+		float const * getFramerate() const;		
+	private:
+		friend class Hud;
+		void setFramerate(float * fr);
     private:
         SettingInfo m_settingInfo;
     };
 }
 
-#endif //__ENGINE_SETTING_MANAGER__
+#endif //!__ENGINE_SETTING_MANAGER__

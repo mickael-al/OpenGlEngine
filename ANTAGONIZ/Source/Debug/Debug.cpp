@@ -1,13 +1,12 @@
 #include "Debug.hpp"
+#include "Console.hpp"
 #include "termcolor/termcolor.hpp"
-#include <fstream>
-#include <cstdarg>
 
 namespace Ge
 {
         char Debug::buffer[BUFFER_SIZE];
         char Debug::tempbuffer[BUFFER_SIZE];
-        Console* Debug::console = nullptr;
+		Console * Debug::console = nullptr;
         void Debug::Log(const char *format, ...)
         {
                 va_list argList;
@@ -22,6 +21,11 @@ namespace Ge
                 va_end(argList);
 
                 std::cout << tempbuffer;
+				if (console != nullptr)
+				{
+					console->setBaseColor(ImColor(1.0f, 1.0f, 1.0f, 1.0f));
+					console->AddLog("%s", tempbuffer);
+				}
         }
 
         void Debug::Error(const char *format, ...)
@@ -38,6 +42,11 @@ namespace Ge
                 va_end(argList);
 
                 std::cerr << termcolor::red << tempbuffer << termcolor::reset;
+				if (console != nullptr)
+				{
+					console->setBaseColor(ImColor(0.5f, 0.0f, 0.0f, 1.0f));
+					console->AddLog("%s", tempbuffer);
+				}
                 std::cin.ignore();
         }
 
@@ -70,6 +79,11 @@ namespace Ge
                 va_end(argList);
 
                 std::cout << termcolor::yellow << tempbuffer << termcolor::reset;
+				if (console != nullptr)
+				{
+					console->setBaseColor(ImColor(0.5f, 0.5f, 0.0f, 1.0f));
+					console->AddLog("%s", tempbuffer);
+				}
         }
 
         void Debug::Info(const char *format, ...)
@@ -86,6 +100,11 @@ namespace Ge
                 va_end(argList);
 
                 std::cout << termcolor::cyan << tempbuffer << termcolor::reset;
+				if (console != nullptr)
+				{
+					console->setBaseColor(ImColor(0.0f, 0.4f, 0.4f, 1.0f));
+					console->AddLog("%s", tempbuffer);
+				}
         }
 
         void Debug::VLayer(const char *format, ...)
@@ -102,6 +121,11 @@ namespace Ge
                 va_end(argList);
 
                 std::cout << termcolor::magenta << tempbuffer << termcolor::reset;
+				if (console != nullptr)
+				{
+					console->setBaseColor(ImColor(0.25f, 0.0f, 0.5f, 1.0f));
+					console->AddLog("%s", tempbuffer);
+				}
         }
 
         void Debug::TempFile(std::string data, const char* path)
@@ -116,7 +140,8 @@ namespace Ge
                     return;
                 }
 
-                tempFile << data;
+                //tempFile << data;
+				Debug::Error("TODO Fix TempFile Debug");
                 tempFile.close();
 
                 std::cout << "Fichier temporaire cree avec succes a : " << path << std::endl;

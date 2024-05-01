@@ -1,49 +1,39 @@
 #ifndef __ENGINE_MODEL_SHAPE__
 #define __ENGINE_MODEL_SHAPE__
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtx/transform.hpp"
-#include "glm/gtc/quaternion.hpp" 
-#include "glm/gtx/quaternion.hpp"
-#include "glm/gtx/euler_angles.hpp"
-#include "glm/common.hpp"
-#include "Debug.hpp"
-#include "VulkanMisc.hpp"
-#include "ShapeBuffer.hpp"
-#include "BufferManager.hpp"
-#include "UniformBufferObject.hpp"
-#include "PushConstants.hpp"
-#include "Materials.hpp"
 #include "GObject.hpp"
+#include "UniformBufferObject.hpp"
+
+namespace Ge
+{
+	class Materials;
+	class ShapeBuffer;
+}
+
+struct GraphicsDataMisc;
 
 namespace Ge
 {
 	class Model : public GObject
 	{
 	public:
-		Model(ShapeBuffer * buffer, int indexUbo, VulkanMisc * vM);
+		Model(ShapeBuffer * buffer, unsigned int index, GraphicsDataMisc * gdm);
 		~Model();		
-		VkBuffer getUniformBuffers() const;
 		ShapeBuffer * getShapeBuffer() const;
 		UniformBufferObject getUBO() const;
 		void setMaterial(Materials * m);
 		Materials * getMaterial() const;
-		PushConstants getPushConstants() const;
-		void majMaterialIndex(int pi_mat);
 		void mapMemory() override;
-		void setIndexUbo(int index);
+		void setIndex(unsigned int index);
+		unsigned int getIndex();
 	private:
-		VulkanMisc * vulkanM;
+		GraphicsDataMisc * m_gdm;
 		ShapeBuffer * m_buffer;
 		Materials * m_material;
-		VkDevice m_device;
-		VmaBuffer m_vmaUniformBuffer;
-		PushConstants m_index{};
 		UniformBufferObject m_ubo{};
+		unsigned int m_index;
+		unsigned int m_ssbo;
 	};
 }
 
-#endif // __ENGINE_MODEL_SHAPE__
+#endif //!__ENGINE_MODEL_SHAPE__

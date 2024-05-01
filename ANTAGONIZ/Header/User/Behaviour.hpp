@@ -12,4 +12,4 @@ public:
 	virtual void stop() = 0;
 };
 
-#endif//__ENGINE_BEHAVIOUR__
+#endif//!__ENGINE_BEHAVIOUR__

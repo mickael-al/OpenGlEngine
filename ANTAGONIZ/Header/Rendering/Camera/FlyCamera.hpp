@@ -3,14 +3,19 @@
 
 #include "Camera.hpp"
 
+struct GraphicsDataMisc;
 namespace Ge
 {
 	class InputManager;
+}
+
+namespace Ge
+{
 	class FlyCamera : Camera
 	{
 	public:
-		//FlyCamera(InputManager * input);
-		//void updateCamera();
+		FlyCamera(GraphicsDataMisc * gdm);
+		void updateCamera();
 	private:	
 		InputManager * m_im;
 		float m_angleX;
@@ -23,4 +28,4 @@ namespace Ge
 	};
 }
 
-#endif //__ENGINE_FLY_CAMERA__
+#endif //!__ENGINE_FLY_CAMERA__

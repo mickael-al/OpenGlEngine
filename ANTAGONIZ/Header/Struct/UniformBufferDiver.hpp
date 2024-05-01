@@ -4,9 +4,10 @@
 struct UniformBufferDiver
 {
     int maxLight;
-    int maxShadow;
     float u_time;
     float gamma;
+	float fov;
+	bool ortho;
 };
 
-#endif //__ENGINE_UNIFORM_BUFFER_DIVER__
+#endif //!__ENGINE_UNIFORM_BUFFER_DIVER__

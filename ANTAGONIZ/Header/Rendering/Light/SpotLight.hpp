@@ -8,7 +8,7 @@ namespace Ge
 	class SpotLight : public Lights
 	{
 	public:
-		SpotLight(int index, VulkanMisc * vM);
+		SpotLight(int index, GraphicsDataMisc * gdm);
 	};
 }
 

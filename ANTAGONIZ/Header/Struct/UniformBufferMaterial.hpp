@@ -11,14 +11,7 @@ struct UniformBufferMaterial
     float metallic;
     float roughness;
     float normal;
-    float ao;    
-    int albedoMap;
-    int normalMap;
-    int metallicMap;
-    int roughnessMap;
-    int aoMap;
-    int castShadow;//ignore -> //0 nothing // 1= cast shadow //2 = receive the shadow // 3 == 1&&2
-    int orientation;//0 = nothing// 1 = y only // 2 = xy
+    float ao;
 };
 
-#endif //__ENGINE_UNIFORM_BUFFER_MATERIAL__
+#endif //!__ENGINE_UNIFORM_BUFFER_MATERIAL__

@@ -1,60 +1,38 @@
+#include "glcore.hpp"
 #include "ModelManager.hpp"
-
-/*
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tinyobjloader/tiny_obj_loader.h"
 #include <glm/gtx/normal.hpp>
-#include "MaterialManager.hpp"
 #include "OpenFBX/src/ofbx.h"
+#include "Model.hpp"
+#include "ShapeBufferBase.hpp"
+#include "Debug.hpp"
+#include "Vertex.hpp"
 #include <algorithm>
+#include <unordered_map>
+#include "GraphicsDataMisc.hpp"
+#include "GraphiquePipeline.hpp"
 
 namespace Ge
 {
-	std::vector<Model*> ModelManager::m_models;
-	std::map<ShapeBuffer*, std::map<int, std::vector<Model*>>> ModelManager::m_instancing;
-	bool ModelManager::initiliaze(VulkanMisc *vM)
+	bool ModelManager::initialize(GraphicsDataMisc *gdm)
 	{
-		vulkanM = vM;		
-		if (!BufferManager::createBuffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_vmaUniformBuffers, vM->str_VulkanDeviceMisc))
-		{
-			Debug::Error("Echec de la creation d'un uniform buffer");
-			return false;
-		}
-		updateDescriptor();
+		m_gdm = gdm;
+		glGenBuffers(1, &m_ssbo);
+		m_gdm->str_ssbo.str_model = m_ssbo;
+		float pos[] = { -1.0f, 1.0f,0.0f, -1.0f, -1.0f,0.0f , 1.0f, 1.0f,0.0f, 1.0f, -1.0f,0.0f };
+		float texCord[] = {0.0f,1.0f,0.0f,0.0f,1.0f,1.0f,1.0f,0.0f};
+		float normal[] = { 0.0f,0.0f,1.0f,0.0f,0.0f,1.0f, 0.0f,0.0f,1.0f, 0.0f,0.0f,1.0f };
+		unsigned int indice[] = { 0,1,2,3,2,1 };
+		m_defferedQuad = allocateBuffer(pos, texCord, normal, indice,12,6);
+		m_defferedQuad->SetupVAO(gdm->str_default_pipeline_forward->getProgram());
 		Debug::INITSUCCESS("ModelManager");
 		return true;
 	}
 
-	void ModelManager::updateDescriptor()
-	{
-		std::vector<VkDescriptorBufferInfo> bufferInfoModel{};
-		VkDescriptorBufferInfo bufferIM{};
-        for (int i = 0 ; i < m_models.size();i++)
-        {
-            bufferIM.buffer = m_models[i]->getUniformBuffers();
-			bufferIM.offset = 0;
-			bufferIM.range = sizeof(UniformBufferObject);
-			bufferInfoModel.push_back(bufferIM);
-        }
-		if(m_models.size() == 0)
-		{
-			bufferIM.buffer = m_vmaUniformBuffers.buffer;
-			bufferIM.offset = 0;
-			bufferIM.range = sizeof(UniformBufferObject);
-			bufferInfoModel.push_back(bufferIM);
-			m_descriptor[0]->updateCount(vulkanM, 1, bufferInfoModel);			
-		}
-		else
-		{			
-			m_descriptor[0]->updateCount(vulkanM, m_models.size(), bufferInfoModel);
-		}
-		vulkanM->str_VulkanSwapChainMisc->str_descriptorSetLayoutModel = m_descriptor[0]->getDescriptorSetLayout();
-		vulkanM->str_VulkanSwapChainMisc->str_descriptorSetModel = m_descriptor[0]->getDescriptorSets();
-	}
-
 	void ModelManager::release()
 	{
-		for (int i = 0; i < m_shapeBuffers.size();i++)
+		for (int i = 0; i < m_shapeBuffers.size(); i++)
 		{
 			delete (m_shapeBuffers[i]);
 		}
@@ -64,13 +42,8 @@ namespace Ge
 			delete (m_models[i]);
 		}
 		m_models.clear();
-		m_instancing.clear();
-		BufferManager::destroyBuffer(m_vmaUniformBuffers);
-		for (int i = 0; i < m_descriptor.size(); i++)
-		{
-			delete m_descriptor[i];
-		}
-		m_descriptor.clear();
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+		glDeleteBuffers(1, &m_ssbo);
 		Debug::RELEASESUCCESS("ModelManager");
 	}
 
@@ -81,132 +54,113 @@ namespace Ge
 			Debug::Warn("Le buffer n'existe pas");
 			return nullptr;
 		}
-		Model * Mesh = new Model(buffer, m_models.size(), vulkanM);
-		m_instancing[buffer][0].push_back(Mesh);
-		Mesh->setName(nom);
-		Mesh->setMaterial(MaterialManager::getDefaultMaterial());
+		Model * Mesh = new Model(buffer, m_models.size(), m_gdm);
 		m_models.push_back(Mesh);
-		vulkanM->str_VulkanDescriptor->modelCount = m_models.size();		
-		updateDescriptor();
-		vulkanM->str_VulkanDescriptor->recreateCommandBuffer = true;
-		vulkanM->str_VulkanDescriptor->recreateShadowPipeline = true;
+		m_gdm->str_dataMisc.modelCount = m_models.size();
+		updateStorage();
+		Mesh->setName(nom);
+		Mesh->setMaterial(m_gdm->str_default_material);		
+		m_gdm->str_dataMisc.recreateCommandBuffer = true;
 		return Mesh;
 	}
 
 	void ModelManager::destroyModel(Model *model)
 	{
-		m_destroyElement = true;
-		m_destroymodels.erase(std::remove(m_destroymodels.begin(), m_destroymodels.end(), model), m_destroymodels.end());
-		m_destroymodels.push_back(model);
-		vulkanM->str_VulkanDescriptor->recreateCommandBuffer = true;
-		vulkanM->str_VulkanDescriptor->recreateShadowPipeline = true;
+		m_models.erase(std::remove(m_models.begin(), m_models.end(), model), m_models.end());
+		unsigned int i = model->getIndex()-1;		
+		for (; i < m_models.size(); i++)
+		{
+			m_models[i]->setIndex(i);
+		}
+		Materials * mat = model->getMaterial();
+		ShapeBuffer * sb = model->getShapeBuffer();
+		std::vector<Model*> &vecModel = m_instanced[mat][sb];
+		vecModel.erase(std::remove(vecModel.begin(), vecModel.end(), model), vecModel.end());
+		if (vecModel.size() == 0)
+		{
+			auto bufferIterator = std::find_if(
+				m_instanced[mat].begin(), m_instanced[mat].end(),
+				[sb](const std::pair<ShapeBuffer * , std::vector<Model*>>& shapeBufferPair) {
+				return shapeBufferPair.first == sb;
+			}
+			);
+
+			if (bufferIterator != m_instanced[mat].end())
+			{
+				m_instanced[mat].erase(bufferIterator);
+			}
+		}
+		delete (model);
+		m_gdm->str_dataMisc.modelCount = m_models.size();
+		m_gdm->str_dataMisc.recreateCommandBuffer = true;
 	}
 
 	void ModelManager::destroyBuffer(ShapeBuffer *buffer)
 	{
-		m_destroyElement = true;
-		m_destroyshapeBuffers.erase(std::remove(m_destroyshapeBuffers.begin(), m_destroyshapeBuffers.end(), buffer), m_destroyshapeBuffers.end());
-		m_destroyshapeBuffers.push_back(buffer);
-		vulkanM->str_VulkanDescriptor->recreateCommandBuffer = true;
-		vulkanM->str_VulkanDescriptor->recreateShadowPipeline = true;
-	}
-
-	void ModelManager::destroyElement()
-	{		
-		if (m_destroyElement)
+		m_shapeBuffers.erase(std::remove(m_shapeBuffers.begin(), m_shapeBuffers.end(), buffer), m_shapeBuffers.end());
+		for (auto& materialPair : m_instanced) 
 		{
-			ShapeBuffer* sb;
-			int pi;
-			for (int j = 0; j < m_destroymodels.size(); j++)
-			{
-				m_models.erase(std::remove(m_models.begin(), m_models.end(), m_destroymodels[j]), m_models.end());
-				sb = m_destroymodels[j]->getShapeBuffer();
-				pi = m_destroymodels[j]->getMaterial()->getPipelineIndex();
-				m_instancing[sb][pi].erase(std::remove(m_instancing[sb][pi].begin(), m_instancing[sb][pi].end(), m_destroymodels[j]), m_instancing[sb][pi].end());
-				auto& modelVector = m_instancing[sb][pi];
-				if (modelVector.empty())
-				{
-					m_instancing[sb].erase(pi);
-					if (m_instancing[sb].empty())
-					{
-						m_instancing.erase(sb);
-					}
-				}
-				delete (m_destroymodels[j]);
-			}
+			Materials* currentMaterials = materialPair.first;
 
-			for (int j = 0; j < m_destroyshapeBuffers.size(); j++)
-			{
-				for (int i = 0; i < m_models.size(); i++)
-				{
-					if (m_models[i]->getShapeBuffer() == m_destroyshapeBuffers[j])
-					{
-						Model * m = m_models[i];
-						m_models.erase(std::remove(m_models.begin(), m_models.end(), m), m_models.end());
-						delete (m);
-						i--;
-					}
-				}
-				auto it = m_instancing.find(m_destroyshapeBuffers[j]);
-				if (it != m_instancing.end()) 
-				{
-					m_instancing.erase(it);
-				}
-				m_shapeBuffers.erase(std::remove(m_shapeBuffers.begin(), m_shapeBuffers.end(), m_destroyshapeBuffers[j]), m_shapeBuffers.end());
-				delete (m_destroyshapeBuffers[j]);
+			auto bufferIterator = std::find_if(
+				materialPair.second.begin(), materialPair.second.end(),
+				[buffer](const std::pair<ShapeBuffer *, std::vector<Model*>>& shapeBufferPair) {
+				return shapeBufferPair.first == buffer;
 			}
+			);
 
-			m_destroyshapeBuffers.clear();
-			m_destroymodels.clear();
-			for (int i = 0; i < m_models.size(); i++)
+			if (bufferIterator != materialPair.second.end()) 
 			{
-				m_models[i]->setIndexUbo(i);
+				materialPair.second.erase(bufferIterator);
 			}
-			vulkanM->str_VulkanDescriptor->modelCount = m_models.size();
-			updateDescriptor();
-			m_destroyElement = false;
 		}
+		delete(buffer);
+		m_gdm->str_dataMisc.recreateCommandBuffer = true;
 	}
 
-	std::map<ShapeBuffer*, std::map<int, std::vector<Model*>>> & ModelManager::GetModelInstancing()
-	{
-		return m_instancing;
-	}
-
-	std::vector<Model*> & ModelManager::GetModels()
+	std::vector<Model*> & ModelManager::getModels()
 	{
 		return m_models;
 	}
 
-	void ModelManager::updateInstanced(ShapeBuffer* sb, Model* m,int pi_Start,int pi_End,VulkanMisc * vm)
+	std::unordered_map<Materials*, std::unordered_map<ShapeBuffer*, std::vector<Model*>>> & ModelManager::getInstancedModels()
 	{
-		if (pi_Start == pi_End)
-		{
-			return;
-		}
-		auto& modelVector = m_instancing[sb][pi_Start];
-		modelVector.erase(std::remove(modelVector.begin(), modelVector.end(), m), modelVector.end());
-
-		m_instancing[sb][pi_End].push_back(m);
-
-		if (modelVector.empty())
-		{
-			m_instancing[sb].erase(pi_Start);
-			if (m_instancing[sb].empty())
-			{
-				m_instancing.erase(sb);
-			}
-		}
-		vm->str_VulkanDescriptor->recreateCommandBuffer = true;
+		return m_instanced;
 	}
 
-	void ModelManager::initDescriptor(VulkanMisc * vM)
+	void ModelManager::buildInstancedModels(Model * target,Materials * switchMat)
 	{
-		if (m_descriptor.size() == 0)
+		Materials * mat = target->getMaterial();
+		ShapeBuffer * sb = target->getShapeBuffer();
+		std::vector<Model*> &vecModel = m_instanced[mat][sb];
+		vecModel.erase(std::remove(vecModel.begin(), vecModel.end(), target), vecModel.end());
+		m_instanced[switchMat][sb].push_back(target);
+		int count = 0;
+		for (auto& material : m_instanced)
 		{
-			m_descriptor.push_back(new Descriptor(vM, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1));
-			vM->str_VulkanSwapChainMisc->str_descriptorSetLayoutModel = m_descriptor[0]->getDescriptorSetLayout();
-			vM->str_VulkanSwapChainMisc->str_descriptorSetModel = m_descriptor[0]->getDescriptorSets();
+			for (auto& buffer : material.second)
+			{
+				for (auto& model : buffer.second)
+				{
+					if (model->getIndex() != count)
+					{
+						model->setIndex(count);
+					}
+					count++;
+				}
+			}
+		}
+	}
+
+	void ModelManager::clearInstancedMaterial(Materials * mat)
+	{
+		std::unordered_map<Materials*, std::unordered_map<ShapeBuffer*, std::vector<Model*>>>::iterator materialIterator = std::find_if(
+			m_instanced.begin(), m_instanced.end(), 
+			[mat](const std::pair<Materials*, std::unordered_map<ShapeBuffer*, std::vector<Model*>>>& pair) { return pair.first == mat; }
+		);
+		if (materialIterator != m_instanced.end()) 
+		{
+			m_instanced.erase(materialIterator);
 		}
 	}
 
@@ -288,8 +242,7 @@ namespace Ge
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices(indice, indice + indiceSize);
 
-		vertices.reserve(vertexSize/3);
-		indices.reserve(vertexSize);
+		vertices.reserve(vertexSize / 3);
 		for (int i = 0; i < vertexSize; i++)
 		{
 			Vertex vertex{};
@@ -333,15 +286,20 @@ namespace Ge
 			r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
 
 			tangent = glm::normalize(r * (deltaUV2.y * edge1 - deltaUV1.y * edge2));
-
+	
 			vertex0.tangents = tangent;
 			vertex1.tangents = tangent;
 			vertex2.tangents = tangent;
 		}
 
-		ShapeBuffer *buffer = new ShapeBuffer(vertices, indices, vulkanM);
+		ShapeBuffer *buffer = (ShapeBuffer*)new ShapeBufferBase(vertices, indices, m_gdm);
 		m_shapeBuffers.push_back(buffer);
 		return buffer;
+	}
+
+	ShapeBuffer* ModelManager::getDefferedQuad() const
+	{
+		return m_defferedQuad;
 	}
 
 	void ModelManager::ComputationTangent(std::vector<Vertex> &vertices)
@@ -351,9 +309,9 @@ namespace Ge
 		glm::vec2 deltaUV1;
 		glm::vec2 deltaUV2;
 		glm::vec3 tangents;
-		
+
 		float r;
-		for (int i = 0; i+2 < vertices.size(); i+=3)
+		for (int i = 0; i + 2 < vertices.size(); i += 3)
 		{
 			edge1 = vertices[i + 1].pos - vertices[i].pos;
 			edge2 = vertices[i + 2].pos - vertices[i].pos;
@@ -375,7 +333,7 @@ namespace Ge
 		}
 	}
 
-	std::vector<ShapeBuffer*> ModelManager::allocateBuffers(const char* path,bool normal_recalculate)
+	std::vector<ShapeBuffer*> ModelManager::allocateBuffers(const char* path, bool normal_recalculate)
 	{
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;
@@ -463,18 +421,35 @@ namespace Ge
 				vertex2.tangents = tangent;
 				if (normal_recalculate)
 				{
-					glm::vec3 normal = glm::normalize(glm::cross(vertex1.pos- vertex0.pos, vertex2.pos - vertex0.pos));
+					glm::vec3 normal = glm::normalize(glm::cross(vertex1.pos - vertex0.pos, vertex2.pos - vertex0.pos));
 					vertex0.normal = normal;
 					vertex1.normal = normal;
 					vertex2.normal = normal;
 				}
 			}
-			ShapeBuffer* buffer = new ShapeBuffer(vertices, indices, vulkanM);
+			ShapeBuffer* buffer = (ShapeBuffer*)new ShapeBufferBase(vertices, indices, m_gdm);
 			m_shapeBuffers.push_back(buffer);
 			sbvec.push_back(buffer);
 		}
 
 		return sbvec;
+	}
+
+	void ModelManager::updateStorage()
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ssbo);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(UniformBufferObject)*m_models.size(), nullptr, GL_DYNAMIC_DRAW);
+		int count = 0;
+		for (auto& material : m_instanced)
+		{
+			for (auto& buffer : material.second)
+			{
+				for (auto& model : buffer.second)
+				{
+					model->setIndex(count++);
+				}
+			}
+		}
 	}
 
 	std::vector<ShapeBuffer*> ModelManager::allocateFBXBuffer(const char* path, bool normal_recalculate, std::vector<int> m_loadIdMesh)
@@ -523,12 +498,12 @@ namespace Ge
 			const ofbx::Geometry* geom = nullptr;
 			if (m_loadIdMesh.size() > 0)
 			{
-				geom = scene->getMesh(m_loadIdMesh[i]% scene->getMeshCount())->getGeometry();
+				geom = scene->getMesh(m_loadIdMesh[i] % scene->getMeshCount())->getGeometry();
 			}
 			else
 			{
 				geom = scene->getMesh(i)->getGeometry();
-			}			
+			}
 
 			vertices.reserve(geom->getVertexCount());
 			indices.reserve(geom->getIndexCount());
@@ -539,7 +514,7 @@ namespace Ge
 			const ofbx::Vec4* colors = geom->getColors();
 
 			for (int j = 0; j < geom->getVertexCount(); ++j)
-			{								
+			{
 				Vertex vertex{};
 				vertex.pos.x = position[j].x;
 				vertex.pos.y = position[j].y;
@@ -547,7 +522,7 @@ namespace Ge
 
 				vertex.texCoord.x = uv[j].x;
 				vertex.texCoord.y = 1.0f - uv[j].y;
-				
+
 				if (normals != nullptr && !normal_recalculate)
 				{
 					vertex.normal.x = normals[j].x;
@@ -562,7 +537,7 @@ namespace Ge
 					vertex.tangents.z = tangents[j].z;
 				}
 				else
-				{					
+				{
 					vertex.tangents = { 0, 0, 0 };
 				}
 
@@ -576,7 +551,7 @@ namespace Ge
 				{
 					vertex.color = { 1, 1, 1 };
 				}
-				
+
 				if (uniqueVertices.count(vertex) == 0)
 				{
 					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
@@ -627,7 +602,7 @@ namespace Ge
 					}
 				}
 			}
-			ShapeBuffer* buffer = new ShapeBuffer(vertices, indices, vulkanM);
+			ShapeBuffer* buffer = (ShapeBuffer*)new ShapeBufferBase(vertices, indices, m_gdm);
 			m_shapeBuffers.push_back(buffer);
 			sbvec.push_back(buffer);
 		}
@@ -714,7 +689,7 @@ namespace Ge
 			deltaUV1 = vertex1.texCoord - vertex0.texCoord;
 			deltaUV2 = vertex2.texCoord - vertex0.texCoord;
 
-			 r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+			r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
 
 			tangent = glm::normalize(r * (deltaUV2.y * edge1 - deltaUV1.y * edge2));
 
@@ -729,9 +704,8 @@ namespace Ge
 				vertex2.normal = normal;
 			}
 		}
-
-		ShapeBuffer* buffer = new ShapeBuffer(vertices, indices, vulkanM);
+		ShapeBuffer* buffer = (ShapeBuffer*)new ShapeBufferBase(vertices, indices, m_gdm);
 		m_shapeBuffers.push_back(buffer);
 		return buffer;
 	}
-}*/
+}

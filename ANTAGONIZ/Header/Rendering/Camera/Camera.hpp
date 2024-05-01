@@ -1,47 +1,49 @@
 #ifndef __ENGINE_CAMERA__
 #define __ENGINE_CAMERA__
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtx/transform.hpp"
-#include "glm/gtc/quaternion.hpp" 
-#include "glm/gtx/quaternion.hpp"
-#include "glm/gtx/euler_angles.hpp"
-#include "glm/common.hpp"
-#include "UniformBufferCamera.hpp"
 #include "GObject.hpp"
+#include "UniformBufferCamera.hpp"
+
+struct GraphicsDataMisc;
+
 
 namespace Ge
 {
+	class LightManager;
 	class Camera : public GObject
 	{		
 	public:
-		Camera();
+		Camera(GraphicsDataMisc * gdm);
 		~Camera();
 		void setFieldOfView(float fov);
 		void setNear(float near);
 		void setFar(float far);
 		void setPriority(int p);
 		void setOrtho(bool state);
+		void setOrthoSize(float size);
+		float getOrthoSize() const;
+		bool getOrtho() const;
 		float getFieldOfView();
 		float getNear();
 		float getFar();
+		void mapMemory() override;
 		int getPriority();
 		float aspectRatio() const;
 		glm::mat4 getViewMatrix() const;
 		glm::mat4 getProjectionMatrix() const;
 		void onGUI() override;
 	protected:
+		GraphicsDataMisc * m_gdm;
 		UniformBufferCamera m_uniformBufferCamera;
+		LightManager* m_lm;
 		float m_fov = 80.0f;
 		float m_near = 0.1f;
 		float m_far = 300.0f;
 		int m_priority = 0;
 		bool m_ortho = false;
 		float m_orthoSize;
+		unsigned int m_ssbo;
 	};
 }
 
-#endif//__ENGINE_CAMERA__
+#endif //!__ENGINE_CAMERA__

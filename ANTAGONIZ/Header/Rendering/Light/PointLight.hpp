@@ -8,8 +8,8 @@ namespace Ge
 	class PointLight : public Lights
 	{
 	public:
-		PointLight(int index);
+		PointLight(int index, GraphicsDataMisc * gdm);
 	};
 }
 
-#endif //__ENGINE_POINT_LIGHT__
+#endif //!__ENGINE_POINT_LIGHT__

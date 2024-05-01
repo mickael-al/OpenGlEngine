@@ -1,31 +1,79 @@
+#include "glcore.hpp"
 #include "MaterialManager.hpp"
+#include "ModelManager.hpp"
+#include "tinyobjloader/tiny_obj_loader.h"
+#include "Debug.hpp"
+#include "GraphicsDataMisc.hpp"
+#include "Materials.hpp"
+#include "UniformBufferMaterial.hpp"
+#include "TextureManager.hpp"
+#include "Engine.hpp"
+#include "EngineHeader.hpp"
+#include <cstring>
+#include <algorithm>
+#include "GraphiquePipeline.hpp"
+#include "ShaderPair.hpp"
 
 namespace Ge
 {
-	/*Materials* MaterialManager::defaultMaterial = nullptr;
-    bool MaterialManager::initialize(VulkanMisc *vM)
+    bool MaterialManager::initialize(GraphicsDataMisc * gdm)
     {
-        vulkanM = vM;
-		defaultMaterial = createMaterial();
+        m_gdm = gdm;
+		glGenBuffers(1, &m_ssbo);
+		m_gdm->str_ssbo.str_material = m_ssbo;
+		m_gdm->str_default_material = m_defaultMaterial = createMaterial();				
         Debug::INITSUCCESS("MaterialManager");
         return true;
     }
 
 	Materials * MaterialManager::getDefaultMaterial()
 	{
-		return defaultMaterial;
+		return m_defaultMaterial;
 	}
 
     Materials * MaterialManager::createMaterial()
     {     
-		Materials * material = new Materials(m_materials.size(), vulkanM);		
-		m_materials.push_back(material);
-		vulkanM->str_VulkanDescriptor->materialCount = m_materials.size();
-        updateDescriptor();
+		Materials * material = new Materials(0, m_gdm);		
+		m_materials.insert(m_materials.begin(),material);
+		m_gdm->str_dataMisc.materialCount = m_materials.size();
+        updateStorage();
 		return material;
     }
 
-    std::vector<Materials*> & MaterialManager::loadMltMaterial(const char* path,bool filter, TextureManager* tm)
+	void MaterialManager::destroyMaterial(Materials * material)
+	{				
+		m_materials.erase(std::remove(m_materials.begin(), m_materials.end(), material), m_materials.end());
+		for (unsigned int i = 0; i < m_materials.size(); i++)
+		{
+			m_materials[i]->setIndex(i);
+		}
+		Engine::getPtrClass().modelManager->clearInstancedMaterial(material);
+		delete (material);
+		m_gdm->str_dataMisc.materialCount = m_materials.size();
+		updateStorage();
+	}
+
+	void MaterialManager::updateStorage()
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ssbo);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(UniformBufferMaterial)*m_materials.size(), nullptr, GL_DYNAMIC_DRAW);
+		for (int i = 0; i < m_materials.size();i++)
+		{
+			m_materials[i]->setIndex(i);
+			m_materials[i]->updateUniformBufferMaterial();
+		}		
+	}
+
+	void MaterialManager::updateMaterialExecutionOrder()
+	{
+		std::sort(m_materials.begin(), m_materials.end(), [](const Materials* a, const Materials* b) 
+		{
+			return !a->getDepthTest() || a->getPipeline()->getShaderPair()->transparency < b->getPipeline()->getShaderPair()->transparency;
+		});
+		updateStorage();
+	}
+
+    std::vector<Materials*> & MaterialManager::loadMltMaterial(const char* path,bool filter,TextureManager* tm)
     {
         std::vector<Materials*> mats;
         tinyobj::ObjReader reader;
@@ -84,59 +132,15 @@ namespace Ge
         }
 
         delete[] result;
-
-        vulkanM->str_VulkanDescriptor->materialCount = m_materials.size();
-        updateDescriptor();
+        m_gdm->str_dataMisc.materialCount = m_materials.size();
+		updateStorage();
         return mats;
     }
 
-    void MaterialManager::destroyMaterial(Materials *material)
-    {
-		m_materials.erase(std::remove(m_materials.begin(), m_materials.end(), material), m_materials.end());
-		int mat_pi = material->getPipelineIndex();
-        //delete(material);
-        m_destroyElement = true;
-        m_destroymaterials.push_back(material);
-		for (int i = 0; i < m_materials.size(); i++)
-		{
-			m_materials[i]->setIndex(i);
-		}
-		std::vector<Model *> all_models = ModelManager::GetModels();
-		for (int i = 0; i < all_models.size();i++)
-		{
-			all_models[i]->majMaterialIndex(mat_pi);
-		}
-        vulkanM->str_VulkanDescriptor->materialCount = m_materials.size();
-        updateDescriptor();
-		vulkanM->str_VulkanDescriptor->recreateCommandBuffer = true;
-    }
-
-    void MaterialManager::destroyElement()
-    {
-        if (m_destroyElement)
-        {
-            for (int i = 0; i < m_destroymaterials.size(); i++)
-            {
-                delete m_destroymaterials[i];
-            }
-            m_destroymaterials.clear();
-            m_destroyElement = false;
-        }
-    }
-
-    void MaterialManager::updateDescriptor()
-    {
-        std::vector<VkDescriptorBufferInfo> bufferInfoMaterial{};
-		VkDescriptorBufferInfo bufferIM{};
-		for (int i = 0; i < m_materials.size(); i++)
-		{
-            bufferIM.buffer = m_materials[i]->getUniformBuffers();
-			bufferIM.offset = 0;
-			bufferIM.range = sizeof(UniformBufferMaterial);
-			bufferInfoMaterial.push_back(bufferIM);
-        }
-        m_descriptor[0]->updateCount(vulkanM,m_materials.size(),bufferInfoMaterial);
-    }
+	const std::vector<Materials *> & MaterialManager::getMaterials() const
+	{
+		return m_materials;
+	}
 
     void MaterialManager::release()
     {
@@ -145,25 +149,8 @@ namespace Ge
 			delete (m_materials[i]);
 		}
 		m_materials.clear();
-        for (int i = 0; i < m_destroymaterials.size(); i++)
-        {
-            delete m_destroymaterials[i];
-        }
-        m_destroymaterials.clear();
-		for (int i = 0; i < m_descriptor.size(); i++)
-		{
-			delete m_descriptor[i];
-		}
-		m_descriptor.clear();
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+		glDeleteBuffers(1, &m_ssbo);
         Debug::RELEASESUCCESS("MaterialManager");
     }
-
-	void MaterialManager::initDescriptor(VulkanMisc * vM)
-	{
-		if (m_descriptor.size() == 0)
-		{
-			m_descriptor.push_back(new Descriptor(vM, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1));
-		}
-	}*/
-
 }

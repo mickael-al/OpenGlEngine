@@ -1,15 +1,12 @@
 #ifndef __ENGINE_TIME__
 #define __ENGINE_TIME__
 
-#include "Debug.hpp"
-#include <GLFW/glfw3.h>
-
 namespace Ge
 {
 	class Time final
 	{
 	private:
-		friend class GameEngine;
+		friend class Engine;
 		void startTime();
 		void fixedUpdateTime();
 		void updateTime();
@@ -19,7 +16,11 @@ namespace Ge
 		float getDeltaTime() const;
 		float getFixedDeltaTime() const;
 		float getTime() const;
+		static float GetFixedDeltaTime();
+		static float GetDeltaTime();
+		static float GetTime();
 	private:
+		static Time* s_pInstance;
 		double m_startTime;
 		double m_currentTimeF;
 		double m_lastTimeF;
@@ -31,4 +32,4 @@ namespace Ge
 	};
 }
 
-#endif // __ENGINE_TIME__
+#endif //!__ENGINE_TIME__

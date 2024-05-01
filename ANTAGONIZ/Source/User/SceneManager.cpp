@@ -1,5 +1,4 @@
 #include "SceneManager.hpp"
-#include "GameEngine.hpp"
 
 namespace Ge
 {
@@ -56,8 +55,5 @@ namespace Ge
 		}
 		currentScene = m_mapScene[name];
 		currentScene->load();
-		Time* t = GameEngine::getPtrClass().time;
-		t->fixedUpdateTime();
-		t->updateTime();
 	}
 }

@@ -1,24 +1,30 @@
 #ifndef __ENGINE_WINDOW__
 #define __ENGINE_WINDOW__
 
-#define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h"
+struct GraphicsDataMisc;
+class GLFWwindow;
 
 namespace Ge
 {
-	class Window
+	class FrameBuffer;
+	class Window final
 	{
 	public:
-		static void framebufferResizeCallback(GLFWwindow* window,int width,int height);
+		static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 	private:
 		friend class RenderingEngine;
-		bool initialize(uint32_t Width, uint32_t Height, const char * name,const char * iconPath);
+		Window(FrameBuffer * fb);
+		bool initialize(unsigned int Width, unsigned int Height, const char * name,const char * iconPath,bool vsync, GraphicsDataMisc * gdm);
 		void release();
-	private:
-		friend class RenderingEngine;
-		bool framebufferResized = false;
+		bool getframebufferResized();
+		void setframebufferResized(bool state);
+		GLFWwindow * getWindow();
+	private:		
+		friend class Window;
+		bool m_framebufferResized = false;
 		GLFWwindow * m_window;
+		GraphicsDataMisc * m_gdm;
+		FrameBuffer* m_fb;
 	};
 }
-
-#endif//__ENGINE_WINDOW__
+#endif //!__ENGINE_WINDOW__

@@ -1,7 +1,9 @@
 #ifndef __ENGINE_DEBUG__
 #define __ENGINE_DEBUG__
 
-#include <string>
+#include <iostream>
+#include <fstream>
+#include <cstdarg>
 
 #ifdef NDEBUG
 #if defined(_WIN32) || defined(_WIN64)
@@ -18,7 +20,7 @@
 
 namespace Ge
 {
-    class Console;
+	class Console;
 }
 
 namespace Ge
@@ -34,15 +36,15 @@ namespace Ge
             static void INITSUCCESS(const char * format);
             static void INITFAILED(const char * format);
             static void RELEASESUCCESS(const char * format);
-            static void TempFile(std::string data, const char* path = "./temp.text");
-        private:
-            friend class Console;
-            static Console* console;
-        private:
+            static void TempFile(std::string data, const char* path = "./temp.text");			
+		private:
+			friend class Console;
+			static Console * console;
+        private:			
             static char buffer[BUFFER_SIZE];
             static char tempbuffer[BUFFER_SIZE];
     };
 }
 
-#endif //__ENGINE_DEBUG__
+#endif //!__ENGINE_DEBUG__
 

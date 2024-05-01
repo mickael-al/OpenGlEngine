@@ -4,17 +4,11 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtx/transform.hpp"
-#include "glm/gtc/quaternion.hpp"
-#include "glm/gtx/quaternion.hpp"
-#include "glm/gtx/euler_angles.hpp"
-#include "glm/common.hpp"
-#include "Component.hpp"
-#include "imgui-cmake/Header/imgui.h"
-#include "Transform.hpp"
 #include <vector>
 #include <string> 
+#include "Transform.hpp"
+
+class Component;
 
 namespace Ge
 {
@@ -62,4 +56,4 @@ namespace Ge
 	};
 }
 
-#endif //__ENGINE_GRAPHIC_OBJECT__
+#endif //!__ENGINE_GRAPHIC_OBJECT__

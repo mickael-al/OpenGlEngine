@@ -1,11 +1,15 @@
 #include "FlyCamera.hpp"
-#include "Time.hpp"
+#include "GraphicsDataMisc.hpp"
+#include "Engine.hpp"
+#include "PointeurClass.hpp"
+#include "InputManager.hpp"
+#include "Camera.hpp"
 
 namespace Ge
 {
-	/*FlyCamera::FlyCamera(VulkanMisc* vM, InputManager* input) : Camera(vM)
+	FlyCamera::FlyCamera(GraphicsDataMisc * gdm) : Camera(gdm)
 	{
-		m_im = input;
+		m_im = Engine::getPtrClass().inputManager;
 		m_angleY = 0.0f;
 		m_angleX = 0.0f;
 		m_moveSpeed = 0.0f;
@@ -58,5 +62,5 @@ namespace Ge
 		{
 			setPosition(getPosition() + glm::vec3(0, 1, 0) * m_moveSpeed);
 		}		
-	}*/
+	}
 }
