@@ -256,14 +256,18 @@ namespace Ge
 				glEnable(GL_CULL_FACE);
 			}
 		}
-
 		/*  Shadow  */
-		const std::vector<unsigned int>& frameBufferDepthShadow = m_lightManager->getFrameShadowBuffer();
-
+		
+		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_BLEND);		
+		const std::vector<unsigned int>& frameBufferDepthShadow = m_lightManager->getFrameShadowBuffer();
 		for (int i = 0; i < frameBufferDepthShadow.size(); i++)
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthShadow[i]);
+			glClear(GL_DEPTH_BUFFER_BIT);			
+			glEnable(GL_CULL_FACE);
+			glCullFace(GL_FRONT);
 			glViewport(0, 0, TEXTURE_DIM, TEXTURE_DIM);
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_lightManager->getSsboShadow());
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_modelManager->getSSBO());
@@ -272,6 +276,7 @@ namespace Ge
 			glUseProgram(program);
 			int uboU = glGetUniformLocation(program, "offsetUbo");
 			int shadowU = glGetUniformLocation(program, "offsetShadow");
+
 			for (auto& material : matlist)
 			{
 				auto& mku = instanced_models[material];
@@ -316,10 +321,12 @@ namespace Ge
 				}
 			}
 		}
+		glCullFace(GL_BACK);
 		/*  Shadow  */
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glDisable(GL_DEPTH_TEST);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_cameraManager->getSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_lightManager->getSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_shaderDataMisc->getSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_lightManager->getSsboShadow());

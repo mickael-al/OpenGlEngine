@@ -18,6 +18,11 @@ bool LightManager::initialize(GraphicsDataMisc * gdm)
 	m_gdm->str_ssbo.str_shadow = m_ssboShadow;
 	glGenTextures(1, &m_textureShadowArray);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, m_textureShadowArray);	
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT24, TEXTURE_DIM, TEXTURE_DIM, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	
 	Debug::INITSUCCESS("LightManager");
 	return true;
 }
@@ -86,7 +91,11 @@ void LightManager::updateStorageShadow()
 	glDeleteTextures(1, &m_textureShadowArray);
 	glGenTextures(1, &m_textureShadowArray);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, m_textureShadowArray);
-	glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_DEPTH_COMPONENT, TEXTURE_DIM, TEXTURE_DIM, countTotal);
+
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT24, TEXTURE_DIM, TEXTURE_DIM, countTotal, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	if (countTotal < m_textureDepthShadow.size())
 	{
@@ -110,12 +119,7 @@ void LightManager::updateStorageShadow()
 			glGenFramebuffers(1, &frameBufferID);
 			glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
 
-			glGenTextures(1, &textureID);
-			glBindTexture(GL_TEXTURE_2D, textureID);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, TEXTURE_DIM, TEXTURE_DIM, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, textureID, 0);
+			glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_textureShadowArray,0, i);
 
 			GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if (status != GL_FRAMEBUFFER_COMPLETE)
@@ -133,8 +137,8 @@ void LightManager::updateStorageShadow()
 	glBindTexture(GL_TEXTURE_2D_ARRAY, m_textureShadowArray);
 	for (int i = 0; i < m_textureDepthShadow.size(); i++)
 	{		
-		glBindTexture(GL_TEXTURE_2D, m_textureDepthShadow[i]);
-		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, TEXTURE_DIM, TEXTURE_DIM, 1, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+		glBindTexture(GL_TEXTURE_2D, m_textureDepthShadow[i]);		
+		
 	}
 }
 

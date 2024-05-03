@@ -115,7 +115,7 @@ namespace Ge
 
     unsigned int FrameBuffer::getOther() const
     {
-        return m_gColorSpec;
+        return m_gOther;
     }
 
     void FrameBuffer::release()

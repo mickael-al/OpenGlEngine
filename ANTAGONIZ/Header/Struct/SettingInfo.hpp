@@ -11,6 +11,7 @@ struct SettingInfo
     double m_sizeWidthWindow = 1200;
     const char *m_name = "ProjectName";
     float m_gamma = 2.2f;
+    float m_ambient = 0.01f;
     glm::vec3 m_gravity = glm::vec3(0, -9.81f, 0);
     Version m_version;
 	glm::vec4 m_clearColor = glm::vec4(0.0f,0.0f,0.0f,0.0f);

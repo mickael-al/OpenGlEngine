@@ -91,8 +91,8 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 const mat4 biasMat = mat4(
 	0.5, 0.0, 0.0, 0.0,
 	0.0, 0.5, 0.0, 0.0,
-	0.0, 0.0, 1.0, 0.0,
-	0.5, 0.5, 0.0, 1.0
+	0.0, 0.0, 0.5, 0.0,
+	0.5, 0.5, 0.5, 1.0
 );
 
 layout(binding = 0) uniform sampler2D gPosition;
@@ -151,8 +151,10 @@ void main()
 	vec4 colSpec = texture(gColorSpec, v_UV).rgba;
 	vec4 other = texture(gOther, v_UV).rgba;
 
-	vec3 color = colSpec.rgb;
-	vec3 ambient = vec3(0.003) * color * positionAO.a;
+	vec3 color = colSpec.rgb;	
+	color = pow(color, vec3(ubd.gamma));
+
+	vec3 ambient = vec3(0.01f) * color * positionAO.a;
 
 	vec3 V = normalize(ubc.camPos - positionAO.rgb);
 
@@ -164,21 +166,20 @@ void main()
 	for (int i = 0; i < ubd.maxLight; i++)
 	{
 		float shadow = 1.0;
-		vec3 L = normalize(ubl.ubl[i].position - positionAO.rgb);
-		vec3 H = normalize(V + L);
+		vec3 L = normalize(ubl.ubl[i].position - positionAO.rgb);		
 		float distance = length(ubl.ubl[i].position - positionAO.rgb);
 		float attenuation = 1.0 / (distance * distance);
 		vec3 radiance = ubl.ubl[i].color * attenuation * ubl.ubl[i].range;
 		if (ubl.ubl[i].status == 0)
 		{
-			L = -ubl.ubl[i].direction;
-			H = normalize(V + L);
+			L = normalize(-ubl.ubl[i].direction);
 		}
+		vec3 H = normalize(V + L);
 
 		// Cook-Torrance BRDF
 		float NDF = DistributionGGX(normalRoughness.rgb, H, normalRoughness.a);
 		float G = GeometrySmith(normalRoughness.rgb, V, L, normalRoughness.a);
-		vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+		vec3 F = fresnelSchlick(max(dot(H, V), 0.001), F0);
 
 		vec3 kS = F;
 		vec3 kD = vec3(1.0) - kS;
@@ -200,18 +201,17 @@ void main()
 				{
 					if (other.x < ubs.s[ubl.ubl[i].shadowID + k].splitDepth)
 					{
-						cascadeIndex = k + 1;
+						cascadeIndex = k + 1;       
 					}
-				}
+				}			
 				vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + cascadeIndex].projview) * vec4(positionAO.rgb, 1.0);
-				shadow = filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + cascadeIndex);
+				shadow = filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + cascadeIndex);				
 			}
-			Lo += ((kD * color + specular) * ubl.ubl[i].color * ubl.ubl[i].range / 10.0 * NdotL) * shadow;
-			//Lo += (kD * color + specular) * ubl.ubl[i].color * ubl.ubl[i].range / 10.0f * NdotL;
+			Lo += ((kD * color / PI + specular) * ubl.ubl[i].color *(ubl.ubl[i].range / 10.0)* NdotL)* shadow;
 		}
 		else if (ubl.ubl[i].status == 1) // PointLight
 		{
-			Lo += (kD * color / PI + specular) * radiance * NdotL;
+			Lo += (kD * color / PI + specular) * radiance * NdotL;			
 		}
 		else if (ubl.ubl[i].status == 2) // SpotLight
 		{

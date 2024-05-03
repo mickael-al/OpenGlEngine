@@ -1,6 +1,5 @@
 #version 450
 
-
 struct StructShadow
 {
 	mat4 projview;

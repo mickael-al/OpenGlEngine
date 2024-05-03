@@ -74,4 +74,5 @@ void main(void)
 	gNormal.a = ubm.ubm[imaterial].roughness * texture(roughnessTexture, fragTexCoord).r;
 	gPosition.a = ubm.ubm[imaterial].ao * texture(oclusionTexture, fragTexCoord).r;
 	gOther.r = Depth;
+	gOther.gba = vec3(0, 0, 0);
 }
