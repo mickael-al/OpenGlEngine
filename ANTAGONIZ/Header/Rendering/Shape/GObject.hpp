@@ -44,9 +44,14 @@ namespace Ge
 		void addComponent(Component * c);
 		void removeComponent(Component * c);
 		static std::vector<GObject *> GetGObjects();
+		static std::vector<GObject*> FindObjectsWithTag(std::string tag);
+		const std::vector<size_t> & getTag() const;
+		void addTag(std::string n);
+		void removeTag(std::string n);
 		virtual void onGUI();
 	protected:
-		static std::vector<GObject *> s_gobjects;
+		static std::vector<GObject *> s_gobjects;	
+		std::vector<size_t> m_tag;
 		GObject * m_parents;
 		std::string m_nom;
 		Transform m_transform{};

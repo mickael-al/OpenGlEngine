@@ -46,7 +46,7 @@ void LightManager::release()
 {
 	for (int i = 0; i < m_lights.size(); i++)
 	{
-		delete (m_lights[i]);
+		m_pool.deleteObject(m_lights[i]);
 	}
 	m_lights.clear();
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -155,7 +155,7 @@ void LightManager::updateStorage()
 
 SpotLight * LightManager::createSpotLight(glm::vec3 position, glm::vec3 color, glm::vec3 euler, float angle, std::string name)
 {
-	SpotLight * light = new SpotLight(m_lights.size(), m_gdm);
+	SpotLight * light = m_pool.newDerivedObject<SpotLight>(m_lights.size(), m_gdm);
 	m_lights.push_back(light);
 	m_gdm->str_dataMisc.lightCount = m_lights.size();
 	updateStorage();
@@ -168,8 +168,8 @@ SpotLight * LightManager::createSpotLight(glm::vec3 position, glm::vec3 color, g
 }
 
 DirectionalLight * LightManager::createDirectionalLight(glm::vec3 euler, glm::vec3 color, std::string name)
-{
-	DirectionalLight * light = new DirectionalLight(m_lights.size(), m_gdm);
+{	
+	DirectionalLight * light = m_pool.newDerivedObject<DirectionalLight>(m_lights.size(), m_gdm);
 	m_lights.push_back(light);
 	m_gdm->str_dataMisc.lightCount = m_lights.size();
 	updateStorage();
@@ -180,8 +180,8 @@ DirectionalLight * LightManager::createDirectionalLight(glm::vec3 euler, glm::ve
 }
 
 PointLight * LightManager::createPointLight(glm::vec3 position, glm::vec3 color, std::string name)
-{
-	PointLight * light = new PointLight(m_lights.size(), m_gdm);
+{	
+	PointLight * light = m_pool.newDerivedObject<PointLight>(m_lights.size(), m_gdm);
 	m_lights.push_back(light);
 	m_gdm->str_dataMisc.lightCount = m_lights.size();
 	updateStorage();
@@ -194,7 +194,7 @@ PointLight * LightManager::createPointLight(glm::vec3 position, glm::vec3 color,
 void LightManager::destroyLight(Lights *light)
 {
 	m_lights.erase(std::remove(m_lights.begin(), m_lights.end(), light), m_lights.end());
-	delete light;	
+	m_pool.deleteObject(light);
 	m_gdm->str_dataMisc.lightCount = m_lights.size();
 	updateStorage();
 }

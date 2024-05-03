@@ -4,6 +4,7 @@
 #include "Scene.hpp"
 #include <map>
 #include <string>
+#include "MemoryManager.hpp"
 
 namespace Ge
 {

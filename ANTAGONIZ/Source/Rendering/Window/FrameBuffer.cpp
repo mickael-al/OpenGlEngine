@@ -35,10 +35,9 @@ namespace Ge
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_gColorSpec, 0);
 
-
         glGenTextures(1, &m_gOther);
         glBindTexture(GL_TEXTURE_2D, m_gOther);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RG, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, m_gOther, 0);
@@ -56,7 +55,7 @@ namespace Ge
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE)
         {
-            Debug::Error("Erreur lors de la création du framebuffer.");
+            Debug::Error("Erreur lors de la creation du framebuffer.");
             return false;
         }
 
@@ -78,7 +77,7 @@ namespace Ge
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
 
         glBindTexture(GL_TEXTURE_2D, m_gOther);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, m_gdm->str_width, m_gdm->str_height, 0, GL_R, GL_FLOAT, NULL);
 
         glBindTexture(GL_TEXTURE_2D, m_gDepth);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, m_gdm->str_width, m_gdm->str_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
@@ -87,7 +86,7 @@ namespace Ge
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE)
         {
-            Debug::Error("Erreur lors de la recréation du framebuffer après redimensionnement de la fenêtre.");
+            Debug::Error("Erreur lors de la recreation du framebuffer apres redimensionnement de la fenêtre.");
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

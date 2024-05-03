@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <glm/glm.hpp>
+#include "MemoryManager.hpp"
 
 namespace Ge
 {
@@ -39,6 +40,7 @@ namespace Ge
 		PointLight *createPointLight(glm::vec3 position, glm::vec3 color, std::string name = "PointLight");
 		void destroyLight(Lights *light);
     private:
+		MemoryPool<Lights> m_pool;
 		GraphicsDataMisc * m_gdm;
 		std::vector<Lights *> m_lights;		
 		std::vector<unsigned int> m_textureDepthShadow;

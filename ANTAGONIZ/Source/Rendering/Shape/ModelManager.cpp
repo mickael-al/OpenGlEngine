@@ -33,13 +33,13 @@ namespace Ge
 	void ModelManager::release()
 	{
 		for (int i = 0; i < m_shapeBuffers.size(); i++)
-		{
-			delete (m_shapeBuffers[i]);
+		{			
+			m_poolBuffer.deleteObject((ShapeBufferBase*)m_shapeBuffers[i]);
 		}
 		m_shapeBuffers.clear();
 		for (int i = 0; i < m_models.size(); i++)
-		{
-			delete (m_models[i]);
+		{			
+			m_pool.deleteObject(m_models[i]);
 		}
 		m_models.clear();
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -54,7 +54,7 @@ namespace Ge
 			Debug::Warn("Le buffer n'existe pas");
 			return nullptr;
 		}
-		Model * Mesh = new Model(buffer, m_models.size(), m_gdm);
+		Model * Mesh = m_pool.newObject(buffer, m_models.size(), m_gdm);
 		m_models.push_back(Mesh);
 		m_gdm->str_dataMisc.modelCount = m_models.size();
 		updateStorage();
@@ -89,8 +89,8 @@ namespace Ge
 			{
 				m_instanced[mat].erase(bufferIterator);
 			}
-		}
-		delete (model);
+		}		
+		m_pool.deleteObject(model);
 		m_gdm->str_dataMisc.modelCount = m_models.size();
 		m_gdm->str_dataMisc.recreateCommandBuffer = true;
 	}
@@ -113,8 +113,8 @@ namespace Ge
 			{
 				materialPair.second.erase(bufferIterator);
 			}
-		}
-		delete(buffer);
+		}		
+		m_poolBuffer.deleteObject((ShapeBufferBase*)buffer);
 		m_gdm->str_dataMisc.recreateCommandBuffer = true;
 	}
 
@@ -290,9 +290,8 @@ namespace Ge
 			vertex0.tangents = tangent;
 			vertex1.tangents = tangent;
 			vertex2.tangents = tangent;
-		}
-
-		ShapeBuffer *buffer = (ShapeBuffer*)new ShapeBufferBase(vertices, indices, m_gdm);
+		}				
+		ShapeBuffer* buffer = (ShapeBuffer*)m_poolBuffer.newObject(vertices, indices, m_gdm);
 		m_shapeBuffers.push_back(buffer);
 		return buffer;
 	}
@@ -427,7 +426,7 @@ namespace Ge
 					vertex2.normal = normal;
 				}
 			}
-			ShapeBuffer* buffer = (ShapeBuffer*)new ShapeBufferBase(vertices, indices, m_gdm);
+			ShapeBuffer* buffer = (ShapeBuffer*)m_poolBuffer.newObject(vertices, indices, m_gdm);
 			m_shapeBuffers.push_back(buffer);
 			sbvec.push_back(buffer);
 		}
@@ -602,7 +601,7 @@ namespace Ge
 					}
 				}
 			}
-			ShapeBuffer* buffer = (ShapeBuffer*)new ShapeBufferBase(vertices, indices, m_gdm);
+			ShapeBuffer* buffer = (ShapeBuffer*)m_poolBuffer.newObject(vertices, indices, m_gdm);
 			m_shapeBuffers.push_back(buffer);
 			sbvec.push_back(buffer);
 		}
@@ -704,7 +703,7 @@ namespace Ge
 				vertex2.normal = normal;
 			}
 		}
-		ShapeBuffer* buffer = (ShapeBuffer*)new ShapeBufferBase(vertices, indices, m_gdm);
+		ShapeBuffer* buffer = (ShapeBuffer*)m_poolBuffer.newObject(vertices, indices, m_gdm);
 		m_shapeBuffers.push_back(buffer);
 		return buffer;
 	}

@@ -1,6 +1,7 @@
 #version 450
 
 #define SHADOW_MAP_CASCADE_COUNT 4
+#define SHADOW_MAP_CUBE_COUNT 6
 
 const float PI = 3.14159265359;
 
@@ -149,7 +150,7 @@ void main()
 	vec4 positionAO = texture(gPosition, v_UV).rgba;
 	vec4 normalRoughness = texture(gNormal, v_UV).rgba;
 	vec4 colSpec = texture(gColorSpec, v_UV).rgba;
-	vec4 other = texture(gOther, v_UV).rgba;
+	float viewZ = texture(gOther, v_UV).r;
 
 	vec3 color = colSpec.rgb;	
 	color = pow(color, vec3(ubd.gamma));
@@ -194,12 +195,12 @@ void main()
 
 		if (ubl.ubl[i].status == 0) // DirLight
 		{
-			if (ubl.ubl[i].shadowID >= 0)//&& ubm[imaterial].castShadow <= 1
+			if (ubl.ubl[i].shadowID >= 0)
 			{
 				uint cascadeIndex = 0;
 				for (uint k = 0; k < SHADOW_MAP_CASCADE_COUNT - 1; ++k)
 				{
-					if (other.x < ubs.s[ubl.ubl[i].shadowID + k].splitDepth)
+					if (viewZ < ubs.s[ubl.ubl[i].shadowID + k].splitDepth)
 					{
 						cascadeIndex = k + 1;       
 					}
@@ -211,7 +212,15 @@ void main()
 		}
 		else if (ubl.ubl[i].status == 1) // PointLight
 		{
-			Lo += (kD * color / PI + specular) * radiance * NdotL;			
+			if (ubl.ubl[i].shadowID >= 0)
+			{
+				for (uint k = 0; k < SHADOW_MAP_CUBE_COUNT; ++k)
+				{
+					vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + k].projview) * vec4(positionAO.rgb, 1.0);
+					shadow *= filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + k);
+				}
+			}
+			Lo += (kD * color / PI + specular) * radiance * NdotL * shadow;
 		}
 		else if (ubl.ubl[i].status == 2) // SpotLight
 		{

@@ -11,6 +11,7 @@
 #include "Transform.hpp"
 #include "Debug.hpp"
 #include <algorithm>
+#include <functional>
 
 namespace Ge
 {
@@ -34,6 +35,43 @@ namespace Ge
 	{
 		return s_gobjects;
 	}
+
+	const std::vector<size_t> & GObject::getTag() const
+	{
+		return m_tag;
+	}
+
+	std::vector<GObject*> GObject::FindObjectsWithTag(std::string tag)
+	{
+		size_t hashValue = std::hash<std::string>{}(tag);
+		std::vector<GObject*> objs;
+		for (int i = 0; i < s_gobjects.size(); i++)
+		{
+			const std::vector<size_t>& m_t = s_gobjects[i]->getTag();
+			for (int j = 0; j < m_t.size(); j++)
+			{
+				if (m_t[j] == hashValue)
+				{
+					j = m_t.size();			
+					objs.push_back(s_gobjects[i]);
+				}
+			}
+		}
+		return objs;
+	}
+
+	void GObject::addTag(std::string n)
+	{
+		size_t hashValue = std::hash<std::string>{}(n);
+		m_tag.push_back(hashValue);
+	}
+
+	void GObject::removeTag(std::string n)
+	{
+		size_t hashValue = std::hash<std::string>{}(n);
+		m_tag.erase(std::remove(m_tag.begin(), m_tag.end(), hashValue), m_tag.end());
+	}
+
 
 	void GObject::setName(std::string name)
 	{

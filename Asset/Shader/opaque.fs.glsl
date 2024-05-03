@@ -59,7 +59,7 @@ layout(location = 7) in float Depth;
 layout(location = 0) out vec4 gPosition;
 layout(location = 1) out vec4 gNormal;
 layout(location = 2) out vec4 gColorSpec;
-layout(location = 3) out vec4 gOther;
+layout(location = 3) out vec2 gOther;
 
 void main(void)
 {   
@@ -74,5 +74,4 @@ void main(void)
 	gNormal.a = ubm.ubm[imaterial].roughness * texture(roughnessTexture, fragTexCoord).r;
 	gPosition.a = ubm.ubm[imaterial].ao * texture(oclusionTexture, fragTexCoord).r;
 	gOther.r = Depth;
-	gOther.gba = vec3(0, 0, 0);
 }

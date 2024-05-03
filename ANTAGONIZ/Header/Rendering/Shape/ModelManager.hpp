@@ -8,10 +8,12 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include <string>
+#include "MemoryManager.hpp"
 
 namespace Ge
 {
 	class ShapeBuffer;
+	class ShapeBufferBase;
 	class Model;	
 	class Materials;
 }
@@ -46,6 +48,8 @@ namespace Ge
 		friend class MaterialManager;
 		void clearInstancedMaterial(Materials * mat);
     private:		
+		MemoryPool<Model> m_pool;
+		MemoryPool<ShapeBufferBase> m_poolBuffer;
         std::vector<Model*> m_models;
 		std::unordered_map<Materials*, std::unordered_map<ShapeBuffer*, std::vector<Model*>>> m_instanced;
         std::vector<ShapeBuffer *> m_shapeBuffers;        

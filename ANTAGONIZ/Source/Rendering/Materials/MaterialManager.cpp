@@ -32,8 +32,8 @@ namespace Ge
 	}
 
     Materials * MaterialManager::createMaterial()
-    {     
-		Materials * material = new Materials(0, m_gdm);		
+    {             
+		Materials * material = m_pool.newObject(0, m_gdm);
 		m_materials.insert(m_materials.begin(),material);
 		m_gdm->str_dataMisc.materialCount = m_materials.size();
         updateStorage();
@@ -47,8 +47,8 @@ namespace Ge
 		{
 			m_materials[i]->setIndex(i);
 		}
-		Engine::getPtrClass().modelManager->clearInstancedMaterial(material);
-		delete (material);
+		Engine::getPtrClass().modelManager->clearInstancedMaterial(material);		
+        m_pool.deleteObject(material);
 		m_gdm->str_dataMisc.materialCount = m_materials.size();
 		updateStorage();
 	}
@@ -145,8 +145,8 @@ namespace Ge
     void MaterialManager::release()
     {
         for (int i = 0; i < m_materials.size();i++)
-		{
-			delete (m_materials[i]);
+		{			
+            m_pool.deleteObject(m_materials[i]);
 		}
 		m_materials.clear();
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);

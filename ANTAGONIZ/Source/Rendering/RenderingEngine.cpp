@@ -265,9 +265,7 @@ namespace Ge
 		for (int i = 0; i < frameBufferDepthShadow.size(); i++)
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, frameBufferDepthShadow[i]);
-			glClear(GL_DEPTH_BUFFER_BIT);			
-			glEnable(GL_CULL_FACE);
-			glCullFace(GL_FRONT);
+			glClear(GL_DEPTH_BUFFER_BIT);
 			glViewport(0, 0, TEXTURE_DIM, TEXTURE_DIM);
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_lightManager->getSsboShadow());
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_modelManager->getSSBO());
@@ -321,7 +319,6 @@ namespace Ge
 				}
 			}
 		}
-		glCullFace(GL_BACK);
 		/*  Shadow  */
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);

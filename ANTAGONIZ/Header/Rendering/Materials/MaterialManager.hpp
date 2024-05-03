@@ -4,6 +4,7 @@
 #include "Initializer.hpp"
 #include "Manager.hpp"
 #include <vector>
+#include "MemoryManager.hpp"
 
 namespace Ge
 {
@@ -29,6 +30,7 @@ namespace Ge
         std::vector<Materials*> & loadMltMaterial(const char* path, bool filter, TextureManager * tm);
         void destroyMaterial(Materials * material);				
     private:
+		MemoryPool<Materials> m_pool;
 		Materials * m_defaultMaterial;
         std::vector<Materials *> m_materials;
 		GraphicsDataMisc * m_gdm;
