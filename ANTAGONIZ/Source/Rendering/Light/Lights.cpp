@@ -49,7 +49,7 @@ namespace Ge
 
 	void Lights::mapMemoryShadow()
 	{					
-		if (m_ubl.status == 0)
+		if (m_ubl.status == 0 || m_ubl.status == 2)
 		{
 			m_ubl.direction = getDirection();
 			Camera* currentCamera = m_gdm->current_camera;
@@ -145,12 +145,12 @@ namespace Ge
 			};
 			glm::vec3 ups[6] = 
 			{
-				glm::vec3(0.0f, -1.0f, 0.0f), // Positive X
-				glm::vec3(0.0f, -1.0f, 0.0f), // Negative X
+				glm::vec3(0.0f, 1.0f, 0.0f), // Positive X
+				glm::vec3(0.0f, 1.0f, 0.0f), // Negative X
 				glm::vec3(0.0f, 0.0f, 1.0f),  // Positive Y
-				glm::vec3(0.0f, 0.0f, -1.0f), // Negative Y
-				glm::vec3(0.0f, -1.0f, 0.0f), // Positive Z
-				glm::vec3(0.0f, -1.0f, 0.0f)  // Negative Z
+				glm::vec3(0.0f, 0.0f, 1.0f), // Negative Y
+				glm::vec3(0.0f, 1.0f, 0.0f), // Positive Z
+				glm::vec3(0.0f, 1.0f, 0.0f)  // Negative Z
 			};
 			Camera* currentCamera = m_gdm->current_camera;
 			for (uint32_t i = 0; i < SHADOW_MAP_CUBE_COUNT; i++)

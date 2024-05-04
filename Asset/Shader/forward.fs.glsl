@@ -49,6 +49,11 @@ layout(std430, binding = 3) buffer UniformBufferShadow
 	StructShadow s[];
 } ubs;
 
+/*layout(std430, binding = 4) buffer UniformBufferSSAO
+{
+	vec3 samples[];
+} ubssao;*/
+
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
 	float a = roughness * roughness;
@@ -101,7 +106,7 @@ layout(binding = 1) uniform sampler2D gNormal;
 layout(binding = 2) uniform sampler2D gColorSpec;
 layout(binding = 3) uniform sampler2D gOther;
 layout(binding = 4) uniform sampler2DArray shadowDepth;
-
+//layout(binding = 5) uniform sampler2D texNoise;
 
 float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex)
 {
@@ -123,7 +128,8 @@ float filterPCF(vec4 sc, uint cascadeIndex)
 {
 	ivec3 texDim = textureSize(shadowDepth, 0);
 
-	float scale = 0.75;
+	//float scale = 0.75;
+	float scale = 0.5;
 	float dx = scale * 1.0 / float(texDim.x);
 	float dy = scale * 1.0 / float(texDim.y);
 
@@ -143,6 +149,34 @@ float filterPCF(vec4 sc, uint cascadeIndex)
 }
 
 in vec2 v_UV;
+
+/*float SSAO(vec3 fragPos, vec3 normal)
+{
+	ivec2 ts = textureSize(gPosition,0);
+	vec3 randomVec = texture(texNoise, v_UV * vec2(float(ts.x) / 4.0, float(ts.y) / 4.0)).xyz;
+
+	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
+	vec3 bitangent = cross(normal, tangent);
+	mat3 TBN = mat3(tangent, bitangent, normal);
+	float occlusion = 0.0;
+	float radius = 0.5;	
+	float bias = 0.025;
+	for (int i = 0; i < 64; ++i)
+	{
+		vec3 samplePos = TBN * ubssao.samples[i];
+		samplePos = fragPos + samplePos * radius;
+		vec4 offset = vec4(samplePos, 1.0);
+		offset = (ubc.proj * ubc.view) * offset;    // from view to clip-space
+		offset.xyz /= offset.w;               // perspective divide
+		offset.xyz = offset.xyz * 0.5 + 0.5;
+		float sampleDepth = texture(gPosition, offset.xy).z;
+		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0);
+		float rangeCheck = smoothstep(0.0, 1.0, radius / abs(fragPos.z - sampleDepth));
+		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0) * rangeCheck;
+	}
+	return 1.0 - (occlusion / 64);
+}*/
+
 out vec4 o_FragColor;
 
 void main()
@@ -206,6 +240,7 @@ void main()
 					}
 				}			
 				vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + cascadeIndex].projview) * vec4(positionAO.rgb, 1.0);
+				shadowCoord.y -= 0.005;
 				shadow = filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + cascadeIndex);				
 			}
 			Lo += ((kD * color / PI + specular) * ubl.ubl[i].color *(ubl.ubl[i].range / 10.0)* NdotL)* shadow;
@@ -214,7 +249,7 @@ void main()
 		{
 			if (ubl.ubl[i].shadowID >= 0)
 			{
-				for (uint k = 0; k < SHADOW_MAP_CUBE_COUNT; ++k)
+				for (uint k = 0; k < SHADOW_MAP_CUBE_COUNT && shadow > 0.5f; ++k)
 				{
 					vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + k].projview) * vec4(positionAO.rgb, 1.0);
 					shadow *= filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + k);
@@ -235,12 +270,12 @@ void main()
 				float edge1 = cos(spotAngle / 2.0);
 				float smoothFactor = smoothstep(edge1, edge0, spotEffect);
 
-				Lo += (kD * color / PI + specular) * radiance * NdotL * pow(smoothFactor, 2.0);
+				Lo += (kD * color / PI + specular) * radiance * NdotL * pow(smoothFactor, 2.0) * shadow;
 			}
 		}
 	}
 
-	color = ambient + Lo;
+	color = ambient + Lo;// *SSAO(positionAO.rgb, normalRoughness.rgb);
 
 	color = color / (color + vec3(1.0));
 	color = pow(color, vec3(1.0 / ubd.gamma));

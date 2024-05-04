@@ -18,6 +18,7 @@ namespace Ge
 	class LightManager;
 	class ShaderDataMisc;
 	class FrameBuffer;
+	class SSAOBuffer;
 }
 
 namespace Ge
@@ -34,6 +35,7 @@ namespace Ge
 		ptrClass * m_ptrClass;
 		GraphicsDataMisc * m_graphicsDataMisc;
 		FrameBuffer* m_frameBuffer;
+		SSAOBuffer* m_ssaoBuffer;
 		Window * m_window;
 		TextureManager * m_textureManager;
 		MaterialManager * m_materialManager;

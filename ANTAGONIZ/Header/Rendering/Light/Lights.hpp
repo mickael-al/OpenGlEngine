@@ -8,7 +8,7 @@
 #define TEXTURE_DIM 1024
 #define SHADOW_MAP_CASCADE_COUNT 4
 #define SHADOW_MAP_CUBE_COUNT 6
-#define SHADOW_MAP_SPOT_COUNT 1
+#define SHADOW_MAP_SPOT_COUNT 4
 
 struct GraphicsDataMisc;
 
@@ -44,7 +44,7 @@ namespace Ge
 		unsigned int m_ssboShadow;
 		bool m_shadow = false;
 		//shadow Dir
-		float cascadeSplitLambda = 0.95f;
+		float cascadeSplitLambda = 0.98f;
 		glm::vec3 frustumCorners[8];
 	};
 }

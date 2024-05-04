@@ -4,6 +4,7 @@
 #include "Model.hpp"
 #include "DirectionalLight.hpp"
 #include "PointLight.hpp"
+#include "SpotLight.hpp"
 
 void SceneView::load()
 {
@@ -11,21 +12,31 @@ void SceneView::load()
 	ShapeBuffer * sb = m_pc->modelManager->allocateBuffer("../Asset/Model/cube.obj");
 	Model * m = m_pc->modelManager->createModel(sb);
 	Model* m2 = m_pc->modelManager->createModel(sb);
+	Model* m3 = m_pc->modelManager->createModel(sb);
+	Model* m4 = m_pc->modelManager->createModel(sb);
+	Model* m5 = m_pc->modelManager->createModel(sb);
 	Materials* mat = m_pc->materialManager->createMaterial();
-	mat->setMetallic(0.7f);
-	mat->setRoughness(0.2f);
+	mat->setMetallic(0.5f);
+	mat->setRoughness(0.5f);
+	mat->setNormal(0.25f);
 	m->setMaterial(mat);
 	Textures* n = m_pc->textureManager->createTexture("../Asset/Texture/n.png");
 	mat->setNormalTexture(n);
-	mat->setTilling(glm::vec2(10, 10));
-	m2->setMaterial(mat);
+	mat->setTilling(glm::vec2(20, 20));
 	m2->setPosition(glm::vec3(3, 3, 0));
-	m->setScale(glm::vec3(10, 1, 10));
+	m->setScale(glm::vec3(20, 1, 20));
 	m2->setScale(glm::vec3(1, 5, 1));
-	PointLight* pl = m_pc->lightManager->createPointLight(glm::vec3(1.0f, 2.0f, 0.0f), glm::vec3(1, 0, 0.0f));
-	pl->setshadow(true);
-	//DirectionalLight * dl = m_pc->lightManager->createDirectionalLight(glm::vec3(-45.0f, 90.0f, 0.0f), glm::vec3(1, 1, 1));	
-	//dl->setshadow(true);
+
+	m3->setPosition(glm::vec3(-2, 2, 0));
+	m4->setPosition(glm::vec3(0, 2, 2));
+	m5->setPosition(glm::vec3(0, 2, -2));
+
+	m3->setScale(glm::vec3(1, 5, 1));
+	m4->setScale(glm::vec3(1, 5, 1));
+	m5->setScale(glm::vec3(1, 5, 1));
+
+	DirectionalLight * dl = m_pc->lightManager->createDirectionalLight(glm::vec3(-45.0f, 90.0f, 0.0f), glm::vec3(1, 1, 1));	
+	dl->setshadow(true);
 	m_tc = new TestCube(m2);
 	m_pc->behaviourManager->addBehaviour(m_tc);
 }

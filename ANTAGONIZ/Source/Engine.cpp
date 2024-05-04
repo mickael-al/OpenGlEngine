@@ -8,6 +8,8 @@
 #include "BehaviourManager.hpp"
 #include "SceneManager.hpp"
 #include "Lights.hpp"
+#include "PhysicsEngine.hpp"
+#include <Windows.h>
 
 namespace Ge
 {
@@ -20,6 +22,7 @@ namespace Ge
 		m_pointeurClass.time = m_time = new Time();
 		m_pointeurClass.behaviourManager = m_behaviourManager = new BehaviourManager();
 		m_pointeurClass.sceneManager = m_sceneManager = new SceneManager();
+		m_pointeurClass.physicsEngine = m_physicsEngine = new PhysicsEngine();
 		m_renderingEngine = new RenderingEngine(m_graphicsDataMisc);
 	}
 
@@ -31,6 +34,7 @@ namespace Ge
 		delete m_behaviourManager;
 		delete m_sceneManager;
 		delete m_graphicsDataMisc;
+		delete m_physicsEngine;
 		delete m_renderingEngine;
 	}
 
@@ -66,17 +70,42 @@ namespace Ge
 		m_renderingEngine->release();
         m_time->release();
         m_inputManager->release();
+		m_fixedThreadRuning = false;
+		m_fixedThread.join();
         Debug::RELEASESUCCESS("Engine");
     }
+
+	int deltaTime(int previous, int offset) 
+	{
+		return (clock() - previous) + offset;
+	}
+
+	void updatePhysique(glm::vec3 gravity,PhysicsEngine * pe, std::atomic<bool>* fixedThreadRuning)
+	{		
+		unsigned long m_lastTime = GetTickCount();
+		unsigned long currentTime;
+		float deltaTime;
+		pe->Initialize(gravity);
+		while (*fixedThreadRuning)
+		{
+			currentTime = GetTickCount();
+			deltaTime = (currentTime - m_lastTime) / 1000.0f;
+			m_lastTime = currentTime;
+			pe->Update(deltaTime);
+		}
+		pe->Shutdown();
+	}
 
     void Engine::start()
     {        
         m_time->startTime();
         Debug::Info("Moteur Start");
         m_sceneManager->loadEntryScene();
+		m_fixedThreadRuning = true;
+		m_fixedThread = std::thread(updatePhysique, m_settingManager->getGravity(), m_physicsEngine, &m_fixedThreadRuning);
         Engine::update();        
-    }
-    
+    }   
+
     void Engine::update()
     {
         while (!glfwWindowShouldClose(m_graphicsDataMisc->str_window))/*gestion d'evenement lier a la fermeture de la fenetre via la croix */

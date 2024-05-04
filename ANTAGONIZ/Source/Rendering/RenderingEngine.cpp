@@ -21,6 +21,7 @@
 #include "FrameBuffer.hpp"
 #include "Textures.hpp"
 #include "Lights.hpp"
+#include "SSAOBuffer.hpp"
 #include <stack>
 
 namespace Ge
@@ -29,6 +30,7 @@ namespace Ge
     {
 		m_graphicsDataMisc = graphicsDataMisc;
 		m_frameBuffer = new FrameBuffer();
+		m_ssaoBuffer = new SSAOBuffer();
 		m_window = new Window(m_frameBuffer);
 		m_textureManager = new TextureManager();
 		m_materialManager = new MaterialManager();
@@ -43,6 +45,7 @@ namespace Ge
 	RenderingEngine::~RenderingEngine()
 	{
 		delete m_frameBuffer;
+		delete m_ssaoBuffer;
 		delete m_shaderDataMisc;
 		delete m_lightManager;
 		delete m_cameraManager;
@@ -60,7 +63,7 @@ namespace Ge
             Debug::Error("ptrClass nullptr RenderingEngine");
             return false;
         }
-		m_ptrClass = p_ptrClass;	
+		m_ptrClass = p_ptrClass;
 		m_ptrClass->hud = m_hud;
 		m_ptrClass->textureManager = m_textureManager;
 		m_ptrClass->modelManager = m_modelManager;
@@ -139,7 +142,12 @@ namespace Ge
 			Debug::INITFAILED("LightManager");
 			return false;
 		}
-
+		if (!m_ssaoBuffer->initialize(m_graphicsDataMisc))
+		{
+			Debug::INITFAILED("SSAOManager");
+			return false;
+		}
+		
         Debug::INITSUCCESS("RenderingEngine");
 
         return true;
@@ -148,6 +156,7 @@ namespace Ge
     void RenderingEngine::release()
     {        	
 		RenderingEngine::m_shaderDataMisc->release();
+		RenderingEngine::m_ssaoBuffer->release();
 		RenderingEngine::m_lightManager->release();
 		RenderingEngine::m_hud->release();
 		RenderingEngine::m_cameraManager->release();
@@ -327,6 +336,7 @@ namespace Ge
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_lightManager->getSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_shaderDataMisc->getSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_lightManager->getSsboShadow());
+		//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_ssaoBuffer->getSSBO());
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, m_frameBuffer->getPosition());
 		glActiveTexture(GL_TEXTURE1);
@@ -337,6 +347,8 @@ namespace Ge
 		glBindTexture(GL_TEXTURE_2D, m_frameBuffer->getOther());
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, m_lightManager->getTextureShadowArray());
+	//	glActiveTexture(GL_TEXTURE5);
+		//glBindTexture(GL_TEXTURE_2D, m_ssaoBuffer->getNoiseTexture());
 		glUseProgram(m_graphicsDataMisc->str_default_pipeline_forward->getProgram());
 		glViewport(0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height);
 

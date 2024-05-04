@@ -13,6 +13,7 @@
 #include "BehaviourManager.hpp"
 #include "SceneManager.hpp"
 #include "GraphiquePipelineManager.hpp"
+#include "PhysicsEngine.hpp"
 
 using namespace Ge;
 namespace Ge
@@ -32,6 +33,7 @@ struct ptrClass
 	MaterialManager * materialManager;
 	BehaviourManager * behaviourManager;
 	SceneManager * sceneManager;
+	PhysicsEngine* physicsEngine;
 	Hud * hud;
 	GraphiquePipelineManager * graphiquePipelineManager;
 	RenderingEngine * renderingEngine;

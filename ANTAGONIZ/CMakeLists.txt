@@ -30,6 +30,10 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Miscellaneous/WaveFunct
 #Struct
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Struct)
 
+#Physics
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ThirdParty/Bullet3/src)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Physics)
+
 #File
 FILE(GLOB_RECURSE ENGINE_SOURCES *.cpp *.c)
 FILE(GLOB_RECURSE ENGINE_HEADERS *.hpp *.h *.inl)
@@ -37,4 +41,4 @@ ADD_EXECUTABLE(ANTAGONIZ ${ENGINE_SOURCES} ${ENGINE_HEADERS})
 
 find_package(OpenGL REQUIRED)
 
-TARGET_LINK_LIBRARIES(ANTAGONIZ PRIVATE GLEW glfw glfw3 termcolor tinyobjloader OpenFBX stb glm ImGUI ${OPENGL_LIBRARIES})	
+TARGET_LINK_LIBRARIES(ANTAGONIZ PRIVATE GLEW glfw glfw3 termcolor tinyobjloader OpenFBX stb glm ImGUI LinearMath Bullet3Common BulletInverseDynamics BulletCollision BulletDynamics BulletSoftBody ${OPENGL_LIBRARIES})

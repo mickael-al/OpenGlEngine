@@ -2,6 +2,9 @@
 #define __ENGINE_ENGINE___
 
 #include "Initializer.hpp"
+#include <thread>
+#include <atomic>
+#include "glm/glm.hpp"
 
 struct GraphicsDataMisc;
 struct ptrClass;
@@ -14,6 +17,7 @@ namespace Ge
 	class InputManager;
 	class BehaviourManager;
 	class SceneManager;
+	class PhysicsEngine;
 }
 namespace Ge
 {	
@@ -39,6 +43,9 @@ namespace Ge
         InputManager * m_inputManager;
 		BehaviourManager * m_behaviourManager;
 		SceneManager * m_sceneManager;
+		PhysicsEngine* m_physicsEngine;
+		std::thread m_fixedThread;
+		std::atomic<bool> m_fixedThreadRuning;
         float m_lag = 0.0f;
     };
 }
