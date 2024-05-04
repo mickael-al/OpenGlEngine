@@ -93,7 +93,7 @@ namespace Ge
 	{
 		m_eulerAngles = euler;
 		m_transform.rotation = glm::quat(glm::radians(euler));
-		mapMemory();
+		mapMemory();		
 	}
 
 	void GObject::setRotation(glm::quat rot)

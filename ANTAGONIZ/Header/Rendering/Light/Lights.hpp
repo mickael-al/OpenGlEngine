@@ -5,7 +5,7 @@
 #include "UniformBufferLight.hpp"
 #include "ShadowMatrix.hpp"
 
-#define TEXTURE_DIM 1024
+#define TEXTURE_DIM 2048
 #define SHADOW_MAP_CASCADE_COUNT 4
 #define SHADOW_MAP_CUBE_COUNT 6
 #define SHADOW_MAP_SPOT_COUNT 4

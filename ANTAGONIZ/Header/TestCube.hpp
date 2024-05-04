@@ -18,6 +18,7 @@ public:
 private:
 	const ptrClass* m_pc;
 	Model* m_model;
+	DirectionalLight* m_dir;
 
 };
 

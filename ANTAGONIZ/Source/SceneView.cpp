@@ -35,8 +35,6 @@ void SceneView::load()
 	m4->setScale(glm::vec3(1, 5, 1));
 	m5->setScale(glm::vec3(1, 5, 1));
 
-	DirectionalLight * dl = m_pc->lightManager->createDirectionalLight(glm::vec3(-45.0f, 90.0f, 0.0f), glm::vec3(1, 1, 1));	
-	dl->setshadow(true);
 	m_tc = new TestCube(m2);
 	m_pc->behaviourManager->addBehaviour(m_tc);
 }

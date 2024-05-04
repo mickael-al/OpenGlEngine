@@ -38,6 +38,10 @@ namespace Ge
 		m_ubl.direction = getDirection();
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ssbo);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, m_index * sizeof(UniformBufferLight), sizeof(UniformBufferLight), &m_ubl);
+		if (m_ubl.shadowId >= 0)
+		{
+			mapMemoryShadow();
+		}
 	}
 
 	void Lights::setshadow(bool state)

@@ -1,9 +1,12 @@
 #include "TestCube.hpp"
+#include "DirectionalLight.hpp"
 
 TestCube::TestCube(Model * m)
 {
 	m_pc = &Engine::getPtrClass();
 	m_model = m;
+	m_dir = m_pc->lightManager->createDirectionalLight(glm::vec3(-45.0f, 45.0f, 0.0f), glm::vec3(1, 1, 1));
+	m_dir->setshadow(true);
 }
 
 void TestCube::start()
@@ -18,7 +21,7 @@ void TestCube::fixedUpdate()
 
 void TestCube::update()
 {
-	//m_model->setEulerAngles(glm::vec3((m_pc->time->getTime()*36.0f),0,0));
+	m_dir->setEulerAngles(glm::vec3(-45.0f, (m_pc->time->getTime() * 36.0f),0));
 	if (m_pc->inputManager->getKey(GLFW_KEY_J))
 	{
 		glm::vec3 pos = m_model->getPosition();
