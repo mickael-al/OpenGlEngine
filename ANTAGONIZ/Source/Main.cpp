@@ -2,7 +2,6 @@
 #include <iostream>
 #include "Version.hpp"
 #include "PathManager.hpp"
-#include "SceneView.hpp"
 #include <cstdlib>
 using namespace Ge;
 
@@ -24,15 +23,14 @@ int main(int argc, char *argv[])
 	e.settingManager->setName("Antagoniz");
 	e.settingManager->setWindowHeight(1024);
 	e.settingManager->setWindowWidth(1920);
+	e.settingManager->setEditor(true);
+	e.settingManager->setEditorPath("../TestProject");
 	Version vers;
 	vers.majeur = 7;
 	vers.mineur = 0;
 	vers.patch = 0;
 	e.settingManager->setVersion(vers);
 	e.settingManager->setFps(120.0f);
-	SceneView cv;
-
-	e.sceneManager->addScene("SceneView", (Scene*) & cv);
 
 	if (!engine.initialize())
 	{

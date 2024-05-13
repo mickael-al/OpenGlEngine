@@ -88,6 +88,10 @@ namespace Ge
 			if (bufferIterator != m_instanced[mat].end())
 			{
 				m_instanced[mat].erase(bufferIterator);
+				if (m_instanced[mat].empty())
+				{
+					m_instanced.erase(mat);
+				}
 			}
 		}		
 		m_pool.deleteObject(model);
@@ -111,11 +115,16 @@ namespace Ge
 
 			if (bufferIterator != materialPair.second.end()) 
 			{
-				materialPair.second.erase(bufferIterator);
+				materialPair.second.erase(bufferIterator);			
+				if (materialPair.second.empty())
+				{
+					m_instanced.erase(materialPair.first);
+					break;
+				}
 			}
 		}		
 		m_poolBuffer.deleteObject((ShapeBufferBase*)buffer);
-		m_gdm->str_dataMisc.recreateCommandBuffer = true;
+		m_gdm->str_dataMisc.recreateCommandBuffer = true;		
 	}
 
 	std::vector<Model*> & ModelManager::getModels()
@@ -613,7 +622,7 @@ namespace Ge
 	}
 
 	ShapeBuffer* ModelManager::allocateBuffer(const char* path, bool normal_recalculate)
-	{
+	{		
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;
 		std::vector<tinyobj::material_t> materials;

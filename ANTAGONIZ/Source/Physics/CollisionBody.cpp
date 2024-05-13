@@ -42,7 +42,7 @@ namespace Ge
         m_transform.rotation = rot;
         m_eulerAngles = GObject::getEulerAngles();
         btTransform initialTransform;
-        btVector3   position = m_pBody->getWorldTransform().getOrigin();
+        btVector3 position = m_pBody->getWorldTransform().getOrigin();
 
         initialTransform.setOrigin(position);
         initialTransform.setRotation(btQuaternion(rot.x, rot.y, rot.z, rot.w));

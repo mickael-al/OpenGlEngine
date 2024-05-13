@@ -22,7 +22,7 @@ namespace Ge
 	{
 		m_gdm = gdm;
 		m_buffer = buffer;
-		m_material = nullptr;
+		m_material = gdm->str_default_material;
 		m_index = index;
 		m_ssbo = m_gdm->str_ssbo.str_model;
 		m_ubo.mat_index = 0;

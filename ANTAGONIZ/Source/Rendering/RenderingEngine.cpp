@@ -56,6 +56,11 @@ namespace Ge
 		m_graphicsDataMisc = nullptr;		
 	}
 
+	Window* RenderingEngine::getWindowManager() const
+	{
+		return m_window;
+	}
+
     bool RenderingEngine::initialize(ptrClass *p_ptrClass)
     {
         if (p_ptrClass == nullptr)
@@ -336,7 +341,7 @@ namespace Ge
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_lightManager->getSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_shaderDataMisc->getSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_lightManager->getSsboShadow());
-		//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_ssaoBuffer->getSSBO());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_ssaoBuffer->getSSBO());
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, m_frameBuffer->getPosition());
 		glActiveTexture(GL_TEXTURE1);
@@ -347,8 +352,8 @@ namespace Ge
 		glBindTexture(GL_TEXTURE_2D, m_frameBuffer->getOther());
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, m_lightManager->getTextureShadowArray());
-	//	glActiveTexture(GL_TEXTURE5);
-		//glBindTexture(GL_TEXTURE_2D, m_ssaoBuffer->getNoiseTexture());
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_2D, m_ssaoBuffer->getNoiseTexture());
 		glUseProgram(m_graphicsDataMisc->str_default_pipeline_forward->getProgram());
 		glViewport(0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height);
 

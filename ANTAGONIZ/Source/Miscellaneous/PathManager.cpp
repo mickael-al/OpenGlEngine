@@ -24,13 +24,13 @@ std::string PathManager::getHomeDirectory()
 	char homeDrive[MAX_PATH];
 	if (GetEnvironmentVariable("HOMEDRIVE", homeDrive, MAX_PATH) > 0)
 	{
-		homeDir = std::string(homeDrive) + "/personnel/StellarView";
+		homeDir = std::string(homeDrive) + "/Users/Public/Antagoniz";
 	}
 #elif __linux__
 	const char* homePath = getenv("HOME");
 	if (homePath != nullptr)
 	{
-		homeDir = std::string(homePath) + "/.StellarView";
+		homeDir = std::string(homePath) + "/.Antagoniz";
 	}
 #endif
 

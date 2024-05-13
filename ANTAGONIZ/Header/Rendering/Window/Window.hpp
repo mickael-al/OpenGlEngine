@@ -11,14 +11,14 @@ namespace Ge
 	{
 	public:
 		static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+		GLFWwindow* getWindow();
 	private:
 		friend class RenderingEngine;
 		Window(FrameBuffer * fb);
 		bool initialize(unsigned int Width, unsigned int Height, const char * name,const char * iconPath,bool vsync, GraphicsDataMisc * gdm);
 		void release();
 		bool getframebufferResized();
-		void setframebufferResized(bool state);
-		GLFWwindow * getWindow();
+		void setframebufferResized(bool state);		
 	private:		
 		friend class Window;
 		bool m_framebufferResized = false;

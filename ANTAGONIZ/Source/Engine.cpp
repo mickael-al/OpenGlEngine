@@ -9,6 +9,9 @@
 #include "SceneManager.hpp"
 #include "Lights.hpp"
 #include "PhysicsEngine.hpp"
+#include "SoundManager.hpp"
+#include "Editor.hpp"
+#include "PathManager.hpp"
 #include <Windows.h>
 
 namespace Ge
@@ -23,6 +26,8 @@ namespace Ge
 		m_pointeurClass.behaviourManager = m_behaviourManager = new BehaviourManager();
 		m_pointeurClass.sceneManager = m_sceneManager = new SceneManager();
 		m_pointeurClass.physicsEngine = m_physicsEngine = new PhysicsEngine();
+		m_pointeurClass.soundManager = m_soundManager = new SoundManager();
+		m_editor = new Editor();
 		m_renderingEngine = new RenderingEngine(m_graphicsDataMisc);
 	}
 
@@ -35,6 +40,8 @@ namespace Ge
 		delete m_sceneManager;
 		delete m_graphicsDataMisc;
 		delete m_physicsEngine;
+		delete m_soundManager;
+		delete m_editor;
 		delete m_renderingEngine;
 	}
 
@@ -50,6 +57,7 @@ namespace Ge
 
     bool Engine::initialize()
     {
+		PathManager::initDirectory();
         if(!m_renderingEngine->initialize(&m_pointeurClass))
         {
             Debug::INITFAILED("RenderingEngine");
@@ -60,6 +68,11 @@ namespace Ge
             Debug::INITFAILED("InputManager");
             return false;
         }
+		if (!m_soundManager->initialize())
+		{
+			Debug::INITFAILED("SoundManager");
+			return false;
+		}		
         return true;
     }
 
@@ -70,8 +83,13 @@ namespace Ge
 		m_renderingEngine->release();
         m_time->release();
         m_inputManager->release();
+		m_soundManager->release();
 		m_fixedThreadRuning = false;
 		m_fixedThread.join();
+		if (m_settingManager->getEditor())
+		{
+			m_behaviourManager->removeBehaviour(m_editor,true);
+		}
         Debug::RELEASESUCCESS("Engine");
     }
 
@@ -82,13 +100,13 @@ namespace Ge
 
 	void updatePhysique(glm::vec3 gravity,PhysicsEngine * pe, std::atomic<bool>* fixedThreadRuning)
 	{		
-		unsigned long m_lastTime = GetTickCount();
+		unsigned long m_lastTime = GetTickCount64();
 		unsigned long currentTime;
 		float deltaTime;
 		pe->Initialize(gravity);
 		while (*fixedThreadRuning)
 		{
-			currentTime = GetTickCount();
+			currentTime = GetTickCount64();
 			deltaTime = (currentTime - m_lastTime) / 1000.0f;
 			m_lastTime = currentTime;
 			pe->Update(deltaTime);
@@ -98,11 +116,15 @@ namespace Ge
 
     void Engine::start()
     {        
-        m_time->startTime();
-        Debug::Info("Moteur Start");
-        m_sceneManager->loadEntryScene();
+        m_time->startTime();		
 		m_fixedThreadRuning = true;
 		m_fixedThread = std::thread(updatePhysique, m_settingManager->getGravity(), m_physicsEngine, &m_fixedThreadRuning);
+        Debug::Info("Moteur Start");
+		if (m_settingManager->getEditor())
+		{
+			m_behaviourManager->addBehaviour(m_editor);
+		}
+        m_sceneManager->loadEntryScene();
         Engine::update();        
     }   
 

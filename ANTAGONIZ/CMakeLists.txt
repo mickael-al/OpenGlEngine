@@ -26,6 +26,7 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Interface)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Miscellaneous/PathFinding)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Miscellaneous/Goap)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Miscellaneous/WaveFunctionCollapse)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Sound)
 
 #Struct
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Struct)
@@ -41,4 +42,4 @@ ADD_EXECUTABLE(ANTAGONIZ ${ENGINE_SOURCES} ${ENGINE_HEADERS})
 
 find_package(OpenGL REQUIRED)
 
-TARGET_LINK_LIBRARIES(ANTAGONIZ PRIVATE GLEW glfw glfw3 termcolor tinyobjloader OpenFBX stb glm ImGUI LinearMath Bullet3Common BulletInverseDynamics BulletCollision BulletDynamics BulletSoftBody ${OPENGL_LIBRARIES})
+TARGET_LINK_LIBRARIES(ANTAGONIZ PRIVATE GLEW glfw glfw3 termcolor tinyobjloader OpenFBX stb glm ImGUI OpenAL LinearMath Bullet3Common BulletInverseDynamics BulletCollision BulletDynamics BulletSoftBody ${OPENGL_LIBRARIES})

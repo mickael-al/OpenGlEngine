@@ -83,17 +83,37 @@ namespace Ge
         return m_settingInfo.m_gamma;
     }
 
+    void SettingManager::setEditor(bool state)
+    {
+        m_settingInfo.m_editor = state;
+    }
+
+    bool SettingManager::getEditor() const
+    {
+        return m_settingInfo.m_editor;
+    }
+
+    void SettingManager::setEditorPath(const char* path)
+    {
+        m_settingInfo.projectEditorPath = path;
+    }
+
+    const char* SettingManager::getEditorPath() const
+    {
+        return m_settingInfo.projectEditorPath;
+    }
+
 	void SettingManager::setIconPath(const char * path)
 	{
 		m_settingInfo.iconPath = path;
 	}
 
-	void SettingManager::setVSync(float vsync)
+	void SettingManager::setVSync(bool vsync)
 	{
 		m_settingInfo.m_vsync = vsync;
 	}
 
-	float SettingManager::getVsync() const
+    bool SettingManager::getVsync() const
 	{
 		return m_settingInfo.m_vsync;
 	}

@@ -72,6 +72,28 @@ namespace Ge
 		m_tag.erase(std::remove(m_tag.begin(), m_tag.end(), hashValue), m_tag.end());
 	}
 
+	void GObject::setParent(GObject* obj)
+	{
+		if (m_parent != nullptr)
+		{			
+			m_parent->m_child.erase(std::remove(m_parent->m_child.begin(), m_parent->m_child.end(), this), m_parent->m_child.end());
+		}
+		m_parent = obj;
+		if (m_parent != nullptr)
+		{
+			m_parent->m_child.push_back(this);
+		}
+	}
+
+	GObject* GObject::getParent() const
+	{
+		return m_parent;
+	}
+
+	const std::vector<GObject*>& GObject::getChilds() const
+	{
+		return m_child;
+	}
 
 	void GObject::setName(std::string name)
 	{
@@ -86,27 +108,55 @@ namespace Ge
 	void GObject::setPosition(glm::vec3 pos)
 	{
 		m_transform.position = pos;
-		mapMemory();
+		updateLocal();		
 	}
 
 	void GObject::setEulerAngles(glm::vec3 euler)
 	{
 		m_eulerAngles = euler;
 		m_transform.rotation = glm::quat(glm::radians(euler));
-		mapMemory();		
+		updateLocal();		
 	}
 
 	void GObject::setRotation(glm::quat rot)
 	{		
 		m_transform.rotation = rot;
 		m_eulerAngles = GObject::getEulerAngles();
-		mapMemory();
+		updateLocal();
+	}
+
+	void GObject::setLocalPosition(glm::vec3 pos)
+	{
+		if (m_parent != nullptr)
+		{
+			m_localTransform.position = pos;
+			applyTransform(m_localTransform.position, m_localTransform.rotation, m_parent);
+			updateGlobal();
+		}
+		else
+		{
+			setPosition(pos);
+		}		
+	}
+
+	void GObject::setLocalRotation(glm::quat rot)
+	{
+		if (m_parent != nullptr)
+		{
+			m_localTransform.rotation = rot;
+			applyTransform(m_localTransform.position, m_localTransform.rotation, m_parent);
+			updateGlobal();
+		}
+		else
+		{
+			setRotation(rot);
+		}
 	}
 
 	void GObject::setScale(glm::vec3 scale)
 	{
 		m_transform.scale = scale;
-		mapMemory();
+		updateLocal();
 	}
 
 	void GObject::setTarget(glm::vec3 target)
@@ -115,7 +165,17 @@ namespace Ge
 		glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 		glm::mat4 rotationMatrix = glm::lookAt(m_transform.position, target, up);		
 		m_transform.rotation = glm::quat_cast(rotationMatrix);
-		mapMemory();
+		updateLocal();
+	}
+
+	glm::vec3 GObject::getLocalPosition() const
+	{
+		return m_parent != nullptr ? m_localTransform.position : glm::vec3(0,0,0);
+	}
+
+	glm::quat GObject::getLocalRotation() const
+	{
+		return m_parent != nullptr ? m_localTransform.rotation : glm::quat(0, 0, 0,0);		
 	}
 
 	glm::vec3 GObject::getPosition() const
@@ -141,6 +201,25 @@ namespace Ge
 	glm::vec3 GObject::getScale() const
 	{
 		return m_transform.scale;
+	}
+
+	void GObject::updateLocal()
+	{
+		if (m_parent != nullptr)
+		{
+			applyLocalTransform(m_transform.position, m_transform.rotation, m_parent);
+		}
+		mapMemory();
+		updateGlobal();		
+	}
+
+	void GObject::updateGlobal()
+	{
+		for (int i = 0; i < m_child.size(); i++)
+		{
+			m_child[i]->applyTransform(m_child[i]->getLocalPosition(), m_child[i]->getLocalRotation(), this);
+			m_child[i]->updateGlobal();
+		}
 	}
 
 	glm::vec3 GObject::transformDirectionAxeX()
@@ -196,6 +275,15 @@ namespace Ge
 		m_transform.rotation = glm::quat_cast(globalMatrix);
 		m_eulerAngles = getEulerAngles();
 		mapMemory();
+	}
+
+	void GObject::applyLocalTransform(const glm::vec3& globalPosition, const glm::quat& globalRotation, const GObject* parent)
+	{
+		glm::mat4 globalMatrix = glm::translate(glm::mat4(1.0f), globalPosition) * glm::mat4_cast(globalRotation);
+		glm::mat4 parentInverseMatrix = glm::inverse(parent->getModelMatrix());
+
+		m_localTransform.position = glm::vec3(parentInverseMatrix * glm::vec4(globalPosition, 1.0f));
+		m_localTransform.rotation = glm::inverse(parent->getRotation()) * globalRotation;
 	}
 
 	Transform GObject::globalTransform(const glm::vec3& localPosition, const glm::vec3& localEuler, const glm::vec3& localScale, const glm::vec3& parentPosition, const glm::quat& parentRotation, const glm::vec3& parentScale)

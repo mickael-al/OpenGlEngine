@@ -49,10 +49,10 @@ layout(std430, binding = 3) buffer UniformBufferShadow
 	StructShadow s[];
 } ubs;
 
-/*layout(std430, binding = 4) buffer UniformBufferSSAO
+layout(std430, binding = 4) buffer UniformBufferSSAO
 {
 	vec3 samples[];
-} ubssao;*/
+} ubssao;
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
@@ -106,7 +106,7 @@ layout(binding = 1) uniform sampler2D gNormal;
 layout(binding = 2) uniform sampler2D gColorSpec;
 layout(binding = 3) uniform sampler2D gOther;
 layout(binding = 4) uniform sampler2DArray shadowDepth;
-//layout(binding = 5) uniform sampler2D texNoise;
+layout(binding = 5) uniform sampler2D texNoise;
 
 float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex)
 {
@@ -150,7 +150,7 @@ float filterPCF(vec4 sc, uint cascadeIndex)
 
 in vec2 v_UV;
 
-/*float SSAO(vec3 fragPos, vec3 normal)
+float SSAO(vec3 fragPos, vec3 normal)
 {
 	ivec2 ts = textureSize(gPosition,0);
 	vec3 randomVec = texture(texNoise, v_UV * vec2(float(ts.x) / 4.0, float(ts.y) / 4.0)).xyz;
@@ -175,7 +175,7 @@ in vec2 v_UV;
 		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0) * rangeCheck;
 	}
 	return 1.0 - (occlusion / 64);
-}*/
+}
 
 out vec4 o_FragColor;
 

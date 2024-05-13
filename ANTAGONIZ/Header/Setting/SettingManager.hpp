@@ -26,8 +26,12 @@ namespace Ge
 		const glm::vec4 & getClearColor() const;
         void setGamma(float gamma);
         float getGamma() const;
-		void setVSync(float vsync);
-		float getVsync() const;
+        void setEditor(bool state);
+        bool getEditor() const;
+        void setEditorPath(const char * path);
+        const char * getEditorPath() const;
+		void setVSync(bool vsync);
+        bool getVsync() const;
 		void setIconPath(const char * path);
 		const char * getIconPath() const;
 		float const * getFramerate() const;		

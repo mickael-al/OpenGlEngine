@@ -16,7 +16,9 @@ struct SettingInfo
     Version m_version;
 	glm::vec4 m_clearColor = glm::vec4(0.0f,0.0f,0.0f,0.0f);
 	const char * iconPath = "";
+    const char * projectEditorPath = "";
 	bool m_vsync = false;
+    bool m_editor = false;
 	float * m_framerate;
 };
 

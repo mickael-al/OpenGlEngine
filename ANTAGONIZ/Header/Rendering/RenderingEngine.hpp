@@ -28,6 +28,7 @@ namespace Ge
     public:
         RenderingEngine(GraphicsDataMisc * graphicsDataMisc);
 		~RenderingEngine();
+		Window* getWindowManager() const;
         bool initialize(ptrClass * p_ptrClass);
         void release();
         void drawFrame();

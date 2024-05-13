@@ -15,6 +15,7 @@ class RigidBody;
 class CollisionBody;
 class Muscle;
 class CollisionShape;
+class GObject;
 
 class PhysicsEngine
 {
@@ -36,6 +37,7 @@ private:
     std::vector<RigidBody*> m_rigidbody;
     std::vector<CollisionBody*> m_collisionbody;
     std::vector<Muscle*> m_muscle;
+    //std::vector<GObject*> * m_modified;
     btDynamicsWorld* m_pDynamicWorld;
     btBroadphaseInterface               * m_pBroadphaseInterface;
     btCollisionDispatcher               * m_pCollisionDispatcher;
