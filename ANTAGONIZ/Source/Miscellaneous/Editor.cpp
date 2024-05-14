@@ -12,6 +12,9 @@
 #include "Camera.hpp"
 #include "Materials.hpp"
 #include "GraphiquePipeline.hpp"
+#include "DirectionalLight.hpp"
+#include "PointLight.hpp"
+#include "SpotLight.hpp"
 #include <sys/stat.h>
 #include <filesystem>
 
@@ -74,18 +77,75 @@ bool copyAndRenameDirectory(const std::string& sourceDir, const std::string& tar
 	}
 }
 
-void dtv(GObject * obj,int * id)
+void Editor::dtv(GObject * obj,int * id)
 {
 	ImGui::PushID(*id);
-	if (ImGui::TreeNode(obj->getName()->c_str()))
-	{		
-		const std::vector<GObject*>& child = obj->getChilds();	
-		for (int i = 0; i < child.size(); i++)
+	const std::vector<GObject*>& child = obj->getChilds();
+	if (child.empty())
+	{
+		if (ImGui::TreeNodeEx(obj->getName()->c_str(), m_selectedOBJ == obj ? (ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_Leaf) : ImGuiTreeNodeFlags_Leaf))
 		{
-			(*id)++;
-			dtv(child[i], id);
+			ImGui::TreePop();
 		}
-		ImGui::TreePop();
+	}
+	else
+	{
+		if (ImGui::TreeNodeEx(obj->getName()->c_str(), m_selectedOBJ == obj ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
+		{
+			for (int i = 0; i < child.size(); i++)
+			{
+				(*id)++;
+				dtv(child[i], id);
+			}
+			ImGui::TreePop();
+		}
+	}
+	if (ImGui::IsItemClicked())
+	{
+		m_selectedOBJ = obj;
+	}
+	if (ImGui::IsItemHovered())
+	{
+		if (m_pc->inputManager->getKeyDown(GLFW_KEY_DELETE))
+		{
+			ShapeBuffer* sbCheck = nullptr;
+			for (int i = 0; i < m_currentSceneData->models.size(); i++)
+			{
+				if ((GObject*)m_currentSceneData->models[i] == obj)
+				{					
+					sbCheck = m_currentSceneData->models[i]->getShapeBuffer();				
+					Model* m = m_currentSceneData->models[i];					
+					m_currentSceneData->models.erase(m_currentSceneData->models.begin() + i);					
+					m_pc->modelManager->destroyModel(m);
+					i = m_currentSceneData->models.size();
+				}
+			}
+			if (sbCheck != nullptr)
+			{
+				bool found = false;
+				int i = 0;
+				for (; i < m_currentSceneData->models.size() && !found; i++)
+				{
+					if (m_currentSceneData->models[i]->getShapeBuffer() == sbCheck)
+					{
+						found = true;
+					}
+				}
+				if (!found)
+				{					
+					for (int j = 0; j < m_currentSceneData->buffer.size(); j++)
+					{
+						if (m_currentSceneData->buffer[j] == sbCheck)
+						{
+							m_currentSceneData->buffer.erase(m_currentSceneData->buffer.begin() + j);
+							m_currentSceneData->bufferData.erase(m_currentSceneData->bufferData.begin() + j);
+							break;
+						}
+					}
+					m_pc->modelManager->destroyBuffer(sbCheck);
+				}
+			}
+		}
 	}
 	ImGui::PopID();
 }
@@ -101,6 +161,27 @@ void Editor::drawTreeView()
 			dtv(m_currentSceneData->models[i], &id);
 		}
 	}	
+	for (int i = 0; i < m_currentSceneData->dlight.size(); i++)
+	{
+		if (m_currentSceneData->dlight[i]->getParent() == nullptr)
+		{
+			dtv(m_currentSceneData->dlight[i], &id);
+		}
+	}
+	for (int i = 0; i < m_currentSceneData->slight.size(); i++)
+	{
+		if (m_currentSceneData->slight[i]->getParent() == nullptr)
+		{
+			dtv(m_currentSceneData->slight[i], &id);
+		}
+	}	
+	for (int i = 0; i < m_currentSceneData->plight.size(); i++)
+	{
+		if (m_currentSceneData->plight[i]->getParent() == nullptr)
+		{
+			dtv(m_currentSceneData->plight[i], &id);
+		}
+	}
 }
 
 void Editor::drawFolderContents(const std::string& basePath,std::string& path)
@@ -187,10 +268,17 @@ void Editor::drawFolderContents(const std::string& basePath,std::string& path)
 
 			}
 		}
+		if (ImGui::IsItemHovered())
+		{
+			if (m_pc->inputManager->getKeyDown(GLFW_KEY_DELETE))
+			{
+				m_deleteOject = true;
+				deletePath = entry.path().string();							
+			}
+		}
 		ImGui::PopID();
 		ImGui::TextWrapped("%s", entry.path().filename().string().c_str());
 		ImGui::EndGroup();
-
 		if ((itemCount + 1) % m_columns != 0)
 		{
 			ImGui::SameLine();
@@ -344,6 +432,7 @@ std::string extractFolderPath(const std::string& fullPath)
 
 void Editor::clearScene(SceneData* sd)
 {
+	m_selectedOBJ = nullptr;
 	for (int i = 0; i < sd->models.size(); i++)
 	{
 		m_pc->modelManager->destroyModel(sd->models[i]);
@@ -369,6 +458,22 @@ void Editor::clearScene(SceneData* sd)
 		m_pc->textureManager->destroyTexture(sd->textures[i]);
 	}
 	sd->textures.clear();
+
+	for (int i = 0; i < sd->dlight.size(); i++)
+	{
+		m_pc->lightManager->destroyLight(sd->dlight[i]);
+	}
+	sd->dlight.clear();
+	for (int i = 0; i < sd->plight.size(); i++)
+	{
+		m_pc->lightManager->destroyLight(sd->plight[i]);
+	}
+	sd->plight.clear();
+	for (int i = 0; i < sd->slight.size(); i++)
+	{
+		m_pc->lightManager->destroyLight(sd->slight[i]);
+	}
+	sd->slight.clear();
 }
 
 void Editor::loadScene(const std::string& filePath, SceneData* sd)
@@ -459,6 +564,45 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			sd->models.push_back(m);
 		}
 	}
+	sd->dlight.clear();
+	sd->plight.clear();
+	sd->slight.clear();
+	for (int i = 0; i < sd->lightData.size(); i++)
+	{
+		if (sd->lightData[i].status == 0)
+		{
+			DirectionalLight * dl = m_pc->lightManager->createDirectionalLight(glm::vec3(0, 0, 0), sd->lightData[i].color, sd->lightData[i].name);
+			dl->setPosition(sd->lightData[i].position);
+			dl->setRotation(sd->lightData[i].rotation);
+			dl->setScale(sd->lightData[i].scale);
+			dl->setRange(sd->lightData[i].range);
+			dl->setSpotAngle(sd->lightData[i].spotAngle);
+			dl->setshadow(sd->lightData[i].shadow);
+			sd->dlight.push_back(dl);
+		}
+		else if (sd->lightData[i].status == 1)
+		{
+			PointLight* pl = m_pc->lightManager->createPointLight(sd->lightData[i].position, sd->lightData[i].color, sd->lightData[i].name);
+			pl->setPosition(sd->lightData[i].position);
+			pl->setRotation(sd->lightData[i].rotation);
+			pl->setScale(sd->lightData[i].scale);
+			pl->setRange(sd->lightData[i].range);
+			pl->setSpotAngle(sd->lightData[i].spotAngle);
+			pl->setshadow(sd->lightData[i].shadow);
+			sd->plight.push_back(pl);
+		}
+		else if (sd->lightData[i].status == 2)
+		{
+			SpotLight* sl = m_pc->lightManager->createSpotLight(sd->lightData[i].position, sd->lightData[i].color,glm::vec3(0,0,0), sd->lightData[i].spotAngle, sd->lightData[i].name);
+			sl->setPosition(sd->lightData[i].position);
+			sl->setRotation(sd->lightData[i].rotation);
+			sl->setScale(sd->lightData[i].scale);
+			sl->setRange(sd->lightData[i].range);
+			sl->setSpotAngle(sd->lightData[i].spotAngle);
+			sl->setshadow(sd->lightData[i].shadow);
+			sd->slight.push_back(sl);
+		}
+	}
 	Camera* cam = m_pc->cameraManager->getCurrentCamera();
 	cam->setPosition(sd->freeCamPos);
 	cam->setRotation(sd->freeCamRot);
@@ -475,6 +619,37 @@ void Editor::globalSave()
 		}
 	}
 }
+
+void Editor::addLightToScene(int type)
+{
+	if (m_currentSceneData != nullptr)
+	{
+		if (type == 0)
+		{
+			m_currentSceneData->dlight.push_back(m_pc->lightManager->createDirectionalLight(glm::vec3(-90.0f, 45.0f, 0.0f), glm::vec3(1, 1, 1)));			
+		}		
+		else if(type == 1)
+		{
+			Camera* cam = m_pc->cameraManager->getCurrentCamera();
+			PointLight* pl = m_pc->lightManager->createPointLight(cam->getPosition() + cam->transformDirectionAxeZ() * SPAWN_DISTANCE, glm::vec3(1, 1, 1));
+			m_currentSceneData->plight.push_back(pl);			
+		}		
+		else if (type == 2)
+		{
+			Camera* cam = m_pc->cameraManager->getCurrentCamera();
+			SpotLight* sl = m_pc->lightManager->createSpotLight(cam->getPosition() + cam->transformDirectionAxeZ() * SPAWN_DISTANCE, glm::vec3(1, 1, 1),glm::vec3(0,0,0),0);
+			m_currentSceneData->slight.push_back(sl);
+		}
+	}
+}
+
+void Editor::addEmptyToScene()
+{
+	if (m_currentSceneData != nullptr)
+	{
+	}
+}
+
 
 void Editor::addModelToScene(const std::string& filePath)
 {
@@ -500,9 +675,9 @@ void Editor::addModelToScene(const std::string& filePath)
 			bd.path = filePath.c_str();
 			m_currentSceneData->bufferData.push_back(bd);
 		}
-		Model* m = m_pc->modelManager->createModel(sb);
+		Model* m = m_pc->modelManager->createModel(sb,extractFileName(filePath));
 		Camera * cam = m_pc->cameraManager->getCurrentCamera();
-		m->setPosition(cam->getPosition() + cam->transformDirectionAxeZ() * 5.0f);
+		m->setPosition(cam->getPosition() + cam->transformDirectionAxeZ() * SPAWN_DISTANCE);
 		m_currentSceneData->models.push_back(m);
 	}
 }
@@ -513,6 +688,49 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 	sd->freeCamPos = cam->getPosition();
 	sd->freeCamRot = cam->getRotation();
 	
+	sd->lightData.clear();
+	for (int i = 0; i < sd->dlight.size(); i++)
+	{
+		LightData ld;
+		ld.name = *sd->dlight[i]->getName();
+		ld.position = sd->dlight[i]->getPosition();
+		ld.rotation = sd->dlight[i]->getRotation();
+		ld.scale = sd->dlight[i]->getScale();
+		ld.color = sd->dlight[i]->getColors();
+		ld.range = sd->dlight[i]->getRange();
+		ld.spotAngle = sd->dlight[i]->getSpotAngle();
+		ld.shadow = sd->dlight[i]->getshadow();
+		ld.status = 0;
+		sd->lightData.push_back(ld);
+	}
+	for (int i = 0; i < sd->plight.size(); i++)
+	{
+		LightData ld;
+		ld.name = *sd->plight[i]->getName();
+		ld.position = sd->plight[i]->getPosition();
+		ld.rotation = sd->plight[i]->getRotation();
+		ld.scale = sd->plight[i]->getScale();
+		ld.color = sd->plight[i]->getColors();
+		ld.range = sd->plight[i]->getRange();
+		ld.spotAngle = sd->plight[i]->getSpotAngle();
+		ld.shadow = sd->plight[i]->getshadow();
+		ld.status = 1;
+		sd->lightData.push_back(ld);
+	}
+	for (int i = 0; i < sd->slight.size(); i++)
+	{
+		LightData ld;
+		ld.name = *sd->slight[i]->getName();
+		ld.position = sd->slight[i]->getPosition();
+		ld.rotation = sd->slight[i]->getRotation();
+		ld.scale = sd->slight[i]->getScale();
+		ld.color = sd->slight[i]->getColors();
+		ld.range = sd->slight[i]->getRange();
+		ld.spotAngle = sd->slight[i]->getSpotAngle();
+		ld.shadow = sd->slight[i]->getshadow();
+		ld.status = 2;
+		sd->lightData.push_back(ld);
+	}
 	sd->materialData.clear();
 	for (int i = 0; i < sd->materials.size(); i++)
 	{		
@@ -688,6 +906,18 @@ void Editor::render(GraphicsDataMisc* gdm)
 					m_createObject = true;
 					objType = ObjectType::SceneOBJ;
 				}
+				if (ImGui::MenuItem("Directional Light"))
+				{
+					addLightToScene(0);
+				}
+				if (ImGui::MenuItem("Point Light"))
+				{
+					addLightToScene(1);
+				}
+				if (ImGui::MenuItem("Spot Light"))
+				{
+					addLightToScene(2);
+				}
 				ImGui::EndMenu();
 			}
 		}
@@ -742,6 +972,30 @@ void Editor::render(GraphicsDataMisc* gdm)
 			m_pathOpenProject[sizeof(m_pathOpenProject) - 1] = '\0';
 		}
 		m_openProjectModal = false;
+	}
+
+	if (m_deleteOject)
+	{
+		ImGui::OpenPopup("Delete");
+		m_deleteOject = false;
+	}
+	if (ImGui::BeginPopupModal("Delete", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::Text("Are you sure ?");
+		if (ImGui::Button("Yes", ImVec2(100, 0)) || m_pc->inputManager->getKeyDown(GLFW_KEY_ENTER))
+		{
+			if (std::remove(deletePath.c_str()) != 0)
+			{
+				Debug::Error("Error deleting file: %s", deletePath.c_str());
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("No", ImVec2(100, 0)) || m_pc->inputManager->getKeyDown(GLFW_KEY_ESCAPE))
+		{
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+		return;
 	}
 
 	if (ImGui::BeginPopupModal("Open Project", NULL, ImGuiWindowFlags_AlwaysAutoResize))
@@ -926,7 +1180,10 @@ void Editor::render(GraphicsDataMisc* gdm)
 	{
 		ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_FirstUseEver);
 		ImGui::Begin("Inspector", &m_editorData->inspector);
-		
+		if (m_selectedOBJ != nullptr)
+		{
+			m_selectedOBJ->onGUI();
+		}
 		ImGui::End();
 	}
 

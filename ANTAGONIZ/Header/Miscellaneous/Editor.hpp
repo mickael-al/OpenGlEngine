@@ -5,9 +5,11 @@
 #include "ImguiBlock.hpp"
 #include "ProjectData.hpp"
 
+#define SPAWN_DISTANCE 5.0f
+
 enum ObjectType
 {
-	SceneOBJ
+	SceneOBJ,
 };
 
 struct ptrClass;
@@ -29,10 +31,13 @@ namespace Ge
 		bool createDirectory(const std::string& path);
 		void drawFolderContents(const std::string& basePath,std::string& path);
 		void drawTreeView();
+		void dtv(GObject* obj, int* id);
 		void clearScene(SceneData* sd);
 		void loadScene(const std::string& filePath, SceneData* sd);
 		void saveScene(const std::string& filePath, SceneData* sd);
 		void addModelToScene(const std::string& filePath);
+		void addLightToScene(int type);
+		void addEmptyToScene();
 		void globalSave();
 		void clearCurrentProject();
 		void init(GraphicsDataMisc* gdm);
@@ -46,7 +51,10 @@ namespace Ge
 		bool m_newProjectModal = false;
 		bool m_openProjectModal = false;
 		bool m_createObject = false;
+		bool m_deleteOject = false;
+		std::string deletePath;
 		ObjectType objType;
+		GObject* m_selectedOBJ = nullptr;
 		std::string m_tempFile;
 		char m_pathOpenProject[256];
 		char m_objectName[256];

@@ -43,7 +43,6 @@ namespace Ge
 		MemoryPool<Lights> m_pool;
 		GraphicsDataMisc * m_gdm;
 		std::vector<Lights *> m_lights;		
-		std::vector<unsigned int> m_textureDepthShadow;
 		std::vector<unsigned int> m_frameBufferDepthShadow;
 		unsigned int m_ssboShadow;
 		unsigned int m_textureShadowArray;

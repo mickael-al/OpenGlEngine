@@ -53,7 +53,7 @@ void LightManager::release()
 	glDeleteBuffers(1, &m_ssbo);
 	
 	glDeleteFramebuffers(m_frameBufferDepthShadow.size(), m_frameBufferDepthShadow.data());
-	glDeleteTextures(m_textureDepthShadow.size(), m_textureDepthShadow.data());
+	glDeleteTextures(1, &m_textureShadowArray);
 	Debug::RELEASESUCCESS("LightManager");
 }
 
@@ -97,24 +97,21 @@ void LightManager::updateStorageShadow()
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	if (countTotal < m_textureDepthShadow.size())
+	if (countTotal < m_frameBufferDepthShadow.size())
 	{
-		int reste = m_textureDepthShadow.size() - countTotal;
+		int reste = m_frameBufferDepthShadow.size() - countTotal;
 		for (int i = 0; i < reste; i++)
 		{			
-			glDeleteFramebuffers(1, &m_frameBufferDepthShadow[m_frameBufferDepthShadow.size() - 1 - i]);
-			glDeleteTextures(1, &m_textureDepthShadow[m_textureDepthShadow.size() - 1 - i]);			
-			m_textureDepthShadow.pop_back();		
+			glDeleteFramebuffers(1, &m_frameBufferDepthShadow[m_frameBufferDepthShadow.size() - 1]);
 			m_frameBufferDepthShadow.pop_back();
 		}
 	}
 
-	unsigned int textureID = 0;
 	unsigned int frameBufferID = 0;
-
+	
 	for (int i = 0; i < countTotal; ++i)
 	{
-		if (i >= m_textureDepthShadow.size())
+		if (i >= m_frameBufferDepthShadow.size())
 		{
 			glGenFramebuffers(1, &frameBufferID);
 			glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
@@ -129,17 +126,11 @@ void LightManager::updateStorageShadow()
 
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-			m_textureDepthShadow.push_back(textureID);
 			m_frameBufferDepthShadow.push_back(frameBufferID);
 		}	
 	}
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, m_textureShadowArray);
-	for (int i = 0; i < m_textureDepthShadow.size(); i++)
-	{		
-		glBindTexture(GL_TEXTURE_2D, m_textureDepthShadow[i]);		
-		
-	}
 }
 
 void LightManager::updateStorage()

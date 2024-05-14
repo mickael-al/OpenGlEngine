@@ -12,6 +12,9 @@ namespace Ge
 	class ShapeBuffer;
 	class Materials;
 	class GraphiquePipeline;
+	class DirectionalLight;
+	class PointLight;
+	class SpotLight;
 }
 using namespace Ge;
 
@@ -124,6 +127,20 @@ struct TextureData
 	JS_OBJ(path, filter);
 };
 
+struct LightData
+{
+	std::string name;
+	glm::vec3 position;
+	glm::quat rotation;
+	glm::vec3 scale;
+	glm::vec3 color;
+	float range;
+	float spotAngle;
+	bool shadow;
+	int status;
+	JS_OBJ(name, position, rotation, scale, color, range, spotAngle, shadow, status);
+};
+
 struct SceneData
 {
 	std::string name;
@@ -135,6 +152,7 @@ struct SceneData
 	std::vector<MaterialData> materialData;	
 	std::vector<TextureData> textureData;
 	std::vector<ModelData> modelData;
+	std::vector<LightData> lightData;
 
 	/*Engine Part*/
 	std::vector<ShapeBuffer*> buffer;
@@ -142,13 +160,16 @@ struct SceneData
 	std::vector<Materials*> materials;
 	std::vector<Textures*> textures;
 	std::vector<Model*> models;
+	std::vector<DirectionalLight*> dlight;		
+	std::vector<PointLight*> plight;
+	std::vector<SpotLight*> slight;
 	/*Engine Part*/
 	SceneData()
 	{
 		name = "";
 		currentPath = "";
 	}	
-	JS_OBJ(freeCamPos, freeCamRot,bufferData, shaderData, materialData, textureData, modelData);
+	JS_OBJ(freeCamPos, freeCamRot,bufferData, shaderData, materialData, textureData, modelData, lightData);
 };
 
 #endif //!__PROJECT_DATA__

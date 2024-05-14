@@ -46,9 +46,12 @@ namespace Ge
 
 	void Lights::setshadow(bool state)
 	{
-		m_shadow = state;
-		const ptrClass * pc = Engine::getPtrClassAddr();
-		pc->lightManager->updateStorageShadow();
+		if (m_shadow != state)
+		{
+			m_shadow = state;
+			const ptrClass* pc = Engine::getPtrClassAddr();
+			pc->lightManager->updateStorageShadow();
+		}
 	}
 
 	void Lights::mapMemoryShadow()
@@ -255,10 +258,20 @@ namespace Ge
 				setSpotAngle(m_ubl.spotAngle);
 			}
 		}
+		bool s = m_shadow;
+		if (ImGui::Checkbox("Shadow", &s))
+		{
+			setshadow(s);
+		}
 	}
 
 	Lights::~Lights()
 	{
-		
+		if (m_shadow)
+		{
+			m_shadow = false;
+			const ptrClass* pc = Engine::getPtrClassAddr();
+			pc->lightManager->updateStorageShadow();
+		}
 	}
 }
