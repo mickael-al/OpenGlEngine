@@ -124,7 +124,7 @@ namespace Ge
 			}
 		}		
 		m_poolBuffer.deleteObject((ShapeBufferBase*)buffer);
-		m_gdm->str_dataMisc.recreateCommandBuffer = true;		
+		m_gdm->str_dataMisc.recreateCommandBuffer = true;	
 	}
 
 	std::vector<Model*> & ModelManager::getModels()

@@ -47,6 +47,7 @@ public:
         {
             T* recycledObj = reinterpret_cast<T*>(dealocPtr.back());
             dealocPtr.pop_back();
+            memset(recycledObj, 0, sizeof(T));
             new (recycledObj) T(std::forward<Args>(args)...);
             return recycledObj;
         }
@@ -63,6 +64,7 @@ public:
         {
             Derived* recycledObj = reinterpret_cast<Derived*>(dealocPtr.back());
             dealocPtr.pop_back();
+            memset(recycledObj, 0, sizeof(Derived));
             new (recycledObj) Derived(std::forward<Args>(args)...);
             return recycledObj;
         }
