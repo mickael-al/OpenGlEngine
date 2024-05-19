@@ -8,6 +8,7 @@ namespace Ge
 {
 	AudioSource::AudioSource(SoundBuffer* sb, std::string name) : GObject()
 	{
+		m_sb = sb;
 		alGenSources(1, &m_sourceID);
 		alSourcei(m_sourceID, AL_BUFFER, sb->getbufferID());
 		alSourcef(m_sourceID, AL_PITCH, m_pitch);
@@ -41,6 +42,16 @@ namespace Ge
 	{
 		m_gain = gain;
 		alSourcef(m_sourceID, AL_GAIN, m_gain);
+	}
+
+	float AudioSource::getPitch() const
+	{
+		return m_pitch;
+	}
+
+	float AudioSource::getGain() const
+	{
+		return m_gain;
 	}
 
 	int AudioSource::SourceState()
@@ -103,6 +114,11 @@ namespace Ge
 	bool AudioSource::getLoop() const
 	{
 		return m_loop;
+	}
+
+	SoundBuffer* AudioSource::getSoundBuffer() const
+	{
+		return m_sb;
 	}
 
 	void AudioSource::setRolloffFactor(float rolloffFactor)
@@ -168,6 +184,24 @@ namespace Ge
 		if (ImGui::DragFloat3("Velocity", (float*)&m_velocity))
 		{
 			setVelocity(m_velocity);
+		}
+		if (ImGui::Checkbox("Loop", &m_loop))
+		{
+			setLoop(m_loop);
+		}
+		if (ImGui::Button("Play"))
+		{
+			play();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Pause"))
+		{
+			pause();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Stop"))
+		{
+			stop();
 		}
 	}
 

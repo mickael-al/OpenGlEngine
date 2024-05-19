@@ -2,7 +2,7 @@
 #define __ENGINE_RENDERING_ENGINE__
 
 #include "Initializer.hpp"
-
+#include "glm/glm.hpp"
 struct GraphicsDataMisc;
 struct ptrClass;
 
@@ -28,7 +28,7 @@ namespace Ge
     public:
         RenderingEngine(GraphicsDataMisc * graphicsDataMisc);
 		~RenderingEngine();
-		Window* getWindowManager() const;
+		glm::vec3 getWorldCoordinates(int mouseX, int mouseY);
         bool initialize(ptrClass * p_ptrClass);
         void release();
         void drawFrame();

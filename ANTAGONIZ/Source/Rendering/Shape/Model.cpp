@@ -15,6 +15,7 @@
 #include "Engine.hpp"
 #include "EngineHeader.hpp"
 #include "GraphiquePipeline.hpp"
+#include "imgui-cmake/Header/imgui.h"
 
 namespace Ge
 {
@@ -56,12 +57,21 @@ namespace Ge
 		return m_index;
 	}
 
+	void Model::onGUI()
+	{
+		GObject::onGUI();		
+	}
+
 	void Model::setMaterial(Materials * m)
 	{			
 		if (m_material != nullptr)
 		{		
 			removeComponent((Component *)m_material);
 			m_material->removeModel(this);
+		}
+		if (m == nullptr)
+		{
+			m = m_gdm->str_default_material;
 		}
 		addComponent((Component *)m);
 		Engine::getPtrClass().modelManager->buildInstancedModels(this, m);

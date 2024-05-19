@@ -26,6 +26,7 @@ namespace Ge
 		void mapMemory() override;
 		void setIndex(unsigned int index);
 		unsigned int getIndex();
+		void onGUI();
 	private:
 		GraphicsDataMisc * m_gdm;
 		ShapeBuffer * m_buffer;

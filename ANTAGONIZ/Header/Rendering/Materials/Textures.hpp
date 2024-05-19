@@ -9,13 +9,12 @@ namespace Ge
 	class Textures
 	{
 	public:
-		Textures(stbi_uc* pc, int Width, int Height, unsigned int index, bool filter, GraphicsDataMisc * gdm);
+		Textures(stbi_uc* pc, int Width, int Height, unsigned int index, bool filter,bool mipmaps, GraphicsDataMisc * gdm);
 		~Textures();		
 		unsigned int getIndex() const;
 		void setIndex(unsigned int index);
 		unsigned int getTextureID() const;
 	private:
-		bool m_enableMipmaps = false;
 		unsigned int m_index;
 		unsigned int m_textureID;
 	};

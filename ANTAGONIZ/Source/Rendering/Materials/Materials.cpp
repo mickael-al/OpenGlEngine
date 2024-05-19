@@ -121,7 +121,7 @@ namespace Ge
 
 	void Materials::setNormalTexture(Textures * normal)
 	{
-		m_normalMap = normal == nullptr ? m_gdm->str_default_texture : normal;
+		m_normalMap = normal == nullptr ? m_gdm->str_default_normal_texture : normal;
 	}
 
 	void Materials::setMetallicTexture(Textures * metal)
@@ -263,6 +263,10 @@ namespace Ge
 
 	void Materials::onGUI()
 	{
+		if (m_gdm->str_default_material == this)
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0, 0.0f, 1), "Default Material Not Saved");
+		}		
 		ImGui::TextColored(ImVec4(0.2f, 1, 0.2f, 1), "Material\n");
 		if (ImGui::ColorEdit3("Albedo", (float *)&m_ubm.albedo))
 		{
@@ -291,6 +295,10 @@ namespace Ge
 		if (ImGui::DragFloat("AO", &m_ubm.ao, 0.05f))
 		{
 			updateUniformBufferMaterial();
+		}
+		if (ImGui::Checkbox("Show", &m_draw))
+		{
+
 		}
 	}
 }

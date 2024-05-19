@@ -23,6 +23,10 @@
 #include "Lights.hpp"
 #include "SSAOBuffer.hpp"
 #include <stack>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include "Camera.hpp"
 
 namespace Ge
 {
@@ -56,10 +60,32 @@ namespace Ge
 		m_graphicsDataMisc = nullptr;		
 	}
 
-	Window* RenderingEngine::getWindowManager() const
+	glm::vec3 RenderingEngine::getWorldCoordinates(int mouseX, int mouseY)
 	{
-		return m_window;
+		int screenWidth = m_ptrClass->settingManager->getWindowWidth();
+		int screenHeight = m_ptrClass->settingManager->getWindowHeight();
+		float depth;
+		glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer->getFrameBuffer());
+		glReadPixels(mouseX, screenHeight - mouseY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	
+		float ndcX = (2.0f * mouseX) / screenWidth - 1.0f;
+		float ndcY = 1.0f - (2.0f * mouseY) / screenHeight;
+		float ndcZ = 2.0f * depth - 1.0f;
+
+		glm::vec4 clipSpacePos(ndcX, ndcY, ndcZ, 1.0f);
+
+		Camera* cam = m_cameraManager->getCurrentCamera();
+		glm::mat4 invProjectionMatrix = glm::inverse(cam->getProjectionMatrix());
+		glm::vec4 viewSpacePos = invProjectionMatrix * clipSpacePos;
+		viewSpacePos /= viewSpacePos.w;
+
+		glm::mat4 invViewMatrix = glm::inverse(cam->getViewMatrix());
+		glm::vec4 worldSpacePos = invViewMatrix * viewSpacePos;
+
+		return glm::vec3(worldSpacePos);
 	}
+
 
     bool RenderingEngine::initialize(ptrClass *p_ptrClass)
     {
@@ -274,6 +300,7 @@ namespace Ge
 		
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
+		glCullFace(GL_FRONT);
 		glDisable(GL_BLEND);		
 		const std::vector<unsigned int>& frameBufferDepthShadow = m_lightManager->getFrameShadowBuffer();
 		for (int i = 0; i < frameBufferDepthShadow.size(); i++)
@@ -333,6 +360,7 @@ namespace Ge
 				}
 			}
 		}
+		glCullFace(GL_BACK);
 		/*  Shadow  */
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);

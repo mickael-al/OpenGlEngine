@@ -44,7 +44,7 @@ namespace Ge
 		unsigned int m_ssboShadow;
 		bool m_shadow = false;
 		//shadow Dir
-		float cascadeSplitLambda = 0.85f;
+		float cascadeSplitLambda = 0.7f;
 		glm::vec3 frustumCorners[8];
 	};
 }

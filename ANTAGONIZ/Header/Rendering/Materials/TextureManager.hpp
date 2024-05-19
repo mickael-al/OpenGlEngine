@@ -18,9 +18,9 @@ namespace Ge
         bool initialize(GraphicsDataMisc * gdm);
         void release();  
     public:
-        Textures * createTexture(const char * path, bool filter = true);
-        Textures * createTexture(const std::vector<unsigned char> & imageData, bool filter = true);
-        Textures * createTexture(unsigned char* pixel, int tw, int th, bool filter = true);
+        Textures * createTexture(const char * path, bool filter = true,bool mipmaps = true);
+        Textures * createTexture(const std::vector<unsigned char> & imageData, bool filter = true, bool mipmaps = true);
+        Textures * createTexture(unsigned char* pixel, int tw, int th, bool filter = true, bool mipmaps = true);
 		void destroyTexture(Textures * texture);
 		void saveFramebufferToPNG(const char* filename, int width, int height);
     private:

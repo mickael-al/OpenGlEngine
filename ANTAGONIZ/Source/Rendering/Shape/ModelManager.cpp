@@ -66,12 +66,8 @@ namespace Ge
 
 	void ModelManager::destroyModel(Model *model)
 	{
+		model->setParent(nullptr);
 		m_models.erase(std::remove(m_models.begin(), m_models.end(), model), m_models.end());
-		unsigned int i = model->getIndex()-1;		
-		for (; i < m_models.size(); i++)
-		{
-			m_models[i]->setIndex(i);
-		}
 		Materials * mat = model->getMaterial();
 		ShapeBuffer * sb = model->getShapeBuffer();
 		std::vector<Model*> &vecModel = m_instanced[mat][sb];
@@ -97,6 +93,7 @@ namespace Ge
 		m_pool.deleteObject(model);
 		m_gdm->str_dataMisc.modelCount = m_models.size();
 		m_gdm->str_dataMisc.recreateCommandBuffer = true;
+		updateStorage();
 	}
 
 	void ModelManager::destroyBuffer(ShapeBuffer *buffer)

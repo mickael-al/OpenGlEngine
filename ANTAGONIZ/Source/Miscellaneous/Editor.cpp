@@ -1,3 +1,7 @@
+/*
+Trigger Warning a rushed code not optimized 
+*/
+
 #include "Editor.hpp"
 #include "PointeurClass.hpp"
 #include "Engine.hpp"
@@ -15,8 +19,17 @@
 #include "DirectionalLight.hpp"
 #include "PointLight.hpp"
 #include "SpotLight.hpp"
+#include "AudioSource.hpp"
+#include "SoundBuffer.hpp"
+#include "Empty.hpp"
+#include "ImGuizmo.h"
+#include "RenderingEngine.hpp"
+#include "ShapeBufferBase.hpp"
 #include <sys/stat.h>
 #include <filesystem>
+#include <vector>
+#include <algorithm>
+
 
 using std::fstream;
 using namespace Ge;
@@ -77,77 +90,428 @@ bool copyAndRenameDirectory(const std::string& sourceDir, const std::string& tar
 	}
 }
 
+void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
+{
+	if (obj == nullptr)
+	{
+		return;
+	}
+	GObject * no = nullptr;
+	if (Model* model = dynamic_cast<Model*>(obj))
+	{
+		Model* m = m_pc->modelManager->createModel(model->getShapeBuffer(), *model->getName());
+		m->setPosition(model->getPosition());
+		m->setRotation(model->getRotation());
+		m->setScale(model->getScale());
+		m->setMaterial(model->getMaterial());
+		std::vector<size_t>& tags = model->getTag();
+		std::vector<size_t>& mtags = m->getTag();
+		mtags.reserve(tags.size());
+		std::copy(tags.begin(), tags.end(), std::back_inserter(mtags));
+		m->setParent(parent);
+		no = m;
+		m_currentSceneData->models.push_back(m);
+	}
+	if (Empty* empty = dynamic_cast<Empty*>(obj))
+	{
+		Empty* e = new Empty();
+		e->setName(*empty->getName());
+		e->setPosition(empty->getPosition());
+		e->setRotation(empty->getRotation());
+		e->setScale(empty->getScale());
+		std::vector<size_t>& tags = empty->getTag();
+		std::vector<size_t>& mtags = e->getTag();
+		mtags.reserve(tags.size());
+		std::copy(tags.begin(), tags.end(), std::back_inserter(mtags));
+		e->setParent(parent);
+		no = e;
+		m_currentSceneData->empty.push_back(e);
+	}
+	if (DirectionalLight* dl = dynamic_cast<DirectionalLight*>(obj))
+	{
+		DirectionalLight* e = m_pc->lightManager->createDirectionalLight(dl->getEulerAngles(), dl->getColors(), *dl->getName());
+		e->setPosition(dl->getPosition());
+		e->setRotation(dl->getRotation());
+		e->setScale(dl->getScale());
+		e->setRange(dl->getRange());
+		e->setshadow(dl->getshadow());
+		e->setSpotAngle(dl->getSpotAngle());
+		std::vector<size_t>& tags = dl->getTag();
+		std::vector<size_t>& mtags = e->getTag();
+		mtags.reserve(tags.size());
+		std::copy(tags.begin(), tags.end(), std::back_inserter(mtags));
+		e->setParent(parent);
+		no = e;
+		m_currentSceneData->dlight.push_back(e);
+	}
+	if (SpotLight* dl = dynamic_cast<SpotLight*>(obj))
+	{
+		SpotLight* e = m_pc->lightManager->createSpotLight(dl->getPosition(), dl->getColors(),dl->getEulerAngles(),dl->getSpotAngle(), *dl->getName());
+		e->setPosition(dl->getPosition());
+		e->setRotation(dl->getRotation());
+		e->setScale(dl->getScale());
+		e->setRange(dl->getRange());
+		e->setshadow(dl->getshadow());
+		e->setSpotAngle(dl->getSpotAngle());
+		std::vector<size_t>& tags = dl->getTag();
+		std::vector<size_t>& mtags = e->getTag();
+		mtags.reserve(tags.size());
+		std::copy(tags.begin(), tags.end(), std::back_inserter(mtags));
+		e->setParent(parent);
+		no = e;
+		m_currentSceneData->slight.push_back(e);
+	}
+	if (PointLight* dl = dynamic_cast<PointLight*>(obj))
+	{
+		PointLight* e = m_pc->lightManager->createPointLight(dl->getPosition(), dl->getColors(), *dl->getName());
+		e->setPosition(dl->getPosition());
+		e->setRotation(dl->getRotation());
+		e->setScale(dl->getScale());
+		e->setRange(dl->getRange());
+		e->setshadow(dl->getshadow());
+		e->setSpotAngle(dl->getSpotAngle());
+		std::vector<size_t>& tags = dl->getTag();
+		std::vector<size_t>& mtags = e->getTag();
+		mtags.reserve(tags.size());
+		std::copy(tags.begin(), tags.end(), std::back_inserter(mtags));
+		e->setParent(parent);
+		no = e;
+		m_currentSceneData->plight.push_back(e);
+	}
+	if (AudioSource* au = dynamic_cast<AudioSource*>(obj))
+	{
+		AudioSource* e = m_pc->soundManager->createSource(au->getSoundBuffer(), *au->getName());
+		e->setPosition(au->getPosition());
+		e->setRotation(au->getRotation());
+		e->setScale(au->getScale());
+		std::vector<size_t>& tags = au->getTag();
+		std::vector<size_t>& mtags = e->getTag();
+		mtags.reserve(tags.size());
+		std::copy(tags.begin(), tags.end(), std::back_inserter(mtags));
+		e->setParent(parent);
+		no = e;
+		m_currentSceneData->audio.push_back(e);
+	}
+	for (int c = 0; c < obj->getChilds().size(); c++)
+	{
+		duplicateSceneObject(obj->getChilds()[c], no);
+	}
+}
+
+void Editor::deleteSceneObject(GObject * obj)
+{
+	if (obj == nullptr)
+	{
+		return;
+	}
+	const std::vector<GObject*> cchild = obj->getChilds();
+	for (int c = 0; c < cchild.size(); c++)
+	{
+		deleteSceneObject(cchild[c]);
+	}
+	ShapeBuffer* sbCheck = nullptr;
+	for (int i = 0; i < m_currentSceneData->models.size(); i++)
+	{
+		if ((GObject*)m_currentSceneData->models[i] == obj)
+		{
+			sbCheck = m_currentSceneData->models[i]->getShapeBuffer();
+			Model* m = m_currentSceneData->models[i];
+			m_currentSceneData->models.erase(m_currentSceneData->models.begin() + i);
+			m_pc->modelManager->destroyModel(m);
+			i = m_currentSceneData->models.size();
+		}
+	}
+	if (sbCheck != nullptr)
+	{
+		bool found = false;
+		int i = 0;
+		for (; i < m_currentSceneData->models.size() && !found; i++)
+		{
+			if (m_currentSceneData->models[i]->getShapeBuffer() == sbCheck)
+			{
+				found = true;
+			}
+		}
+		if (!found)
+		{
+			for (int j = 0; j < m_currentSceneData->buffer.size(); j++)
+			{
+				if (m_currentSceneData->buffer[j] == sbCheck)
+				{
+					m_currentSceneData->buffer.erase(m_currentSceneData->buffer.begin() + j);
+					m_currentSceneData->bufferData.erase(m_currentSceneData->bufferData.begin() + j);
+					break;
+				}
+			}
+			m_pc->modelManager->destroyBuffer(sbCheck);
+		}
+	}
+	SoundBuffer* soundbCheck = nullptr;
+	for (int i = 0; i < m_currentSceneData->audio.size(); i++)
+	{
+		if ((GObject*)m_currentSceneData->audio[i] == obj)
+		{
+			soundbCheck = m_currentSceneData->audio[i]->getSoundBuffer();
+			AudioSource* m = m_currentSceneData->audio[i];
+			m_currentSceneData->audio.erase(m_currentSceneData->audio.begin() + i);
+			m_pc->soundManager->releaseSource(m);
+			i = m_currentSceneData->audio.size();
+		}
+	}
+	if (soundbCheck != nullptr)
+	{
+		bool found = false;
+		int i = 0;
+		for (; i < m_currentSceneData->audio.size() && !found; i++)
+		{
+			if (m_currentSceneData->audio[i]->getSoundBuffer() == soundbCheck)
+			{
+				found = true;
+			}
+		}
+		if (!found)
+		{
+			for (int j = 0; j < m_currentSceneData->sound.size(); j++)
+			{
+				if (m_currentSceneData->sound[j] == soundbCheck)
+				{
+					m_currentSceneData->sound.erase(m_currentSceneData->sound.begin() + j);
+					m_currentSceneData->soundBufferData.erase(m_currentSceneData->soundBufferData.begin() + j);
+					break;
+				}
+			}
+			m_pc->soundManager->releaseBuffer(soundbCheck);
+		}
+	}
+	for (int j = 0; j < m_currentSceneData->empty.size(); j++)
+	{
+		if ((GObject*)m_currentSceneData->empty[j] == obj)
+		{
+			delete m_currentSceneData->empty[j];
+			m_currentSceneData->empty.erase(m_currentSceneData->empty.begin() + j);
+			break;
+		}
+	}
+	for (int j = 0; j < m_currentSceneData->dlight.size(); j++)
+	{
+		if ((GObject*)m_currentSceneData->dlight[j] == obj)
+		{
+			DirectionalLight* dl = m_currentSceneData->dlight[j];
+			m_currentSceneData->dlight.erase(m_currentSceneData->dlight.begin() + j);
+			m_pc->lightManager->destroyLight(dl);
+			break;
+		}
+	}
+	for (int j = 0; j < m_currentSceneData->plight.size(); j++)
+	{
+		if ((GObject*)m_currentSceneData->plight[j] == obj)
+		{
+			PointLight* dl = m_currentSceneData->plight[j];
+			m_currentSceneData->plight.erase(m_currentSceneData->plight.begin() + j);
+			m_pc->lightManager->destroyLight(dl);
+			break;
+		}
+	}
+	for (int j = 0; j < m_currentSceneData->slight.size(); j++)
+	{
+		if ((GObject*)m_currentSceneData->slight[j] == obj)
+		{
+			SpotLight* dl = m_currentSceneData->slight[j];
+			m_currentSceneData->slight.erase(m_currentSceneData->slight.begin() + j);
+			m_pc->lightManager->destroyLight(dl);
+			break;
+		}
+	}
+}
+
+bool hasChild(GObject* parent, GObject* child)
+{
+	bool childFound = false;
+	const std::vector<GObject*> & c = parent->getChilds();
+	if (parent == child)
+	{
+		return true;
+	}
+	for (int i = 0; i < c.size(); i++)
+	{
+		if (hasChild(c[i], child))
+		{
+			childFound = true;
+			break;
+		}
+	}
+	return childFound;
+}
+
+std::string extractExtension(const std::string& fullPath)
+{
+	size_t dotPosition = fullPath.find_last_of('.');
+	if (dotPosition == std::string::npos)
+	{
+		return "";
+	}
+
+	size_t slashPosition = fullPath.find_last_of("/\\");
+	if (slashPosition != std::string::npos && slashPosition > dotPosition)
+	{
+		return "";
+	}
+	return fullPath.substr(dotPosition);
+}
+
+std::string dropTargetImage()
+{
+	std::string path = "";
+	if (ImGui::BeginDragDropTarget())
+	{ 
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_DEMO_ITEM"))
+		{			
+			std::string data = (char *)payload->Data;
+			data.resize(payload->DataSize/sizeof(char));
+			struct stat sb;
+			std::string ext = extractExtension(data);
+			if (stat(data.c_str(), &sb) == 0 && (ext == ".png" || ext == ".jpeg"))
+			{
+				path = data;
+			}		
+		}
+		ImGui::EndDragDropTarget();
+	}
+	return path;
+}
+
 void Editor::dtv(GObject * obj,int * id)
 {
-	ImGui::PushID(*id);
+	(*id)++;
+	int baseId = (*id);
+	ImGui::PushID(obj);
 	const std::vector<GObject*>& child = obj->getChilds();
+	bool selected = m_selectedOBJ == obj;
+	bool fdk = false;
+
+	if (multiSelect)
+	{
+		fdk = multiSelected.find(baseId) != multiSelected.end();
+		if (fdk)
+		{
+			if (multiSelected[baseId] == nullptr)
+			{
+				multiSelected[baseId] = obj;
+			}
+			if (m_selectedOBJ != obj)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(1.0f, 0.0f, 0.0f, 0.25f));
+			}
+			selected = true;
+		}		
+	}
 	if (child.empty())
 	{
-		if (ImGui::TreeNodeEx(obj->getName()->c_str(), m_selectedOBJ == obj ? (ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_Leaf) : ImGuiTreeNodeFlags_Leaf))
+		if (ImGui::TreeNodeEx(obj->getName()->c_str(), selected ? (ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_Leaf) : ImGuiTreeNodeFlags_Leaf))
 		{
 			ImGui::TreePop();
 		}
 	}
 	else
 	{
-		if (ImGui::TreeNodeEx(obj->getName()->c_str(), m_selectedOBJ == obj ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
+		if (ImGui::TreeNodeEx(obj->getName()->c_str(), selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
 		{
 			for (int i = 0; i < child.size(); i++)
 			{
-				(*id)++;
 				dtv(child[i], id);
 			}
 			ImGui::TreePop();
 		}
 	}
-	if (ImGui::IsItemClicked())
+	if (multiSelect && fdk && m_selectedOBJ != obj)
+	{
+		ImGui::PopStyleColor();
+	}
+	if (m_hasSwitch && m_switchTreeObj == baseId)
 	{
 		m_selectedOBJ = obj;
+		m_hasSwitch = false;
 	}
-	if (ImGui::IsItemHovered())
+	if (ImGui::IsItemClicked() && !m_oneClickFrame)
+	{
+		m_oneClickFrame = true;
+		m_selectedOBJ = obj;
+		m_switchTreeObj = baseId;
+		m_hasSwitch = false;
+		if (multiSelect)
+		{
+			multiSelected[baseId] = m_selectedOBJ;
+		}
+	}	
+	if (m_selectedOBJ == obj)
 	{
 		if (m_pc->inputManager->getKeyDown(GLFW_KEY_DELETE))
 		{
-			ShapeBuffer* sbCheck = nullptr;
-			for (int i = 0; i < m_currentSceneData->models.size(); i++)
+			m_selectedOBJ = nullptr;
+			m_switchTreeObj = -1;
+			m_hasSwitch = false;
+			deleteSceneObject(obj);
+		}
+		if (m_pc->inputManager->getKeyDown(GLFW_KEY_D) && m_pc->inputManager->getKey(GLFW_KEY_LEFT_CONTROL))
+		{
+			duplicateSceneObject(m_selectedOBJ);
+		}
+		if (m_pc->inputManager->getKeyDown(GLFW_KEY_LEFT_SHIFT) && !multiSelect)
+		{
+			multiSelected.clear();
+			multiSelected[baseId] = obj;
+			multiSelect = true;
+		}
+		if (m_pc->inputManager->getKeyDown(GLFW_KEY_DOWN))
+		{
+			m_switchTreeObj++;
+			m_hasSwitch = true;
+			if (multiSelect)
 			{
-				if ((GObject*)m_currentSceneData->models[i] == obj)
-				{					
-					sbCheck = m_currentSceneData->models[i]->getShapeBuffer();				
-					Model* m = m_currentSceneData->models[i];					
-					m_currentSceneData->models.erase(m_currentSceneData->models.begin() + i);					
-					m_pc->modelManager->destroyModel(m);
-					i = m_currentSceneData->models.size();
-				}
+				multiSelected[m_switchTreeObj] = nullptr;
 			}
-			if (sbCheck != nullptr)
+		}
+		if (m_pc->inputManager->getKeyDown(GLFW_KEY_UP))
+		{
+			m_switchTreeObj--;
+			m_hasSwitch = true;
+			if (multiSelect)
 			{
-				bool found = false;
-				int i = 0;
-				for (; i < m_currentSceneData->models.size() && !found; i++)
-				{
-					if (m_currentSceneData->models[i]->getShapeBuffer() == sbCheck)
-					{
-						found = true;
-					}
-				}
-				if (!found)
-				{					
-					for (int j = 0; j < m_currentSceneData->buffer.size(); j++)
-					{
-						if (m_currentSceneData->buffer[j] == sbCheck)
-						{
-							m_currentSceneData->buffer.erase(m_currentSceneData->buffer.begin() + j);
-							m_currentSceneData->bufferData.erase(m_currentSceneData->bufferData.begin() + j);
-							break;
-						}
-					}
-					m_pc->modelManager->destroyBuffer(sbCheck);
-				}
+				multiSelected[m_switchTreeObj] = nullptr;
 			}
 		}
 	}
-	ImGui::PopID();
+	if (multiSelect && ImGui::IsItemHovered())
+	{
+		if (m_pc->inputManager->getKeyUp(GLFW_KEY_LEFT_SHIFT))
+		{
+			bool find = false;
+			for (const auto& var : multiSelected)
+			{
+				if (var.second == obj)
+				{
+					find = true;
+					break;
+				}
+			}
+			if (!find)
+			{
+				for (auto& var : multiSelected)
+				{
+					if (var.second != nullptr)
+					{
+						if (!hasChild(var.second, obj))
+						{
+							var.second->setParent(obj);
+						}
+					}
+				}
+			}		
+			multiSelect = false;
+			multiSelected.clear();
+		}		
+	}
+	ImGui::PopID();		
 }
 
 void Editor::drawTreeView()
@@ -182,6 +546,36 @@ void Editor::drawTreeView()
 			dtv(m_currentSceneData->plight[i], &id);
 		}
 	}
+	for (int i = 0; i < m_currentSceneData->audio.size(); i++)
+	{
+		if (m_currentSceneData->audio[i]->getParent() == nullptr)
+		{
+			dtv(m_currentSceneData->audio[i], &id);
+		}
+	}
+	for (int i = 0; i < m_currentSceneData->empty.size(); i++)
+	{
+		if (m_currentSceneData->empty[i]->getParent() == nullptr)
+		{
+			dtv(m_currentSceneData->empty[i], &id);
+		}			
+	}
+	if (multiSelect && m_pc->inputManager->getKeyUp(GLFW_KEY_LEFT_SHIFT))
+	{
+		if (m_pc->inputManager->getKey(GLFW_KEY_LEFT_CONTROL))
+		{
+			for (auto& var : multiSelected)
+			{
+				if (var.second != nullptr)
+				{
+					var.second->setParent(nullptr);
+				}
+			}
+		}
+		multiSelect = false;
+		multiSelected.clear();
+	}
+	m_oneClickFrame = false;
 }
 
 void Editor::drawFolderContents(const std::string& basePath,std::string& path)
@@ -240,6 +634,12 @@ void Editor::drawFolderContents(const std::string& basePath,std::string& path)
 			{
 
 			}
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+			{				
+				ImGui::SetDragDropPayload("DND_DEMO_ITEM", entry.path().string().c_str(), entry.path().string().size() * sizeof(char));				
+				ImGui::Text("Dragging image");
+				ImGui::EndDragDropSource();
+			}
 		}
 		else if (entry.path().extension() == ".scene")
 		{
@@ -261,6 +661,13 @@ void Editor::drawFolderContents(const std::string& basePath,std::string& path)
 				addModelToScene(entry.path().string());
 			}
 		}
+		else if (entry.path().extension() == ".wav")
+		{
+			if (ImGui::ImageButton(m_icon[2], ImVec2(m_iconSize, m_iconSize)))
+			{
+				addAudioToScene(entry.path().string());
+			}
+		}
 		else
 		{
 			if (ImGui::ImageButton(m_icon[5], ImVec2(m_iconSize, m_iconSize)))
@@ -277,7 +684,9 @@ void Editor::drawFolderContents(const std::string& basePath,std::string& path)
 			}
 		}
 		ImGui::PopID();
+		ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + 100);
 		ImGui::TextWrapped("%s", entry.path().filename().string().c_str());
+		ImGui::PopTextWrapPos();
 		ImGui::EndGroup();
 		if ((itemCount + 1) % m_columns != 0)
 		{
@@ -299,12 +708,12 @@ void Editor::start()
 	m_editorData = new EditorConfig();
 	PathManager::getHomeDirectory();
 	loadConfig(PathManager::getHomeDirectory()+"/config.json" , m_editorData);
-	for (int i = 0; i < 9; i++)
+	for (int i = 0; i < 13; i++)
 	{
 		std::string fn = "../Asset/Editor/" + std::to_string(i) + ".png";
 		m_icon.push_back((ImTextureID)m_pc->textureManager->createTexture(fn.c_str())->getTextureID());
 	}
-
+	op = ImGuizmo::TRANSLATE;
 }
 void Editor::loadConfig(const std::string& filePath,EditorConfig* ec)
 {
@@ -433,6 +842,7 @@ std::string extractFolderPath(const std::string& fullPath)
 void Editor::clearScene(SceneData* sd)
 {
 	m_selectedOBJ = nullptr;
+	m_switchTreeObj = -1;
 	for (int i = 0; i < sd->models.size(); i++)
 	{
 		m_pc->modelManager->destroyModel(sd->models[i]);
@@ -474,6 +884,21 @@ void Editor::clearScene(SceneData* sd)
 		m_pc->lightManager->destroyLight(sd->slight[i]);
 	}
 	sd->slight.clear();
+	for (int i = 0; i < sd->audio.size(); i++)
+	{
+		m_pc->soundManager->releaseSource(sd->audio[i]);
+	}
+	sd->audio.clear();
+	for (int i = 0; i < sd->sound.size(); i++)
+	{
+		m_pc->soundManager->releaseBuffer(sd->sound[i]);
+	}
+	sd->sound.clear();
+	for (int i = 0; i < sd->empty.size(); i++)
+	{
+		delete sd->empty[i];
+	}		
+	sd->empty.clear();
 }
 
 void Editor::loadScene(const std::string& filePath, SceneData* sd)
@@ -494,7 +919,16 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 	sd->name = extractFileName(filePath);
 	sd->currentPath = filePath;
 	m_currentProjectData->lastSceneOpen = filePath;
-
+	sd->empty.clear();
+	for (int i = 0; i < sd->emptyData.size(); i++)
+	{
+		Empty* e = new Empty();
+		e->setName(sd->emptyData[i].name);
+		e->setPosition(sd->emptyData[i].position);
+		e->setRotation(sd->emptyData[i].rotation);
+		e->setScale(sd->emptyData[i].scale);
+		sd->empty.push_back(e);
+	}
 	sd->shader.clear();
 	for (int i = 0; i < sd->shaderData.size(); i++)
 	{		
@@ -567,6 +1001,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 	sd->dlight.clear();
 	sd->plight.clear();
 	sd->slight.clear();
+	std::vector<Lights*> allLight;
 	for (int i = 0; i < sd->lightData.size(); i++)
 	{
 		if (sd->lightData[i].status == 0)
@@ -579,6 +1014,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			dl->setSpotAngle(sd->lightData[i].spotAngle);
 			dl->setshadow(sd->lightData[i].shadow);
 			sd->dlight.push_back(dl);
+			allLight.push_back(dl);
 		}
 		else if (sd->lightData[i].status == 1)
 		{
@@ -590,6 +1026,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			pl->setSpotAngle(sd->lightData[i].spotAngle);
 			pl->setshadow(sd->lightData[i].shadow);
 			sd->plight.push_back(pl);
+			allLight.push_back(pl);
 		}
 		else if (sd->lightData[i].status == 2)
 		{
@@ -601,8 +1038,48 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			sl->setSpotAngle(sd->lightData[i].spotAngle);
 			sl->setshadow(sd->lightData[i].shadow);
 			sd->slight.push_back(sl);
+			allLight.push_back(sl);
 		}
 	}
+	sd->sound.clear();
+	for (int i = 0; i < sd->soundBufferData.size(); i++)
+	{
+		sd->sound.push_back(m_pc->soundManager->createBuffer(sd->soundBufferData[i].path.c_str()));
+	}
+	sd->audio.clear();
+	for (int i = 0; i < sd->audioData.size(); i++)
+	{
+		if (sd->audioData[i].idBuffer >= 0)
+		{
+			AudioSource* as = m_pc->soundManager->createSource(sd->sound[sd->audioData[i].idBuffer], sd->audioData[i].name);
+			as->setPosition(sd->audioData[i].position);
+			as->setRotation(sd->audioData[i].rotation);
+			as->setScale(sd->audioData[i].scale);
+			as->setPitch(sd->audioData[i].pitch);
+			as->setGain(sd->audioData[i].gain);
+			as->setVelocity(sd->audioData[i].velocity);
+			as->setLoop(sd->audioData[i].loop);
+			as->setLoop(sd->audioData[i].rolloffFactor);
+			as->setLoop(sd->audioData[i].maxDistance);
+			as->setLoop(sd->audioData[i].refDistance);
+
+			sd->audio.push_back(as);
+		}
+	}
+
+	std::vector<GObject*> allGObject;
+	for (int i = 0; i < sd->empty.size(); i++) { allGObject.push_back(sd->empty[i]); }
+	for (int i = 0; i < sd->audio.size(); i++) { allGObject.push_back(sd->audio[i]); }
+	for (int i = 0; i < sd->dlight.size(); i++) { allGObject.push_back(sd->dlight[i]); }
+	for (int i = 0; i < sd->slight.size(); i++) { allGObject.push_back(sd->slight[i]); }
+	for (int i = 0; i < sd->plight.size(); i++) { allGObject.push_back(sd->plight[i]); }
+	for (int i = 0; i < sd->models.size(); i++) { allGObject.push_back(sd->models[i]); }
+
+	for (int i = 0; i < sd->emptyData.size(); i++) { if (sd->emptyData[i].idParent != -1) { sd->empty[i]->setParent(allGObject[sd->emptyData[i].idParent]); } }
+	for (int i = 0; i < sd->audioData.size(); i++) { if (sd->audioData[i].idParent != -1) { sd->audio[i]->setParent(allGObject[sd->audioData[i].idParent]); } }
+	for (int i = 0; i < sd->lightData.size(); i++) { if (sd->lightData[i].idParent != -1) { allLight[i]->setParent(allGObject[sd->lightData[i].idParent]);}}
+	for (int i = 0; i < sd->modelData.size(); i++) { if (sd->modelData[i].idParent != -1) { sd->models[i]->setParent(allGObject[sd->modelData[i].idParent]); } }
+
 	Camera* cam = m_pc->cameraManager->getCurrentCamera();
 	cam->setPosition(sd->freeCamPos);
 	cam->setRotation(sd->freeCamRot);
@@ -626,19 +1103,23 @@ void Editor::addLightToScene(int type)
 	{
 		if (type == 0)
 		{
-			m_currentSceneData->dlight.push_back(m_pc->lightManager->createDirectionalLight(glm::vec3(-90.0f, 45.0f, 0.0f), glm::vec3(1, 1, 1)));			
+			DirectionalLight* dl = m_pc->lightManager->createDirectionalLight(glm::vec3(-90.0f, 45.0f, 0.0f), glm::vec3(1, 1, 1));
+			m_currentSceneData->dlight.push_back(dl);
+			m_selectedOBJ = dl;
 		}		
 		else if(type == 1)
 		{
 			Camera* cam = m_pc->cameraManager->getCurrentCamera();
 			PointLight* pl = m_pc->lightManager->createPointLight(cam->getPosition() + cam->transformDirectionAxeZ() * SPAWN_DISTANCE, glm::vec3(1, 1, 1));
 			m_currentSceneData->plight.push_back(pl);			
+			m_selectedOBJ = pl;
 		}		
 		else if (type == 2)
 		{
 			Camera* cam = m_pc->cameraManager->getCurrentCamera();
 			SpotLight* sl = m_pc->lightManager->createSpotLight(cam->getPosition() + cam->transformDirectionAxeZ() * SPAWN_DISTANCE, glm::vec3(1, 1, 1),glm::vec3(0,0,0),0);
 			m_currentSceneData->slight.push_back(sl);
+			m_selectedOBJ = sl;
 		}
 	}
 }
@@ -647,6 +1128,117 @@ void Editor::addEmptyToScene()
 {
 	if (m_currentSceneData != nullptr)
 	{
+		Empty * e = new Empty();
+		Camera* cam = m_pc->cameraManager->getCurrentCamera();
+		e->setPosition(cam->getPosition() + cam->transformDirectionAxeZ() * SPAWN_DISTANCE);
+		m_selectedOBJ = e;
+		m_currentSceneData->empty.push_back(e);
+	}
+}
+
+void removeExistTexture(Textures* texture, SceneData* sd, TextureManager* tm,GraphicsDataMisc * gdm)
+{
+	if (sd != nullptr)
+	{
+		if (texture == gdm->str_default_normal_texture || texture == gdm->str_default_texture)
+		{
+			return;
+		}
+		int count = 0;
+		for (int i = 0; i < sd->materials.size(); i++)
+		{
+			if (sd->materials[i]->getAlbedoTexture() == texture) { count++; }
+			if (sd->materials[i]->getMetallicTexture() == texture) { count++; }
+			if (sd->materials[i]->getRoughnessTexture() == texture) { count++; }
+			if (sd->materials[i]->getNormalTexture() == texture) { count++; }
+			if (sd->materials[i]->getOclusionTexture() == texture) { count++; }
+		}
+		if (count <= 1)
+		{
+			for (int i = 0; i < sd->textures.size(); i++)
+			{
+				if (sd->textures[i] == texture)
+				{
+					sd->textures.erase(sd->textures.begin()+i);
+					sd->textureData.erase(sd->textureData.begin() + i);
+					break;
+				}
+			}
+			tm->destroyTexture(texture);
+		}
+	}
+}
+
+void removeExistMaterial(Model* obj, SceneData* sd, MaterialManager * mm, TextureManager* tm, GraphicsDataMisc* gdm)
+{
+	if (sd != nullptr)
+	{
+		Materials* current = obj->getMaterial();
+		int count = 0;
+		if (current != nullptr)
+		{
+			for (int i = 0; i < sd->models.size(); i++)
+			{
+				if (sd->models[i]->getMaterial() == current)
+				{
+					count++;
+				}
+			}
+			if (count <= 1)
+			{				
+				removeExistTexture(current->getAlbedoTexture(), sd, tm, gdm);
+				removeExistTexture(current->getMetallicTexture(), sd, tm, gdm);
+				removeExistTexture(current->getRoughnessTexture(), sd, tm, gdm);
+				removeExistTexture(current->getNormalTexture(), sd, tm, gdm);
+				removeExistTexture(current->getOclusionTexture(), sd, tm, gdm);
+				obj->setMaterial(nullptr);				
+				sd->materials.erase(std::remove(sd->materials.begin(), sd->materials.end(), current), sd->materials.end());
+				if (gdm->str_default_material != current)
+				{
+					mm->destroyMaterial(current);
+				}
+			}
+		}
+	}
+}
+
+void Editor::addMaterialToModel(Model* obj)
+{
+	if (m_currentSceneData != nullptr)
+	{
+		removeExistMaterial(obj, m_currentSceneData, m_pc->materialManager,m_pc->textureManager,m_gdm);
+		Materials* mat = m_pc->materialManager->createMaterial();
+		obj->setMaterial(mat);
+		m_currentSceneData->materials.push_back(mat);
+	}
+}
+
+void Editor::addAudioToScene(const std::string& filePath)
+{
+	if (m_currentSceneData != nullptr)
+	{
+		SoundBuffer* sb = nullptr;
+		for (int i = 0; i < m_currentSceneData->soundBufferData.size(); i++)
+		{
+			if (m_currentSceneData->soundBufferData[i].path == filePath)
+			{
+				sb = m_currentSceneData->sound[i];
+				i = m_currentSceneData->soundBufferData.size();
+			}
+		}
+		if (sb == nullptr)
+		{
+			sb = m_pc->soundManager->createBuffer(filePath.c_str());
+			m_currentSceneData->sound.push_back(sb);
+			SoundBufferData sbd;
+			sbd.path = filePath.c_str();
+			m_currentSceneData->soundBufferData.push_back(sbd);
+		}
+		AudioSource* au = m_pc->soundManager->createSource(sb, extractFileName(filePath));
+		m_selectedOBJ = au;
+		Camera* cam = m_pc->cameraManager->getCurrentCamera();
+		au->setPosition(cam->getPosition() + cam->transformDirectionAxeZ() * SPAWN_DISTANCE);
+		m_currentSceneData->audio.push_back(au);
 	}
 }
 
@@ -676,6 +1268,7 @@ void Editor::addModelToScene(const std::string& filePath)
 			m_currentSceneData->bufferData.push_back(bd);
 		}
 		Model* m = m_pc->modelManager->createModel(sb,extractFileName(filePath));
+		m_selectedOBJ = m;
 		Camera * cam = m_pc->cameraManager->getCurrentCamera();
 		m->setPosition(cam->getPosition() + cam->transformDirectionAxeZ() * SPAWN_DISTANCE);
 		m_currentSceneData->models.push_back(m);
@@ -687,7 +1280,75 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 	Camera * cam = m_pc->cameraManager->getCurrentCamera();
 	sd->freeCamPos = cam->getPosition();
 	sd->freeCamRot = cam->getRotation();
-	
+
+	std::vector<GObject*> allGObject;
+	for (int i = 0; i < sd->empty.size(); i++) { allGObject.push_back(sd->empty[i]); }
+	for (int i = 0; i < sd->audio.size(); i++) { allGObject.push_back(sd->audio[i]); }
+	for (int i = 0; i < sd->dlight.size(); i++) { allGObject.push_back(sd->dlight[i]); }
+	for (int i = 0; i < sd->slight.size(); i++) { allGObject.push_back(sd->slight[i]); }
+	for (int i = 0; i < sd->plight.size(); i++) { allGObject.push_back(sd->plight[i]); }
+	for (int i = 0; i < sd->models.size(); i++) { allGObject.push_back(sd->models[i]); }
+
+	sd->emptyData.clear();
+	for (int i = 0; i < sd->empty.size(); i++)
+	{
+		EmptyData ed;
+		ed.name = *sd->empty[i]->getName();
+		ed.position = sd->empty[i]->getPosition();
+		ed.rotation = sd->empty[i]->getRotation();
+		ed.scale = sd->empty[i]->getScale();
+		GObject* parent = sd->empty[i]->getParent();
+		if (parent != nullptr)
+		{
+			for (int j = 0; j < allGObject.size(); j++)
+			{
+				if (allGObject[j] == parent)
+				{
+					ed.idParent = j;
+					break;
+				}
+			}
+		}
+		sd->emptyData.push_back(ed);
+	}
+	sd->audioData.clear();
+	for (int i = 0; i < sd->audio.size(); i++)
+	{
+		AudioSourceData asd;
+		asd.name = *sd->audio[i]->getName();
+		asd.position = sd->audio[i]->getPosition();
+		asd.rotation = sd->audio[i]->getRotation();
+		asd.scale = sd->audio[i]->getScale();
+		asd.pitch = sd->audio[i]->getPitch();
+		asd.gain = sd->audio[i]->getGain();
+		asd.velocity = sd->audio[i]->getVelocity();
+		asd.loop = sd->audio[i]->getLoop();
+		asd.rolloffFactor = sd->audio[i]->getLoop();
+		asd.maxDistance = sd->audio[i]->getLoop();
+		asd.refDistance = sd->audio[i]->getLoop();
+		for (int j = 0; j < sd->sound.size(); j++)
+		{
+			if (sd->sound[j] == sd->audio[i]->getSoundBuffer())
+			{
+				asd.idBuffer = j;
+				j = sd->sound.size();
+			}
+		}
+		GObject* parent = sd->audio[i]->getParent();
+		if (parent != nullptr)
+		{
+			for (int j = 0; j < allGObject.size(); j++)
+			{
+				if (allGObject[j] == parent)
+				{
+					asd.idParent = j;
+					break;
+				}
+			}
+		}
+		sd->audioData.push_back(asd);
+	}
+
 	sd->lightData.clear();
 	for (int i = 0; i < sd->dlight.size(); i++)
 	{
@@ -701,6 +1362,18 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ld.spotAngle = sd->dlight[i]->getSpotAngle();
 		ld.shadow = sd->dlight[i]->getshadow();
 		ld.status = 0;
+		GObject* parent = sd->dlight[i]->getParent();
+		if (parent != nullptr)
+		{
+			for (int j = 0; j < allGObject.size(); j++)
+			{
+				if (allGObject[j] == parent)
+				{
+					ld.idParent = j;
+					break;
+				}
+			}
+		}
 		sd->lightData.push_back(ld);
 	}
 	for (int i = 0; i < sd->plight.size(); i++)
@@ -715,6 +1388,18 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ld.spotAngle = sd->plight[i]->getSpotAngle();
 		ld.shadow = sd->plight[i]->getshadow();
 		ld.status = 1;
+		GObject* parent = sd->plight[i]->getParent();
+		if (parent != nullptr)
+		{
+			for (int j = 0; j < allGObject.size(); j++)
+			{
+				if (allGObject[j] == parent)
+				{
+					ld.idParent = j;
+					break;
+				}
+			}
+		}
 		sd->lightData.push_back(ld);
 	}
 	for (int i = 0; i < sd->slight.size(); i++)
@@ -729,6 +1414,18 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ld.spotAngle = sd->slight[i]->getSpotAngle();
 		ld.shadow = sd->slight[i]->getshadow();
 		ld.status = 2;
+		GObject* parent = sd->slight[i]->getParent();
+		if (parent != nullptr)
+		{
+			for (int j = 0; j < allGObject.size(); j++)
+			{
+				if (allGObject[j] == parent)
+				{
+					ld.idParent = j;
+					break;
+				}
+			}
+		}
 		sd->lightData.push_back(ld);
 	}
 	sd->materialData.clear();
@@ -743,7 +1440,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		md.normal = sd->materials[i]->getNormal();
 		md.ao = sd->materials[i]->getOclusion();
 		
-		for (int j = 0; j < sd->textures.size(); i++)
+		for (int j = 0; j < sd->textures.size(); j++)
 		{			
 			if (sd->textures[j] == sd->materials[i]->getAlbedoTexture())
 			{
@@ -800,7 +1497,18 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 				j = sd->materials.size();
 			}
 		}
-
+		GObject* parent = sd->models[i]->getParent();
+		if (parent != nullptr)
+		{
+			for (int j = 0; j < allGObject.size(); j++)
+			{
+				if (allGObject[j] == parent)
+				{
+					md.idParent = j;
+					break;
+				}
+			}
+		}
 		sd->modelData.push_back(md);
 	}
 	std::string pretty_json = JS::serializeStruct(*sd);
@@ -848,17 +1556,19 @@ void Editor::onGUI()
 
 void Editor::init(GraphicsDataMisc* gdm)
 {
+	m_gdm = gdm;
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.Colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
 	style.Colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.06f, 0.06f, 0.64f);		
 }
+
 
 void Editor::render(GraphicsDataMisc* gdm)
 {
 	ImGuiStyle& style = ImGui::GetStyle();
 	ImVec4 wbg = style.Colors[ImGuiCol_WindowBg];
 	style.Colors[ImGuiCol_WindowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-	ImGui::DockSpaceOverViewport(NULL, ImGuiDockNodeFlags_NoDockingOverCentralNode);	
+	ImGui::DockSpaceOverViewport(NULL, ImGuiDockNodeFlags_NoDockingOverCentralNode | ImGuiDockNodeFlags_PassthruCentralNode);
 	style.Colors[ImGuiCol_WindowBg] = wbg;	
 	ImVec4 colbbg = style.Colors[ImGuiCol_Button];
 	int mainWindowPosX, mainWindowPosY;
@@ -917,6 +1627,10 @@ void Editor::render(GraphicsDataMisc* gdm)
 				if (ImGui::MenuItem("Spot Light"))
 				{
 					addLightToScene(2);
+				}
+				if (ImGui::MenuItem("Empty"))
+				{
+					addEmptyToScene();
 				}
 				ImGui::EndMenu();
 			}
@@ -988,6 +1702,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 			{
 				Debug::Error("Error deleting file: %s", deletePath.c_str());
 			}
+			ImGui::CloseCurrentPopup();
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("No", ImVec2(100, 0)) || m_pc->inputManager->getKeyDown(GLFW_KEY_ESCAPE))
@@ -1135,6 +1850,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 						sd->name = m_objectName;
 						sd->currentPath = m_currentProjectLocation + "\\" + m_objectName + ".scene";
 						m_currentProjectData->lastSceneOpen = sd->currentPath;
+						sd->dlight.push_back(m_pc->lightManager->createDirectionalLight(glm::vec3(-45,45,0),glm::vec3(1,1,1)));
 						globalSave();
 					}
 					ImGui::CloseCurrentPopup();
@@ -1180,9 +1896,223 @@ void Editor::render(GraphicsDataMisc* gdm)
 	{
 		ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_FirstUseEver);
 		ImGui::Begin("Inspector", &m_editorData->inspector);
-		if (m_selectedOBJ != nullptr)
+		if (m_selectedOBJ != nullptr && m_currentSceneData != nullptr)
 		{
 			m_selectedOBJ->onGUI();
+			if (Model* model = dynamic_cast<Model*>(m_selectedOBJ))
+			{
+				if (ImGui::Button("Add Material"))
+				{
+					addMaterialToModel(model);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Clear Matertial"))
+				{
+					removeExistMaterial(model, m_currentSceneData, m_pc->materialManager, m_pc->textureManager, m_gdm);
+					model->setMaterial(gdm->str_default_material);
+				}
+				if (ImGui::Button("Next"))
+				{
+					removeExistMaterial(model, m_currentSceneData, m_pc->materialManager, m_pc->textureManager, m_gdm);
+					if (m_currentSceneData->materials.size() > 0)
+					{
+						model->setMaterial(m_currentSceneData->materials[matCN % m_currentSceneData->materials.size()]);
+						matCN++;
+					}
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Prev"))
+				{
+					removeExistMaterial(model, m_currentSceneData, m_pc->materialManager, m_pc->textureManager, m_gdm);
+					if (m_currentSceneData->materials.size() > 0)
+					{
+						model->setMaterial(m_currentSceneData->materials[matCN % m_currentSceneData->materials.size()]);
+						matCN--;
+						if (matCN < 0)
+						{
+							matCN = m_currentSceneData->materials.size();
+						}
+					}
+				}
+				Materials* mat = model->getMaterial();
+				if (mat != nullptr)
+				{
+					ImGui::Text("Base       ");
+					ImGui::SameLine();
+					ImGui::Image((ImTextureID)mat->getAlbedoTexture()->getTextureID(),ImVec2(20,20));
+					std::string path = dropTargetImage();
+					if (!path.empty())
+					{
+						removeExistTexture(mat->getAlbedoTexture(), m_currentSceneData, m_pc->textureManager, gdm);
+						bool found = false;
+						Textures* t = nullptr;
+						for (int i = 0; i < m_currentSceneData->textureData.size(); i++)
+						{
+							if (m_currentSceneData->textureData[i].path == path)
+							{
+								t = m_currentSceneData->textures[i];
+								found = true;
+							}
+						}
+						if (!found)
+						{
+							t = m_pc->textureManager->createTexture(path.c_str());
+						}
+						mat->setAlbedoTexture(t);
+						if (mat != m_gdm->str_default_material && !found)
+						{							
+							m_currentSceneData->textures.push_back(t);
+							TextureData td;
+							td.path = path;
+							td.filter = true;
+							m_currentSceneData->textureData.push_back(td);
+						}
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Clear##Base")) { removeExistTexture(mat->getAlbedoTexture(), m_currentSceneData, m_pc->textureManager, gdm); mat->setAlbedoTexture(nullptr); }
+
+					ImGui::Text("Metallic   ");
+					ImGui::SameLine();
+					ImGui::Image((ImTextureID)mat->getMetallicTexture()->getTextureID(), ImVec2(20, 20));
+					path = dropTargetImage();
+					if (!path.empty())
+					{
+						removeExistTexture(mat->getMetallicTexture(), m_currentSceneData, m_pc->textureManager, gdm);
+						bool found = false;
+						Textures* t = nullptr;
+						for (int i = 0; i < m_currentSceneData->textureData.size(); i++)
+						{
+							if (m_currentSceneData->textureData[i].path == path)
+							{
+								t = m_currentSceneData->textures[i];
+								found = true;
+							}
+						}
+						if (!found)
+						{
+							t = m_pc->textureManager->createTexture(path.c_str());
+						}
+						mat->setMetallicTexture(t);
+						if (mat != m_gdm->str_default_material && !found)
+						{							
+							m_currentSceneData->textures.push_back(t);
+							TextureData td;
+							td.path = path;
+							td.filter = true;
+							m_currentSceneData->textureData.push_back(td);
+						}
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Clear##Metallic")) { removeExistTexture(mat->getMetallicTexture(), m_currentSceneData, m_pc->textureManager, gdm); mat->setMetallicTexture(nullptr); }
+
+					ImGui::Text("Roughness  ");
+					ImGui::SameLine();
+					ImGui::Image((ImTextureID)mat->getRoughnessTexture()->getTextureID(), ImVec2(20, 20));
+					path = dropTargetImage();
+					if (!path.empty())
+					{
+						removeExistTexture(mat->getRoughnessTexture(), m_currentSceneData, m_pc->textureManager, gdm);
+						bool found = false;
+						Textures* t = nullptr;
+						for (int i = 0; i < m_currentSceneData->textureData.size(); i++)
+						{
+							if (m_currentSceneData->textureData[i].path == path)
+							{
+								t = m_currentSceneData->textures[i];
+								found = true;
+							}
+						}
+						if (!found)
+						{
+							t = m_pc->textureManager->createTexture(path.c_str());
+						}
+						mat->setRoughnessTexture(t);
+						
+						if (mat != m_gdm->str_default_material && !found)
+						{							
+							m_currentSceneData->textures.push_back(t);
+							TextureData td;
+							td.path = path;
+							td.filter = true;
+							m_currentSceneData->textureData.push_back(td);
+						}
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Clear##Roughness")) { removeExistTexture(mat->getRoughnessTexture(), m_currentSceneData, m_pc->textureManager, gdm); mat->setRoughnessTexture(nullptr); }
+
+					ImGui::Text("Normal     ");
+					ImGui::SameLine();
+					ImGui::Image((ImTextureID)mat->getNormalTexture()->getTextureID(), ImVec2(20, 20));
+					path = dropTargetImage();
+					if (!path.empty())
+					{
+						removeExistTexture(mat->getNormalTexture(), m_currentSceneData, m_pc->textureManager, gdm);
+						bool found = false;
+						Textures* t = nullptr;
+						for (int i = 0; i < m_currentSceneData->textureData.size(); i++)
+						{
+							if (m_currentSceneData->textureData[i].path == path)
+							{
+								t = m_currentSceneData->textures[i];								
+								found = true;
+							}
+						}
+						if (!found)
+						{
+							t = m_pc->textureManager->createTexture(path.c_str());							
+						}
+						mat->setNormalTexture(t);
+						if (mat != m_gdm->str_default_material && !found)
+						{							
+							m_currentSceneData->textures.push_back(t);
+							TextureData td;
+							td.path = path;
+							td.filter = true;
+							m_currentSceneData->textureData.push_back(td);
+						}
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Clear##Normal")) 
+					{ 
+						removeExistTexture(mat->getNormalTexture(), m_currentSceneData, m_pc->textureManager, gdm); 
+						mat->setNormalTexture(nullptr); 
+					}
+
+					ImGui::Text("Oclusion   ");
+					ImGui::SameLine();
+					ImGui::Image((ImTextureID)mat->getOclusionTexture()->getTextureID(), ImVec2(20, 20));
+					path = dropTargetImage();
+					if (!path.empty())
+					{
+						removeExistTexture(mat->getOclusionTexture(), m_currentSceneData, m_pc->textureManager, gdm);
+						bool found = false;
+						Textures* t = nullptr;
+						for (int i = 0; i < m_currentSceneData->textureData.size(); i++)
+						{
+							if (m_currentSceneData->textureData[i].path == path)
+							{
+								t = m_currentSceneData->textures[i];
+								found = true;
+							}
+						}
+						if (!found)
+						{
+							t = m_pc->textureManager->createTexture(path.c_str());
+						}
+						mat->setOclusionTexture(t);
+						if (mat != m_gdm->str_default_material && !found)
+						{							
+							m_currentSceneData->textures.push_back(t);
+							TextureData td;
+							td.path = path;
+							td.filter = true;
+							m_currentSceneData->textureData.push_back(td);
+						}
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Clear##Oclusion")) { removeExistTexture(mat->getOclusionTexture(), m_currentSceneData, m_pc->textureManager, gdm); mat->setOclusionTexture(nullptr); }
+				}
+			}
 		}
 		ImGui::End();
 	}
@@ -1206,9 +2136,136 @@ void Editor::render(GraphicsDataMisc* gdm)
 		{
 			ImGui::BeginChild("##HiearchyBP", ImVec2(0, 30), true);
 			ImGui::TextColored(m_colRGB, m_currentSceneData->name.c_str());
+			ImGui::SameLine();
+			if (ImGui::ImageButton(m_icon[8], ImVec2(m_iconMoveSize, m_iconMoveSize))) { op = ImGuizmo::TRANSLATE; }
+			ImGui::SameLine();
+			if (ImGui::ImageButton(m_icon[9], ImVec2(m_iconMoveSize, m_iconMoveSize))) { op = ImGuizmo::ROTATE; }
+			ImGui::SameLine();
+			if (ImGui::ImageButton(m_icon[10], ImVec2(m_iconMoveSize, m_iconMoveSize))) { op = ImGuizmo::SCALE; }
+			ImGui::SameLine();
+			if (ImGui::ImageButton(m_icon[11], ImVec2(m_iconMoveSize, m_iconMoveSize))) { op = ImGuizmo::TRANSLATE | ImGuizmo::ROTATE; }
 			ImGui::EndChild();
-			drawTreeView();
+			drawTreeView();			
 		}
 		ImGui::End();
+		if (m_selectedOBJ != nullptr)
+		{
+			Camera* cam = m_pc->cameraManager->getCurrentCamera();
+			glm::mat4 view = cam->getViewMatrix();
+			glm::mat4 proj = cam->getProjectionMatrix();
+			glm::mat4 objMod = m_selectedOBJ->getModelMatrix();
+			ImGuizmo::SetRect(mainWindowPosX, mainWindowPosY, m_pc->settingManager->getWindowWidth(), m_pc->settingManager->getWindowHeight());
+			ImGuizmo::SetGizmoSizeClipSpace(0.08f);
+			if (ImGuizmo::Manipulate(&view[0][0], &proj[0][0], (ImGuizmo::OPERATION)op, ImGuizmo::WORLD, &objMod[0][0]))
+			{				
+				glm::vec3 pos;
+				glm::vec3 eul;
+				glm::vec3 scale;
+				ImGuizmo::DecomposeMatrixToComponents(&objMod[0][0], &pos[0], &eul[0], &scale[0]);
+				m_selectedOBJ->setPosition(pos);
+				m_selectedOBJ->setEulerAngles(eul);
+				m_selectedOBJ->setScale(scale);
+			}
+			if (m_pc->inputManager->getKeyDown(GLFW_KEY_V))
+			{
+				glm::vec3 pos = m_pc->renderingEngine->getWorldCoordinates(m_pc->inputManager->getMousePosX(), m_pc->inputManager->getMousePosY());
+				for (int i = 0; i < m_currentSceneData->models.size(); i++)
+				{
+					if (m_selectedOBJ == m_currentSceneData->models[i])
+					{
+						const std::vector<Vertex>&  vertex = ((ShapeBufferBase*)m_currentSceneData->models[i]->getShapeBuffer())->getVertices();
+						glm::mat4 mat = m_selectedOBJ->getModelMatrix();
+						m_offsetMove = m_selectedOBJ->getPosition();
+						float dist = glm::distance(m_offsetMove, pos);
+						for (int j = 0; j < vertex.size(); j++)
+						{							
+							glm::vec3 np = glm::vec3(mat* glm::vec4(vertex[j].pos,1));
+							if (glm::distance(np, pos) < dist)
+							{
+								m_offsetMove = np;
+								dist = glm::distance(np, pos);
+							}
+						}
+						m_offsetMove = m_offsetMove-m_selectedOBJ->getPosition();						
+						break;
+					}
+				}
+				if (m_pc->inputManager->getKey(GLFW_KEY_C))
+				{
+					float dist = FLT_MAX;
+					int idModel = -1;
+					int idVertex = -1;
+					for (int i = 0; i < m_currentSceneData->models.size(); i++)
+					{
+						if (m_selectedOBJ != m_currentSceneData->models[i])
+						{
+							const std::vector<Vertex>& vertex = ((ShapeBufferBase*)m_currentSceneData->models[i]->getShapeBuffer())->getVertices();
+							glm::mat4 mat = m_currentSceneData->models[i]->getModelMatrix();
+							for (int j = 0; j < vertex.size(); j++)
+							{
+								glm::vec3 np = glm::vec3(mat * glm::vec4(vertex[j].pos, 1));
+								if (glm::distance(np, pos) < dist)
+								{									
+									dist = glm::distance(np, pos);
+									idModel = i;
+									idVertex = j;
+								}
+							}
+						}
+					}
+					if (idModel != -1)
+					{
+						const std::vector<Vertex>& vertex = ((ShapeBufferBase*)m_currentSceneData->models[idModel]->getShapeBuffer())->getVertices();
+						glm::mat4 mat = m_currentSceneData->models[idModel]->getModelMatrix();
+						glm::vec3 np = glm::vec3(mat * glm::vec4(vertex[idVertex].pos, 1));
+						m_selectedOBJ->setPosition(np - m_offsetMove);
+					}
+				}
+			}
+			if (m_pc->inputManager->getKey(GLFW_KEY_V) && !m_pc->inputManager->getKey(GLFW_KEY_C))
+			{				
+				glm::vec3 pos = m_pc->renderingEngine->getWorldCoordinates(m_pc->inputManager->getMousePosX(), m_pc->inputManager->getMousePosY());
+				if (glm::distance(cam->getPosition(), pos) < cam->getFar())
+				{
+					m_selectedOBJ->setPosition(pos- m_offsetMove);
+				}						
+			}
+		}	
+		if (m_pc->inputManager->getMouse(GLFW_MOUSE_BUTTON_LEFT) && m_currentSceneData != nullptr)
+		{
+			if (!m_clickedSceneSelected && !ImGuizmo::IsUsing() && !ImGui::GetIO().WantCaptureMouse)
+			{
+				Camera* cam = m_pc->cameraManager->getCurrentCamera();
+				glm::vec3 pos = m_pc->renderingEngine->getWorldCoordinates(m_pc->inputManager->getMousePosX(), m_pc->inputManager->getMousePosY());
+				if (glm::distance(cam->getPosition(), pos) < cam->getFar())
+				{
+					float dist = FLT_MAX;
+					float nd;
+					int selectedModel = -1;
+					for (int i = 0; i < m_currentSceneData->models.size(); i++)
+					{
+						nd = glm::distance(m_currentSceneData->models[i]->getPosition(), pos);
+						if (nd < dist)
+						{
+							dist = nd;
+							selectedModel = i;
+						}
+					}
+					if (selectedModel != -1)
+					{
+						m_selectedOBJ = m_currentSceneData->models[selectedModel];
+					}
+				}
+				else
+				{
+					m_selectedOBJ = nullptr;
+				}
+			}
+			m_clickedSceneSelected = true;
+		}
+		else
+		{
+			m_clickedSceneSelected = false;
+		}
 	}
 }

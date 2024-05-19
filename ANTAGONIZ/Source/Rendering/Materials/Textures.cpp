@@ -8,13 +8,13 @@
 
 namespace Ge
 {
-	Textures::Textures(stbi_uc* pc, int Width, int Height,unsigned int index, bool filter, GraphicsDataMisc * gdm)
+	Textures::Textures(stbi_uc* pc, int Width, int Height,unsigned int index, bool filter, bool mipmaps, GraphicsDataMisc * gdm)
 	{		
 		glGenTextures(1, &m_textureID);
 		glBindTexture(GL_TEXTURE_2D, m_textureID);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, Width, Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pc);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		if (m_enableMipmaps)
+		if (mipmaps)
 		{
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST);
 			glGenerateMipmap(GL_TEXTURE_2D);

@@ -5,6 +5,7 @@
 #include "json_struct.h"
 #include <glm/glm.hpp>
 #include "GObject.hpp"
+
 namespace Ge
 {
 	class Textures;
@@ -15,6 +16,9 @@ namespace Ge
 	class DirectionalLight;
 	class PointLight;
 	class SpotLight;
+	class SoundBuffer;
+	class AudioSource;
+	class Empty;
 }
 using namespace Ge;
 
@@ -67,12 +71,14 @@ struct ModelData
 	glm::vec3 scale;
 	int idMaterial;
 	int idBuffer;
+	int idParent;
 	ModelData()
 	{
 		idMaterial = -1;
 		idBuffer = -1;
+		idParent = -1;
 	}
-	JS_OBJ(name,position, rotation, scale,idMaterial, idBuffer);
+	JS_OBJ(name,position, rotation, scale,idMaterial, idBuffer, idParent);
 };
 
 struct BufferData
@@ -138,7 +144,56 @@ struct LightData
 	float spotAngle;
 	bool shadow;
 	int status;
-	JS_OBJ(name, position, rotation, scale, color, range, spotAngle, shadow, status);
+	int idParent;
+	LightData()
+	{
+		idParent = -1;
+	}
+	JS_OBJ(name, position, rotation, scale, color, range, spotAngle, shadow, status, idParent);
+};
+
+struct SoundBufferData
+{
+	std::string path;
+	JS_OBJ(path);
+};
+
+struct AudioSourceData
+{
+	std::string name;
+	glm::vec3 position;
+	glm::quat rotation;
+	glm::vec3 scale;
+	float pitch;
+	float gain;
+	glm::vec3 velocity;
+	bool loop;
+	float rolloffFactor;   // Rolloff factor
+	float maxDistance;   // Max distance for attenuation
+	float refDistance;
+	int idBuffer;
+	int idParent;
+	AudioSourceData()
+	{
+		idBuffer = -1;
+		idParent = -1;
+	}
+	JS_OBJ(name, position, rotation, scale, pitch, gain, velocity, loop, rolloffFactor, maxDistance, refDistance, idBuffer, idParent);
+};
+
+struct EmptyData
+{
+	std::string name;
+	glm::vec3 position;
+	glm::quat rotation;
+	glm::vec3 scale;
+	int idParent;
+
+	EmptyData()
+	{
+		idParent = -1;
+	}
+	JS_OBJ(name, position, rotation, scale, idParent);
 };
 
 struct SceneData
@@ -153,6 +208,9 @@ struct SceneData
 	std::vector<TextureData> textureData;
 	std::vector<ModelData> modelData;
 	std::vector<LightData> lightData;
+	std::vector<SoundBufferData> soundBufferData;
+	std::vector<AudioSourceData> audioData;
+	std::vector<EmptyData> emptyData;
 
 	/*Engine Part*/
 	std::vector<ShapeBuffer*> buffer;
@@ -163,13 +221,16 @@ struct SceneData
 	std::vector<DirectionalLight*> dlight;		
 	std::vector<PointLight*> plight;
 	std::vector<SpotLight*> slight;
+	std::vector<SoundBuffer*> sound;
+	std::vector<AudioSource*> audio;	
+	std::vector<Empty*> empty;
 	/*Engine Part*/
 	SceneData()
 	{
 		name = "";
 		currentPath = "";
 	}	
-	JS_OBJ(freeCamPos, freeCamRot,bufferData, shaderData, materialData, textureData, modelData, lightData);
+	JS_OBJ(freeCamPos, freeCamRot,bufferData, shaderData, materialData, textureData, modelData, lightData, soundBufferData, audioData, emptyData);
 };
 
 #endif //!__PROJECT_DATA__

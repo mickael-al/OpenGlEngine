@@ -15,6 +15,8 @@ namespace Ge
 		void stop();
 		void setPitch(float pitch);
 		void setGain(float gain);
+		float getPitch() const;
+		float getGain() const;
 		int SourceState();
 		void setPosition(glm::vec3 pos) override;
 		void setRotation(glm::quat rot) override;
@@ -23,6 +25,7 @@ namespace Ge
 		glm::vec3 getVelocity() const;
 		void setLoop(bool state);
 		bool getLoop() const;
+		SoundBuffer * getSoundBuffer() const;
 
 		void setRolloffFactor(float rolloffFactor);
 		float getRolloffFactor() const;
@@ -34,6 +37,7 @@ namespace Ge
 		void onGUI() override;
 		~AudioSource();
 	private:
+		SoundBuffer* m_sb = nullptr;
 		unsigned int m_sourceID;
 		float m_pitch = 1.0f;
 		float m_gain = 1.0f;

@@ -25,9 +25,9 @@ namespace Ge
 	{
 		m_gdm = gdm;
 		unsigned char data[] = { 255,255,255,255 };
-		Textures * default_texture = new Textures(data, 1, 1, 0, false, gdm);
+		Textures * default_texture = new Textures(data, 1, 1, 0, false,false, gdm);
 		unsigned char data_norm[] = { 127,127,255,255 };
-		Textures* default_normal_texture = new Textures(data_norm, 1, 1, 0, false, gdm);
+		Textures* default_normal_texture = new Textures(data_norm, 1, 1, 0, false,false, gdm);
 		m_textures.push_back(default_texture);
 		m_textures.push_back(default_normal_texture);
 		m_gdm->str_default_texture = default_texture;
@@ -53,7 +53,7 @@ namespace Ge
 		return access(path, F_OK) != -1;
 	}
 #endif
-	Textures *TextureManager::createTexture(const char *path, bool filter)
+	Textures *TextureManager::createTexture(const char *path, bool filter, bool mipmaps)
 	{
 #ifdef _WIN32
 
@@ -69,7 +69,7 @@ namespace Ge
 				Debug::Warn("Echec du chargement de la texture");
 				return nullptr;
 			}
-			Textures *texture = new Textures(pixel, tw, th, m_textures.size(), filter, m_gdm);
+			Textures *texture = new Textures(pixel, tw, th, m_textures.size(), filter, mipmaps, m_gdm);
 			m_textures.push_back(texture);
 			stbi_image_free(pixel);
 			m_gdm->str_dataMisc.textureCount = m_textures.size();
@@ -79,14 +79,14 @@ namespace Ge
 		return nullptr;
 	}
 
-	Textures* TextureManager::createTexture(unsigned char * pixel, int tw, int th, bool filter)
+	Textures* TextureManager::createTexture(unsigned char * pixel, int tw, int th, bool filter,bool mipmaps)
 	{
 		if (!pixel)
 		{
 			Debug::Warn("Echec du chargement de la texture");
 			return nullptr;
 		}
-		Textures* texture = new Textures(pixel, tw, th, m_textures.size(), filter, m_gdm);
+		Textures* texture = new Textures(pixel, tw, th, m_textures.size(), filter, mipmaps, m_gdm);
 		m_textures.push_back(texture);
 		m_gdm->str_dataMisc.textureCount = m_textures.size();
 		return texture;

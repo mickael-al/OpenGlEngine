@@ -108,10 +108,16 @@ layout(binding = 3) uniform sampler2D gOther;
 layout(binding = 4) uniform sampler2DArray shadowDepth;
 layout(binding = 5) uniform sampler2D texNoise;
 
-float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex)
+float calculateBias(vec4 shadowCoord, vec3 normal, vec3 lightDir)
+{
+	float bias = 0.005;
+	float angle = max(dot(normal, lightDir), 0.0);
+	return bias * tan(acos(angle));
+}
+
+float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex, float bias)
 {
 	float shadow = 1.0;
-	float bias = 0.005;
 
 	if (shadowCoord.z > -1.0 && shadowCoord.z < 1.0)
 	{
@@ -124,11 +130,9 @@ float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex)
 	return shadow;
 }
 
-float filterPCF(vec4 sc, uint cascadeIndex)
+float filterPCF(vec4 sc, uint cascadeIndex, float bias)
 {
 	ivec3 texDim = textureSize(shadowDepth, 0);
-
-	//float scale = 0.75;
 	float scale = 0.5;
 	float dx = scale * 1.0 / float(texDim.x);
 	float dy = scale * 1.0 / float(texDim.y);
@@ -141,7 +145,7 @@ float filterPCF(vec4 sc, uint cascadeIndex)
 	{
 		for (int y = -range; y <= range; y++)
 		{
-			shadowFactor += textureProj(sc, vec2(dx * x, dy * y), cascadeIndex);
+			shadowFactor += textureProj(sc, vec2(dx * x, dy * y), cascadeIndex, bias);
 			count++;
 		}
 	}
@@ -236,12 +240,12 @@ void main()
 				{
 					if (viewZ < ubs.s[ubl.ubl[i].shadowID + k].splitDepth)
 					{
-						cascadeIndex = k + 1;       
+						cascadeIndex = k + 1;
 					}
-				}			
+				}
 				vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + cascadeIndex].projview) * vec4(positionAO.rgb, 1.0);
-				shadowCoord.y -= 0.005;
-				shadow = filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + cascadeIndex);				
+				float bias = calculateBias(shadowCoord, normalRoughness.rgb, L);
+				shadow = filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + cascadeIndex, bias);
 			}
 			Lo += ((kD * color / PI + specular) * ubl.ubl[i].color *(ubl.ubl[i].range / 10.0)* NdotL)* shadow;
 		}
@@ -252,7 +256,8 @@ void main()
 				for (uint k = 0; k < SHADOW_MAP_CUBE_COUNT && shadow > 0.5f; ++k)
 				{
 					vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + k].projview) * vec4(positionAO.rgb, 1.0);
-					shadow *= filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + k);
+					float bias = calculateBias(shadowCoord, normalRoughness.rgb, L);
+					shadow *= filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + k, bias);
 				}
 			}
 			Lo += (kD * color / PI + specular) * radiance * NdotL * shadow;
