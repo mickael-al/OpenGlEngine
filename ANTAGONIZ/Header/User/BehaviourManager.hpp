@@ -10,7 +10,8 @@ namespace Ge
 	class BehaviourManager
 	{
 	public:
-		void addBehaviour(Behaviour * b);
+		void addBehaviour(Behaviour* b);
+		void addBehaviourWithoutStart(Behaviour* b);
 		void removeBehaviour(Behaviour * b,bool ignoreStop = false);	
 		void update();
 		void fixedUpdate();		

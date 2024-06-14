@@ -69,6 +69,11 @@ namespace Ge
 		char m_pathOpenProject[256];
 		char m_objectName[256];
 
+		int m_playMode = 0;
+		int m_scriptCombo = 0;
+		std::map<GObject*, std::vector<std::string>> scriptObject;
+		std::vector<Behaviour*> m_allBehaviourLoaded;
+		std::vector<Behaviour*> m_allBehaviourPaused;
 		//Mouse Mode
 		bool m_clickedSceneSelected = false;
 		glm::vec3 m_offsetMove;

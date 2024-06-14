@@ -2,14 +2,15 @@
 #include "RigidBody.hpp"
 #include "CollisionBody.hpp"
 #include "Muscle.hpp"
+#include "CommandQueue.hpp"
 
 namespace Ge
 {
-	bool PhysicsEngine::Initialize(glm::vec3 const& gravity)
+	bool PhysicsEngine::Initialize(glm::vec3 const& gravity, CommandQueue* queue)
 	{
 		auto beginPhysicsInit = std::chrono::steady_clock::now();
 		Debug::Info("Initialisation du moteur physique");
-
+		m_queue = queue;
 		m_pCollisionCongifuration = new btDefaultCollisionConfiguration();
 		m_pCollisionDispatcher = new btCollisionDispatcher(m_pCollisionCongifuration);
 		m_pBroadphaseInterface = new btDbvtBroadphase();
@@ -32,6 +33,12 @@ namespace Ge
 	void PhysicsEngine::Update(float dt,bool engine)
 	{
 		m_pDynamicWorld->stepSimulation(dt, 1);
+		while (!m_queue->empty())
+		{
+			Command* command = m_queue->pop();
+			command->execute();
+			delete command;
+		}
 	}
 
 	void PhysicsEngine::Shutdown()
@@ -75,10 +82,10 @@ namespace Ge
 		}
 	}
 
-	bool PhysicsEngine::raycast(const glm::vec3& start, const glm::vec3& end, glm::vec3& hitPoint)
+	bool PhysicsEngine::raycast(const glm::vec3* start, const glm::vec3* end, glm::vec3* hitPoint)
 	{
-		btVector3 btstart = btVector3(start.x, start.y, start.z);
-		btVector3 btend = btVector3(end.x, end.y, end.z);
+		btVector3 btstart = btVector3(start->x, start->y, start->z);
+		btVector3 btend = btVector3(end->x, end->y, end->z);
 		btCollisionWorld::ClosestRayResultCallback rayCallback(btstart, btend);
 		rayCallback.m_collisionFilterMask = 1;
 		m_pDynamicWorld->rayTest(btstart, btend, rayCallback);
@@ -87,7 +94,7 @@ namespace Ge
 		{
 			btVector3 hit;
 			hit = rayCallback.m_hitPointWorld;
-			hitPoint = glm::vec3(hit.x(), hit.y(), hit.z());
+			*hitPoint = glm::vec3(hit.x(), hit.y(), hit.z());
 			return true;
 		}
 		else 

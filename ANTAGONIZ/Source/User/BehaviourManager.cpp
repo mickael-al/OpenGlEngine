@@ -8,6 +8,11 @@ namespace Ge
 		m_startBehaviours.push_back(b);
 	}
 
+	void BehaviourManager::addBehaviourWithoutStart(Behaviour* b)
+	{
+		m_behaviours.push_back(b);
+	}
+
 	void BehaviourManager::removeBehaviour(Behaviour * b,bool ignoreStop)
 	{		
 		if (!ignoreStop)

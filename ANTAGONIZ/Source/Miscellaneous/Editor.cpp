@@ -30,7 +30,6 @@ Trigger Warning a rushed code not optimized
 #include <vector>
 #include <algorithm>
 
-
 using std::fstream;
 using namespace Ge;
 namespace fs = std::filesystem;
@@ -920,6 +919,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 	sd->currentPath = filePath;
 	m_currentProjectData->lastSceneOpen = filePath;
 	sd->empty.clear();
+	scriptObject.clear();
 	for (int i = 0; i < sd->emptyData.size(); i++)
 	{
 		Empty* e = new Empty();
@@ -927,6 +927,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 		e->setPosition(sd->emptyData[i].position);
 		e->setRotation(sd->emptyData[i].rotation);
 		e->setScale(sd->emptyData[i].scale);
+		scriptObject[(GObject*)e] = sd->emptyData[i].scripts;
 		sd->empty.push_back(e);
 	}
 	sd->shader.clear();
@@ -991,6 +992,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			m->setPosition(sd->modelData[i].position);
 			m->setRotation(sd->modelData[i].rotation);
 			m->setScale(sd->modelData[i].scale);
+			scriptObject[(GObject*)m] = sd->modelData[i].scripts;
 			if (sd->modelData[i].idMaterial >= 0)
 			{
 				m->setMaterial(sd->materials[sd->modelData[i].idMaterial]);
@@ -1014,6 +1016,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			dl->setSpotAngle(sd->lightData[i].spotAngle);
 			dl->setshadow(sd->lightData[i].shadow);
 			sd->dlight.push_back(dl);
+			scriptObject[(GObject*)dl] = sd->lightData[i].scripts;
 			allLight.push_back(dl);
 		}
 		else if (sd->lightData[i].status == 1)
@@ -1026,6 +1029,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			pl->setSpotAngle(sd->lightData[i].spotAngle);
 			pl->setshadow(sd->lightData[i].shadow);
 			sd->plight.push_back(pl);
+			scriptObject[(GObject*)pl] = sd->lightData[i].scripts;
 			allLight.push_back(pl);
 		}
 		else if (sd->lightData[i].status == 2)
@@ -1038,6 +1042,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			sl->setSpotAngle(sd->lightData[i].spotAngle);
 			sl->setshadow(sd->lightData[i].shadow);
 			sd->slight.push_back(sl);
+			scriptObject[(GObject*)sl] = sd->lightData[i].scripts;
 			allLight.push_back(sl);
 		}
 	}
@@ -1062,7 +1067,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			as->setLoop(sd->audioData[i].rolloffFactor);
 			as->setLoop(sd->audioData[i].maxDistance);
 			as->setLoop(sd->audioData[i].refDistance);
-
+			scriptObject[(GObject*)as] = sd->audioData[i].scripts;
 			sd->audio.push_back(as);
 		}
 	}
@@ -1298,6 +1303,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ed.rotation = sd->empty[i]->getRotation();
 		ed.scale = sd->empty[i]->getScale();
 		GObject* parent = sd->empty[i]->getParent();
+		ed.scripts = scriptObject[(GObject*)sd->empty[i]];
 		if (parent != nullptr)
 		{
 			for (int j = 0; j < allGObject.size(); j++)
@@ -1326,6 +1332,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		asd.rolloffFactor = sd->audio[i]->getLoop();
 		asd.maxDistance = sd->audio[i]->getLoop();
 		asd.refDistance = sd->audio[i]->getLoop();
+		asd.scripts = scriptObject[(GObject*)sd->audio[i]];
 		for (int j = 0; j < sd->sound.size(); j++)
 		{
 			if (sd->sound[j] == sd->audio[i]->getSoundBuffer())
@@ -1362,6 +1369,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ld.spotAngle = sd->dlight[i]->getSpotAngle();
 		ld.shadow = sd->dlight[i]->getshadow();
 		ld.status = 0;
+		ld.scripts = scriptObject[(GObject*)sd->dlight[i]];
 		GObject* parent = sd->dlight[i]->getParent();
 		if (parent != nullptr)
 		{
@@ -1388,6 +1396,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ld.spotAngle = sd->plight[i]->getSpotAngle();
 		ld.shadow = sd->plight[i]->getshadow();
 		ld.status = 1;
+		ld.scripts = scriptObject[(GObject*)sd->plight[i]];
 		GObject* parent = sd->plight[i]->getParent();
 		if (parent != nullptr)
 		{
@@ -1414,6 +1423,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ld.spotAngle = sd->slight[i]->getSpotAngle();
 		ld.shadow = sd->slight[i]->getshadow();
 		ld.status = 2;
+		ld.scripts = scriptObject[(GObject*)sd->slight[i]];
 		GObject* parent = sd->slight[i]->getParent();
 		if (parent != nullptr)
 		{
@@ -1481,6 +1491,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		md.position = sd->models[i]->getPosition();
 		md.rotation = sd->models[i]->getRotation();
 		md.scale = sd->models[i]->getScale();
+		md.scripts = scriptObject[(GObject*)sd->models[i]];
 		for (int j = 0; j < sd->buffer.size(); j++)
 		{
 			if (sd->buffer[j] == sd->models[i]->getShapeBuffer())
@@ -1873,20 +1884,81 @@ void Editor::render(GraphicsDataMisc* gdm)
 		ImGui::SetNextWindowPos(ImVec2(mainWindowPosX+(m_pc->settingManager->getWindowWidth() / 2 - 125), 25+ mainWindowPosY));
 		ImGui::Begin("Game Mode", &m_editorData->gameMode, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar);
 		style.Colors[ImGuiCol_Button] = ImVec4(0, 0, 0, 0);
-		if (ImGui::ImageButton(m_icon[6], ImVec2(m_iconModeSize, m_iconModeSize)))
+		int popCol = 0;
+		if (m_playMode == 1) {
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.7f, 0.0f, 1.0f));
+			popCol++;
+		}
+		if (ImGui::ImageButton(m_icon[6], ImVec2(m_iconModeSize, m_iconModeSize)) && m_playMode != 1 && m_currentSceneData != nullptr)
 		{
-
+			if (m_playMode == 2)
+			{
+				for (int i = 0; i < m_allBehaviourLoaded.size(); i++)
+				{
+					m_pc->behaviourManager->addBehaviourWithoutStart(m_allBehaviourLoaded[i]);
+				}
+			}
+			else
+			{				
+				globalSave();
+				for (const auto& var : scriptObject)
+				{
+					for (const auto& s : var.second)
+					{
+						Behaviour* b = FACTORY(Behaviour).create(s);
+						var.first->addComponent(b);
+						m_pc->behaviourManager->addBehaviour(b);
+						m_allBehaviourLoaded.push_back(b);
+					}
+				}
+			}
+			m_playMode = 1;
+		}
+		if (popCol == 1) {
+			ImGui::PopStyleColor(); 
+			popCol--;
 		}
 		ImGui::SameLine();
-		if (ImGui::ImageButton(m_icon[7], ImVec2(m_iconModeSize, m_iconModeSize)))
+		if (m_playMode == 2) {
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.0f, 0.7f, 1.0f));
+			popCol++;
+		}
+		if (ImGui::ImageButton(m_icon[7], ImVec2(m_iconModeSize, m_iconModeSize)) && m_playMode != 2)
 		{
-
+			m_playMode = 2;
+			for (int i = 0; i < m_allBehaviourLoaded.size(); i++)
+			{
+				m_pc->behaviourManager->removeBehaviour(m_allBehaviourLoaded[i], true);
+			}
+		}
+		if (popCol == 1) 
+		{
+			ImGui::PopStyleColor();
+			popCol--;
+		}
+		if (m_playMode == 0) {
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.0f, 0.0f, 1.0f));
+			popCol++;
 		}
 		ImGui::SameLine();
-		if (ImGui::ImageButton(m_icon[8], ImVec2(m_iconModeSize, m_iconModeSize)))
+		if (ImGui::ImageButton(m_icon[8], ImVec2(m_iconModeSize, m_iconModeSize)) && m_playMode != 0)
 		{
-
+			m_playMode = 0;			
+			for (int i = 0; i < m_allBehaviourLoaded.size(); i++)
+			{
+				m_pc->behaviourManager->removeBehaviour(m_allBehaviourLoaded[i],true);
+				m_allBehaviourLoaded[i]->stop();
+				delete m_allBehaviourLoaded[i];
+			}
+			m_allBehaviourLoaded.clear();
+			clearScene(m_currentSceneData);
+			loadScene(m_currentProjectData->lastSceneOpen, m_currentSceneData);
 		}		
+		if (popCol == 1) 
+		{
+			ImGui::PopStyleColor();
+			popCol--;
+		}
 		style.Colors[ImGuiCol_Button] = colbbg;
 		ImGui::SameLine();
 		ImGui::End();
@@ -1939,7 +2011,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 				{
 					ImGui::Text("Base       ");
 					ImGui::SameLine();
-					ImGui::Image((ImTextureID)mat->getAlbedoTexture()->getTextureID(),ImVec2(20,20));
+					ImGui::Image((ImTextureID)mat->getAlbedoTexture()->getTextureID(),ImVec2(80, 80));
 					std::string path = dropTargetImage();
 					if (!path.empty())
 					{
@@ -1973,7 +2045,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 
 					ImGui::Text("Metallic   ");
 					ImGui::SameLine();
-					ImGui::Image((ImTextureID)mat->getMetallicTexture()->getTextureID(), ImVec2(20, 20));
+					ImGui::Image((ImTextureID)mat->getMetallicTexture()->getTextureID(), ImVec2(80, 80));
 					path = dropTargetImage();
 					if (!path.empty())
 					{
@@ -2007,7 +2079,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 
 					ImGui::Text("Roughness  ");
 					ImGui::SameLine();
-					ImGui::Image((ImTextureID)mat->getRoughnessTexture()->getTextureID(), ImVec2(20, 20));
+					ImGui::Image((ImTextureID)mat->getRoughnessTexture()->getTextureID(), ImVec2(80, 80));
 					path = dropTargetImage();
 					if (!path.empty())
 					{
@@ -2042,7 +2114,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 
 					ImGui::Text("Normal     ");
 					ImGui::SameLine();
-					ImGui::Image((ImTextureID)mat->getNormalTexture()->getTextureID(), ImVec2(20, 20));
+					ImGui::Image((ImTextureID)mat->getNormalTexture()->getTextureID(), ImVec2(80, 80));
 					path = dropTargetImage();
 					if (!path.empty())
 					{
@@ -2080,7 +2152,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 
 					ImGui::Text("Oclusion   ");
 					ImGui::SameLine();
-					ImGui::Image((ImTextureID)mat->getOclusionTexture()->getTextureID(), ImVec2(20, 20));
+					ImGui::Image((ImTextureID)mat->getOclusionTexture()->getTextureID(), ImVec2(80, 80));
 					path = dropTargetImage();
 					if (!path.empty())
 					{
@@ -2110,9 +2182,49 @@ void Editor::render(GraphicsDataMisc* gdm)
 						}
 					}
 					ImGui::SameLine();
-					if (ImGui::Button("Clear##Oclusion")) { removeExistTexture(mat->getOclusionTexture(), m_currentSceneData, m_pc->textureManager, gdm); mat->setOclusionTexture(nullptr); }
+					if (ImGui::Button("Clear##Oclusion")) { removeExistTexture(mat->getOclusionTexture(), m_currentSceneData, m_pc->textureManager, gdm); mat->setOclusionTexture(nullptr); }					
 				}
 			}
+			const std::vector<std::string>& derivedName = FACTORY(Behaviour).getDerivedName();
+			if (m_scriptCombo < derivedName.size())
+			{
+				if (ImGui::Button("Add Script"))
+				{					
+					scriptObject[m_selectedOBJ].push_back(derivedName[m_scriptCombo]);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Remove Script"))
+				{
+					std::vector<std::string>& lso = scriptObject[m_selectedOBJ];
+					lso.erase(std::remove(lso.begin(), lso.end(), derivedName[m_scriptCombo]), lso.end());
+				}
+				ImGui::SameLine();
+				if (ImGui::BeginCombo("##ScriptCombo", derivedName[m_scriptCombo].c_str()))
+				{
+					for (int n = 0; n < derivedName.size(); n++)
+					{
+						const bool is_selected = (m_scriptCombo == n);
+						if (ImGui::Selectable(derivedName[n].c_str(), is_selected))
+						{
+							m_scriptCombo = n;
+						}
+
+						if (is_selected)
+						{
+							ImGui::SetItemDefaultFocus();
+						}
+					}
+
+					ImGui::EndCombo();
+				}
+			}
+			std::vector<std::string>&  scriptUse = scriptObject[m_selectedOBJ];
+			ImGui::BeginChild("##ScriptCurrent", ImVec2(0, 200), true);
+			for (int i = 0; i < scriptUse.size(); i++)
+			{
+				ImGui::TextColored(m_colRGB, scriptUse[i].c_str());
+			}
+			ImGui::EndChild();
 		}
 		ImGui::End();
 	}

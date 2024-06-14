@@ -18,8 +18,10 @@ namespace Ge
 	class BehaviourManager;
 	class SceneManager;
 	class PhysicsEngine;
+	class PhysicsWraper;
 	class SoundManager;
 	class Editor;
+	class CommandQueue;
 }
 namespace Ge
 {	
@@ -45,10 +47,12 @@ namespace Ge
         InputManager * m_inputManager;
 		BehaviourManager * m_behaviourManager;
 		SceneManager * m_sceneManager;
+		PhysicsWraper* m_physicsEngineWraper;
 		PhysicsEngine* m_physicsEngine;
 		SoundManager* m_soundManager;
 		Editor * m_editor;
-		 
+		CommandQueue * m_queue;
+
 		std::thread m_fixedThread;
 		std::atomic<bool> m_fixedThreadRuning;
         float m_lag = 0.0f;

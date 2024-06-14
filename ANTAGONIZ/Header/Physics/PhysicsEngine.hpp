@@ -16,11 +16,12 @@ class CollisionBody;
 class Muscle;
 class CollisionShape;
 class GObject;
+class CommandQueue;
 
 class PhysicsEngine
 {
 public:
-    bool Initialize(glm::vec3 const& gravity);
+    bool Initialize(glm::vec3 const& gravity, CommandQueue* queue);
     void Update(float dt,bool engine = true);
     void Shutdown();
 public:
@@ -32,12 +33,12 @@ public:
     void ReleaseRigidbody(RigidBody * pBody);
     void AddCollision(CollisionBody* body);
     void ReleaseCollision(CollisionBody*& pBody);
-    bool raycast(const glm::vec3& start, const glm::vec3& end, glm::vec3& hitPoint);
+    bool raycast(const glm::vec3* start, const glm::vec3* end, glm::vec3* hitPoint);
 private:
     std::vector<RigidBody*> m_rigidbody;
     std::vector<CollisionBody*> m_collisionbody;
     std::vector<Muscle*> m_muscle;
-    //std::vector<GObject*> * m_modified;
+    CommandQueue* m_queue;
     btDynamicsWorld* m_pDynamicWorld;
     btBroadphaseInterface               * m_pBroadphaseInterface;
     btCollisionDispatcher               * m_pCollisionDispatcher;

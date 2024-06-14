@@ -72,13 +72,14 @@ struct ModelData
 	int idMaterial;
 	int idBuffer;
 	int idParent;
+	std::vector<std::string> scripts;
 	ModelData()
 	{
 		idMaterial = -1;
 		idBuffer = -1;
 		idParent = -1;
 	}
-	JS_OBJ(name,position, rotation, scale,idMaterial, idBuffer, idParent);
+	JS_OBJ(name,position, rotation, scale,idMaterial, idBuffer, idParent, scripts);
 };
 
 struct BufferData
@@ -145,11 +146,12 @@ struct LightData
 	bool shadow;
 	int status;
 	int idParent;
+	std::vector<std::string> scripts;
 	LightData()
 	{
 		idParent = -1;
 	}
-	JS_OBJ(name, position, rotation, scale, color, range, spotAngle, shadow, status, idParent);
+	JS_OBJ(name, position, rotation, scale, color, range, spotAngle, shadow, status, idParent, scripts);
 };
 
 struct SoundBufferData
@@ -173,12 +175,13 @@ struct AudioSourceData
 	float refDistance;
 	int idBuffer;
 	int idParent;
+	std::vector<std::string> scripts;
 	AudioSourceData()
 	{
 		idBuffer = -1;
 		idParent = -1;
 	}
-	JS_OBJ(name, position, rotation, scale, pitch, gain, velocity, loop, rolloffFactor, maxDistance, refDistance, idBuffer, idParent);
+	JS_OBJ(name, position, rotation, scale, pitch, gain, velocity, loop, rolloffFactor, maxDistance, refDistance, idBuffer, idParent, scripts);
 };
 
 struct EmptyData
@@ -188,12 +191,13 @@ struct EmptyData
 	glm::quat rotation;
 	glm::vec3 scale;
 	int idParent;
+	std::vector<std::string> scripts;
 
 	EmptyData()
 	{
 		idParent = -1;
 	}
-	JS_OBJ(name, position, rotation, scale, idParent);
+	JS_OBJ(name, position, rotation, scale, idParent, scripts);
 };
 
 struct SceneData
