@@ -15,7 +15,7 @@ namespace Ge
 	class GObject
 	{
 	public:
-		GObject();
+		GObject(bool addList = true);
 		~GObject();
 		void setName(std::string nom);
 		std::string * getName();
@@ -33,7 +33,7 @@ namespace Ge
 		virtual glm::quat getLocalRotation() const;
 		virtual glm::vec3 getEulerAngles();
 		virtual glm::vec3 getDirection() const;
-		virtual glm::vec3 getScale() const;		
+		virtual glm::vec3 getScale() const;	
 		virtual void mapMemory() = 0;
 		void updateLocal();
 		void updateGlobal();
@@ -69,7 +69,7 @@ namespace Ge
 		LocalTransform m_localTransform{};
 		glm::vec3 m_eulerAngles;//only UI
 		std::vector<Component *> m_component;
-
+		bool m_addList = true;
 	};
 }
 

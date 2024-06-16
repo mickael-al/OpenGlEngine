@@ -16,19 +16,26 @@
 namespace Ge
 {
 	std::vector<GObject *> GObject::s_gobjects;
-	GObject::GObject()
+	GObject::GObject(bool addList)
 	{
 		m_nom = "NoName";
 		m_transform.position = glm::vec3(0.0f);
 		m_transform.rotation = glm::quat(1, 0, 0, 0);
 		m_eulerAngles = glm::vec3(0.0f);
 		m_transform.scale = glm::vec3(1.0f);		
-		s_gobjects.push_back(this);
+		m_addList = addList;
+		if (m_addList)
+		{
+			s_gobjects.push_back(this);
+		}
 	}
 
 	GObject::~GObject()
 	{
-		s_gobjects.erase(std::remove(s_gobjects.begin(), s_gobjects.end(), this), s_gobjects.end());
+		if (m_addList)
+		{
+			s_gobjects.erase(std::remove(s_gobjects.begin(), s_gobjects.end(), this), s_gobjects.end());
+		}
 	}
 
 	std::vector<GObject *> GObject::GetGObjects()

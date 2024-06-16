@@ -3,12 +3,12 @@
 namespace Ge
 {
 
-RigidBody::RigidBody(btDynamicsWorld* world) : m_pWorld(world), GObject() 
+RigidBody::RigidBody(btDynamicsWorld* world) : m_pWorld(world), GObject(false)
 {
     setName("RigidBody");
 }
 
-RigidBody::RigidBody(btDynamicsWorld* world, CollisionShape* shape, bool hasInertia) : m_pWorld(world), GObject()
+RigidBody::RigidBody(btDynamicsWorld* world, CollisionShape* shape, bool hasInertia) : m_pWorld(world), GObject(false)
 {
     setName("RigidBody");
     BuildPhysics(shape, hasInertia);   
@@ -168,6 +168,11 @@ void RigidBody::lockRotation()
     m_pWorld->addConstraint(constraint, true);
 }
 
+const CollisionShape* RigidBody::getCollisionShape() const
+{
+    return m_pShape;
+}
+
 void RigidBody::mapMemory(){}
 
 
@@ -210,7 +215,7 @@ void RigidBody::onGUI()
     }
 }
 
-RigidBody::~RigidBody(void)
+RigidBody::~RigidBody()
 {
     for (int i = 0; i < m_contraints.size(); i++)
     {        

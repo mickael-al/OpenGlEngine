@@ -57,6 +57,7 @@ namespace Ge
 		bool m_openProjectModal = false;
 		bool m_createObject = false;
 		bool m_deleteOject = false;		
+		bool m_guizmo = false;
 		std::string deletePath;
 		ObjectType objType;
 		GObject* m_selectedOBJ = nullptr;
@@ -82,7 +83,7 @@ namespace Ge
 		//Project		
 		int m_iconSize = 64;
 		int m_iconModeSize = 32;
-		int m_iconMoveSize = 8;
+		int m_iconMoveSize = 16;
 		int m_columns = 8;	
 		std::string m_currentProjectLocation;
 		SceneData* m_currentSceneData = nullptr;

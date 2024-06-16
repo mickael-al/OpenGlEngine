@@ -32,8 +32,9 @@ public:
     void AddRigidbody(RigidBody* body,int group = 1,int mask = -1);
     void ReleaseRigidbody(RigidBody * pBody);
     void AddCollision(CollisionBody* body);
-    void ReleaseCollision(CollisionBody*& pBody);
+    void ReleaseCollision(CollisionBody* pBody);
     bool raycast(const glm::vec3* start, const glm::vec3* end, glm::vec3* hitPoint);
+    const std::vector<RigidBody*> getRigidbody() const;
 private:
     std::vector<RigidBody*> m_rigidbody;
     std::vector<CollisionBody*> m_collisionbody;

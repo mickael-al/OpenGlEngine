@@ -35,6 +35,7 @@ public:
     void forceActivationState(int newState);
     void SetSleepingThreshold(float linear, float angular);
     void lockRotation();
+    const CollisionShape* getCollisionShape() const;
     void onGUI() override;
     void mapMemory() override;
     virtual ~RigidBody();

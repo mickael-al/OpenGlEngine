@@ -5,6 +5,8 @@
 #include "Debug.hpp"
 #include "Engine.hpp"
 #include "PointeurClass.hpp"
+#include "RigidWraper.hpp"
+
 using namespace Ge;
 
 class BehaviourTest : public Behaviour
@@ -18,7 +20,12 @@ public:
 private:
     const ptrClass * m_pc;
     CollisionShape* m_cb;
+    CollisionShape* m_cb2;
     CollisionBody* m_cbBody;
+    std::vector<RigidWraper*> m_rw;
+    std::vector<Model*> m_model;
+    ShapeBuffer* m_shape;
+    int countObject = 10;
 };
 
 REGISTER(Behaviour, BehaviourTest);

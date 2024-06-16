@@ -3,12 +3,12 @@
 namespace Ge
 {
 
-    CollisionBody::CollisionBody(btDynamicsWorld* world) : m_pWorld(world), GObject()
+    CollisionBody::CollisionBody(btDynamicsWorld* world) : m_pWorld(world), GObject(false)
     {
         setName("CollisionBody");
     }
 
-    CollisionBody::CollisionBody(btDynamicsWorld* world, CollisionShape* shape) : m_pWorld(world), GObject()
+    CollisionBody::CollisionBody(btDynamicsWorld* world, CollisionShape* shape) : m_pWorld(world), GObject(false)
     {
         setName("CollisionBody");        
         Build(shape);

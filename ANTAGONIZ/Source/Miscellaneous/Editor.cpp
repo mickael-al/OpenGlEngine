@@ -898,6 +898,7 @@ void Editor::clearScene(SceneData* sd)
 		delete sd->empty[i];
 	}		
 	sd->empty.clear();
+	m_pc->physicsEngine->DebugClearCollider();
 }
 
 void Editor::loadScene(const std::string& filePath, SceneData* sd)
@@ -2246,7 +2247,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 		ImGui::Begin("Hiearchy", &m_editorData->hiearchy);
 		if (m_currentSceneData != nullptr)
 		{
-			ImGui::BeginChild("##HiearchyBP", ImVec2(0, 30), true);
+			ImGui::BeginChild("##HiearchyBP", ImVec2(0, 50), true);
 			ImGui::TextColored(m_colRGB, m_currentSceneData->name.c_str());
 			ImGui::SameLine();
 			if (ImGui::ImageButton(m_icon[8], ImVec2(m_iconMoveSize, m_iconMoveSize))) { op = ImGuizmo::TRANSLATE; }
@@ -2256,6 +2257,19 @@ void Editor::render(GraphicsDataMisc* gdm)
 			if (ImGui::ImageButton(m_icon[10], ImVec2(m_iconMoveSize, m_iconMoveSize))) { op = ImGuizmo::SCALE; }
 			ImGui::SameLine();
 			if (ImGui::ImageButton(m_icon[11], ImVec2(m_iconMoveSize, m_iconMoveSize))) { op = ImGuizmo::TRANSLATE | ImGuizmo::ROTATE; }
+			ImGui::SameLine();
+			//m_pc->physicsEngine
+			if (ImGui::Checkbox("Guizmo", &m_guizmo))
+			{
+				if (m_guizmo)
+				{
+					m_pc->physicsEngine->DebugDrawCollider();
+				}
+				else
+				{
+					m_pc->physicsEngine->DebugClearCollider();
+				}
+			}
 			ImGui::EndChild();
 			drawTreeView();			
 		}

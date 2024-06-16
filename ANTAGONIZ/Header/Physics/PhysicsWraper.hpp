@@ -2,6 +2,8 @@
 #define __PHYSICS_WRAPER__
 
 #include <glm/glm.hpp>
+#include <vector>
+#include "Behaviour.hpp"
 
 namespace Ge
 {
@@ -11,23 +13,40 @@ namespace Ge
     class CollisionBody;
     class Muscle;
     class CollisionShape;
+    class Model;
+    class ShapeBuffer;
     class GObject;
-    class PhysicsWraper
+    class GraphiquePipeline;
+    class RigidWraper;
+    class PhysicsWraper : public Behaviour
     {
     public:
         PhysicsWraper(PhysicsEngine*pe, CommandQueue* queue);
-        RigidBody* AllocateRigidbody(CollisionShape* shape, bool hasInertia = true);
+        RigidWraper* AllocateRigidbody(CollisionShape* shape, bool hasInertia = true);
+        std::vector<RigidWraper*> AllocateRigidbody(CollisionShape* shape, int nb, bool hasInertia = true);
         CollisionBody* AllocateCollision(CollisionShape* shape);
+        std::vector<CollisionBody*> AllocateCollision(CollisionShape* shape, int nb);
         Muscle* AllocateMuscle(RigidBody* rb1, RigidBody* rb2, float degres, float scale = 1.0f, bool adaptePos = true);
         void ReleaseMuscle(Muscle* pBody);
-        void AddRigidbody(RigidBody* body, int group = 1, int mask = -1);
-        void ReleaseRigidbody(RigidBody* pBody);
+        void AddRigidbody(RigidWraper* pbody, int group = 1, int mask = -1);
+        void ReleaseRigidbody(RigidWraper* pBody);
         void AddCollision(CollisionBody* body);
-        void ReleaseCollision(CollisionBody*& pBody);
+        void ReleaseCollision(CollisionBody* pBody);
         bool raycast(const glm::vec3* start, const glm::vec3* end, glm::vec3* hitPoint);
-    private:
+        void DebugDrawCollider();
+        void DebugClearCollider();
+        void start();
+        void fixedUpdate();
+        void update();
+        void stop();
+        void onGUI();
+    private:        
         PhysicsEngine* m_pe;
         CommandQueue* m_queue;
+        bool m_debugDraw =false;
+        std::vector<Model*> m_models;
+        ShapeBuffer * m_shapeBuffer;
+        GraphiquePipeline* m_cubeShader;
     };
 }
 

@@ -47,16 +47,19 @@ namespace Ge
 		{
 			delete m_muscle[i];
 		}
+		m_muscle.clear();
 		for (int i = 0; i < m_rigidbody.size(); i++)
 		{
 			m_pDynamicWorld->removeRigidBody(m_rigidbody[i]->m_pBody);			
 			delete m_rigidbody[i];
 		}
+		m_rigidbody.clear();
 		for (int i = 0; i < m_collisionbody.size(); i++)
 		{
 			m_pDynamicWorld->removeCollisionObject(m_collisionbody[i]->m_pBody);
 			delete m_collisionbody[i];
 		}
+		m_collisionbody.clear();
 		delete m_pCollisionCongifuration;
 		delete m_pCollisionDispatcher;
 		delete m_pBroadphaseInterface;
@@ -73,13 +76,18 @@ namespace Ge
 	{
 		if (body != nullptr && body->IsInitialized())
 		{
-			m_pDynamicWorld->addCollisionObject(body->GetBody());
+			m_pDynamicWorld->addCollisionObject(body->GetBody());			
 			m_collisionbody.push_back(body);
 		}
 		else
 		{
 			Debug::Error("PhysicsEngine::AddCollision(): Le corps donné n'est pas initialisé.");
 		}
+	}
+
+	const std::vector<RigidBody*> PhysicsEngine::getRigidbody() const
+	{
+		return m_rigidbody;
 	}
 
 	bool PhysicsEngine::raycast(const glm::vec3* start, const glm::vec3* end, glm::vec3* hitPoint)
@@ -103,9 +111,9 @@ namespace Ge
 		}
 	}
 
-	void PhysicsEngine::ReleaseCollision(CollisionBody*& pBody)
+	void PhysicsEngine::ReleaseCollision(CollisionBody* pBody)
 	{
-		std::vector<CollisionBody*>::iterator position = std::find(m_collisionbody.begin(), m_collisionbody.end(), pBody);
+		std::vector<CollisionBody*>::iterator position = std::remove(m_collisionbody.begin(), m_collisionbody.end(), pBody);
 		if (position != m_collisionbody.end())
 		{
 			m_collisionbody.erase(position);
@@ -128,7 +136,7 @@ namespace Ge
 
 	void PhysicsEngine::ReleaseMuscle(Muscle* pBody)
 	{
-		std::vector<Muscle*>::iterator position = std::find(m_muscle.begin(), m_muscle.end(), pBody);
+		std::vector<Muscle*>::iterator position = std::remove(m_muscle.begin(), m_muscle.end(), pBody);
 		if (position != m_muscle.end())
 		{
 			m_muscle.erase(position);
@@ -139,7 +147,7 @@ namespace Ge
 	void PhysicsEngine::AddRigidbody(RigidBody* body,int group,int mask)
 	{
 		if (body != nullptr && body->IsInitialized())
-		{			
+		{				
 			m_pDynamicWorld->addRigidBody(body->GetBody(),group,mask);
 			m_rigidbody.push_back(body);
 		}
@@ -150,8 +158,8 @@ namespace Ge
 	}
 
 	void PhysicsEngine::ReleaseRigidbody(RigidBody * pBody)
-	{
-		std::vector<RigidBody*>::iterator position = std::find(m_rigidbody.begin(), m_rigidbody.end(), pBody);
+	{		
+		std::vector<RigidBody*>::iterator position = std::remove(m_rigidbody.begin(), m_rigidbody.end(), pBody);
 		if (position != m_rigidbody.end())
 		{
 			m_rigidbody.erase(position);
