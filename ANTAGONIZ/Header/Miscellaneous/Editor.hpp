@@ -71,6 +71,7 @@ namespace Ge
 		std::string m_tempFile;
 		char m_pathOpenProject[256];
 		char m_objectName[256];
+		char m_pathFindingName[256];
 
 		int m_playMode = 0;
 		int m_scriptCombo = 0;
@@ -87,16 +88,10 @@ namespace Ge
 		bool m_clickedSceneSelected = false;
 		glm::vec3 m_offsetMove;
 		unsigned int op;
-		int matCN = 0;
-
-		//pathFinding
-		bool m_activeNextPlay = true;
-		glm::vec3 m_PathPosition;
-		glm::vec3 m_ZoneSize = glm::vec3(10,10,10);
-		glm::vec3 m_PointCount = glm::vec3(10, 10, 10);
-		std::string m_pathFolder;
-		float m_pathLiasonPercent = 0.2f;
+		int matCN = 0;		
 		
+		bool m_generatePathFindingNextPlay = false;
+
 		//Project		
 		int m_iconSize = 64;
 		int m_iconModeSize = 32;

@@ -75,6 +75,17 @@ struct CollisionData
 	JS_OBJ(type,position, euler, data,mass);
 };
 
+struct PathFindingData
+{
+	bool has;
+	glm::vec3 pathPosition;
+	glm::vec3 zoneSize;
+	glm::vec3 pointCount;
+	std::string pathFolder;
+	float pathLiasonPercent;
+	JS_OBJ(has, pathPosition, zoneSize, pointCount, pathFolder, pathLiasonPercent);
+};
+
 struct ModelData
 {
 	std::string name;
@@ -230,6 +241,7 @@ struct SceneData
 	std::vector<SoundBufferData> soundBufferData;
 	std::vector<AudioSourceData> audioData;
 	std::vector<EmptyData> emptyData;
+	PathFindingData path;
 
 	/*Engine Part*/
 	std::vector<ShapeBuffer*> buffer;
@@ -249,7 +261,7 @@ struct SceneData
 		name = "";
 		currentPath = "";
 	}	
-	JS_OBJ(freeCamPos, freeCamRot,bufferData, shaderData, materialData, textureData, modelData, lightData, soundBufferData, audioData, emptyData);
+	JS_OBJ(freeCamPos, freeCamRot,bufferData, shaderData, materialData, textureData, modelData, lightData, soundBufferData, audioData, emptyData, path);
 };
 
 #endif //!__PROJECT_DATA__

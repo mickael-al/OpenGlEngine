@@ -1737,8 +1737,41 @@ void Editor::render(GraphicsDataMisc* gdm)
 				{
 					addEmptyToScene();
 				}
+				if (ImGui::MenuItem("PathFinding"))
+				{		
+					if (m_currentSceneData != nullptr)
+					{
+						ImGui::OpenPopup("PathFinding");
+					}
+				}
 				ImGui::EndMenu();
 			}
+		}
+		if (ImGui::BeginPopup("PathFinding") && m_currentSceneData != nullptr)
+		{			
+			ImGui::InputText("PathFinding##inputFieldPathOpen", m_pathFindingName, IM_ARRAYSIZE(m_pathFindingName));
+			ImGui::SameLine();
+			if (ImGui::Button("..."))
+			{
+				std::string path = FolderDialog::openDialog();
+				strncpy(m_pathFindingName, path.c_str(), sizeof(m_pathFindingName) - 1);
+				m_pathFindingName[sizeof(m_pathFindingName) - 1] = '\0';
+			}
+			ImGui::DragFloat3("Position", &m_currentSceneData->path.pathPosition[0]);
+			ImGui::DragFloat3("Zone", &m_currentSceneData->path.zoneSize[0]);
+			ImGui::DragFloat3("Point", &m_currentSceneData->path.pointCount[0]);
+			ImGui::DragFloat("LiasonPercent",&m_currentSceneData->path.pathLiasonPercent);			
+			if (ImGui::Button("Apply"))
+			{
+				m_generatePathFindingNextPlay = true;
+				m_currentSceneData->path.pathFolder = m_pathFindingName;
+				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::Button("Close"))
+			{
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
 		}
 		if (ImGui::BeginMenu("Window"))
 		{
@@ -2032,6 +2065,11 @@ void Editor::render(GraphicsDataMisc* gdm)
 						m_pc->behaviourManager->addBehaviour(b);
 						m_allBehaviourLoaded.push_back(b);
 					}
+				}
+				if (m_generatePathFindingNextPlay)
+				{
+
+					m_generatePathFindingNextPlay = false;
 				}
 			}
 			m_playMode = 1;
