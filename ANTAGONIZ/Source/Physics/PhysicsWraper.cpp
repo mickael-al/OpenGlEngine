@@ -4,6 +4,11 @@
 #include "RigidWraper.hpp"
 #include "Engine.hpp"
 #include "RigidBody.hpp"
+#include "PointeurClass.hpp"
+#include "Materials.hpp"
+#include "Model.hpp"
+#include "CollisionWraper.hpp"
+#include "CollisionBody.hpp"
 
 namespace Ge
 {
@@ -51,7 +56,7 @@ namespace Ge
 		return results;
 	}
 
-	CollisionBody* PhysicsWraper::AllocateCollision(CollisionShape* shape)
+	CollisionWraper* PhysicsWraper::AllocateCollision(CollisionShape* shape)
 	{
 		std::promise<CollisionBody*>* promise = new std::promise<CollisionBody*>();
 		auto future = promise->get_future();
@@ -59,10 +64,10 @@ namespace Ge
 		m_queue->push((Command*)command);
 		CollisionBody* cb = future.get();
 		delete promise;
-		return cb;
+		return new CollisionWraper(cb,m_queue);
 	}
 
-	std::vector<CollisionBody*> PhysicsWraper::AllocateCollision(CollisionShape* shape, int nb) 
+	std::vector<CollisionWraper*> PhysicsWraper::AllocateCollision(CollisionShape* shape, int nb)
 	{
 		std::vector<std::promise<CollisionBody*>*> promises(nb);
 		std::vector<std::future<CollisionBody*>> futures;
@@ -75,11 +80,11 @@ namespace Ge
 			m_queue->push((Command*)command);
 		}
 
-		std::vector<CollisionBody*> results;
+		std::vector<CollisionWraper*> results;
 		results.reserve(nb);
 		for (auto& future : futures) {
 			CollisionBody* cb = future.get();
-			results.push_back(cb);
+			results.push_back(new CollisionWraper(cb,m_queue));
 		}
 
 		for (auto promise : promises) {
@@ -121,16 +126,19 @@ namespace Ge
 		delete pBody;
 	}
 
-	void PhysicsWraper::AddCollision(CollisionBody* body)
+	void PhysicsWraper::AddCollision(CollisionWraper* pbody)
 	{
+		CollisionBody* body = pbody->getCollisionBody();
 		MethodCommand<PhysicsEngine, CollisionBody*>* command = new MethodCommand<PhysicsEngine, CollisionBody*>(m_pe, &PhysicsEngine::AddCollision, body);
 		m_queue->push((Command*)command);
 	}
 
-	void PhysicsWraper::ReleaseCollision(CollisionBody* pBody)
+	void PhysicsWraper::ReleaseCollision(CollisionWraper* pBody)
 	{
-		MethodCommand<PhysicsEngine, CollisionBody*>* command = new MethodCommand<PhysicsEngine, CollisionBody*>(m_pe, &PhysicsEngine::ReleaseCollision, pBody);
+		CollisionBody* body = pBody->getCollisionBody();
+		MethodCommand<PhysicsEngine, CollisionBody*>* command = new MethodCommand<PhysicsEngine, CollisionBody*>(m_pe, &PhysicsEngine::ReleaseCollision, body);
 		m_queue->push((Command*)command);
+		delete pBody;
 	}
 
 	bool PhysicsWraper::raycast(const glm::vec3 * start,const glm::vec3 * end, glm::vec3 * hitPoint)
@@ -150,18 +158,38 @@ namespace Ge
 		{
 			const ptrClass* pc = Engine::getPtrClassAddr();
 			const std::vector<RigidBody*> m_rigidBody = m_pe->getRigidbody();
-			//m_cubeShader = pc->
+			const std::vector<CollisionBody*> m_collisionBody = m_pe->getCollisionbody();
+			m_cubeShader = pc->graphiquePipelineManager->createPipeline("../Asset/Shader/iso.fs.glsl", "../Asset/Shader/iso.vs.glsl");
+			m_shapeBuffer = pc->modelManager->allocateBuffer("../Asset/Model/cube.obj");
+			m_material = pc->materialManager->createMaterial();
+			pc->behaviourManager->addBehaviour(this);
+			m_material->setPipeline(m_cubeShader);
+			m_material->setRoughness(0.05f);
+			m_material->setCastShadow(false);
 			for (int i = 0; i < m_rigidBody.size(); i++)
 			{
 				const CollisionShape*  cs = m_rigidBody[i]->getCollisionShape();
 				if (const BoxShape* bs = dynamic_cast<const BoxShape*>(cs))
 				{
-					btVector3 bt = bs->GetShape()->getLocalScaling();
-					glm::vec3 scale = glm::vec3(bt.getX(), bt.getY(), bt.getZ());
-
-
+					glm::vec3 scale = bs->getHalfExtents() *2.0f;
+					Model * m = pc->modelManager->createModel(m_shapeBuffer);
+					m->setMaterial(m_material);
+					m->setScale(scale);
+					m_models.push_back(m);					
 				}
-			}			
+			}		
+			for (int i = 0; i < m_collisionBody.size(); i++)
+			{
+				const CollisionShape* cs = m_collisionBody[i]->getCollisionShape();
+				if (const BoxShape* bs = dynamic_cast<const BoxShape*>(cs))
+				{
+					glm::vec3 scale = bs->getHalfExtents() * 2.0f;
+					Model* m = pc->modelManager->createModel(m_shapeBuffer);
+					m->setMaterial(m_material);
+					m->setScale(scale);
+					m_models.push_back(m);
+				}
+			}
 			m_debugDraw = true;
 		}
 	}
@@ -171,6 +199,15 @@ namespace Ge
 		if (m_debugDraw)
 		{
 			const ptrClass* pc = Engine::getPtrClassAddr();
+			for (int i = 0; i < m_models.size(); i++)
+			{
+				pc->modelManager->destroyModel(m_models[i]);
+			}
+			m_models.clear();
+			pc->materialManager->destroyMaterial(m_material);
+			pc->modelManager->destroyBuffer(m_shapeBuffer);
+			pc->graphiquePipelineManager->destroyPipeline(m_cubeShader);			
+			pc->behaviourManager->removeBehaviour(this);
 			m_debugDraw = false;
 		}
 	}
@@ -187,7 +224,18 @@ namespace Ge
 
 	void PhysicsWraper::update()
 	{
-
+		const std::vector<RigidBody*> m_rigidBody = m_pe->getRigidbody();
+		for (int i = 0; i < m_rigidBody.size(); i++)
+		{
+			m_models[i]->setPosition(m_rigidBody[i]->getPosition());
+			m_models[i]->setRotation(m_rigidBody[i]->getRotation());
+		}
+		const std::vector<CollisionBody*> m_collisionBody = m_pe->getCollisionbody();
+		for (int i = 0; i < m_collisionBody.size(); i++)
+		{
+			m_models[i+ m_rigidBody.size()]->setPosition(m_collisionBody[i]->getPosition());
+			m_models[i + m_rigidBody.size()]->setRotation(m_collisionBody[i]->getRotation());
+		}
 	}
 
 	void PhysicsWraper::stop()

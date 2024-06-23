@@ -18,20 +18,6 @@ layout(std430, binding = 1) buffer UniformBufferObject
 	StructUBO ubo[];
 }ubo;
 
-struct StructUBL
-{
-	vec3 position;
-	vec3 color;
-	vec3 direction;
-	float range;
-	float spotAngle;
-	int status;
-};
-
-layout(std430, binding = 2) buffer UniformBufferLight
-{
-	StructUBL ubl[];
-} ubl;
 
 struct StructUBM
 {
@@ -44,12 +30,12 @@ struct StructUBM
 	float ao;
 };
 
-layout(std430, binding = 3) buffer UniformBufferMaterials
+layout(std430, binding = 2) buffer UniformBufferMaterials
 {
 	StructUBM ubm[];
 } ubm;
 
-layout(std430, binding = 4) buffer UniformBufferDivers
+layout(std430, binding = 3) buffer UniformBufferDivers
 {
 	int maxLight;
 	float u_time;
@@ -69,16 +55,42 @@ in vec2 a_TexCoords;
 layout(location = 0) out vec2 fragTexCoord;
 layout(location = 1) out vec3 Color;
 layout(location = 2) out vec3 LocalPos;
-layout(location = 3) out vec3 Normal;
-layout(location = 4) out flat int imaterial;
+layout(location = 3) out vec3 WorldPos;
+layout(location = 4) out mat3 TBN;
+layout(location = 7) out flat int imaterial;
+layout(location = 8) out float Depth;
+layout(location = 9) out vec3 size;
+
+vec3 extractScale(mat4 modelMatrix) 
+{
+	// Les vecteurs de base de la matrice de modèle
+	vec3 scaleX = vec3(modelMatrix[0][0], modelMatrix[0][1], modelMatrix[0][2]);
+	vec3 scaleY = vec3(modelMatrix[1][0], modelMatrix[1][1], modelMatrix[1][2]);
+	vec3 scaleZ = vec3(modelMatrix[2][0], modelMatrix[2][1], modelMatrix[2][2]);
+
+	// Calcul des facteurs d'échelle comme les longueurs des vecteurs de base
+	float scaleXLength = length(scaleX);
+	float scaleYLength = length(scaleY);
+	float scaleZLength = length(scaleZ);
+
+	// Retourne les facteurs d'échelle
+	return vec3(scaleXLength, scaleYLength, scaleZLength);
+}
 
 void main()
 {
 	imaterial = ubo.ubo[offsetUbo + gl_InstanceID].mat_index;
 	fragTexCoord = ubm.ubm[imaterial].offset + a_TexCoords * ubm.ubm[imaterial].tilling;
-	vec4 wp = ubo.ubo[offsetUbo + gl_InstanceID].ubo * vec4(a_Position, 1.0);
+	vec4 wp = ubo.ubo[offsetUbo + gl_InstanceID].ubo * vec4(a_Position*1.01, 1.0);
+	WorldPos = vec3(wp);
+	size = extractScale(ubo.ubo[offsetUbo + gl_InstanceID].ubo);
 	LocalPos = a_Position;
-	Color = a_Color;
-	Normal = normalize(vec3(ubo.ubo[offsetUbo + gl_InstanceID].ubo * vec4(a_Normal, 0.0)));
+	Color = vec3(0.0, 0.9, 0.0);
+	vec3 T = normalize(vec3(ubo.ubo[offsetUbo + gl_InstanceID].ubo * vec4(a_Tangents, 0.0)));
+	vec3 N = normalize(vec3(ubo.ubo[offsetUbo + gl_InstanceID].ubo * vec4(a_Normal, 0.0)));
+	T = normalize(T - dot(T, N) * N);
+	vec3 B = cross(N, T);
+	TBN = mat3(T, B, N);
+	Depth = (ubc.view * wp).z;
 	gl_Position = ubc.proj * ubc.view * wp;
 }

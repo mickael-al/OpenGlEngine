@@ -5,6 +5,7 @@
 #include "ImguiBlock.hpp"
 #include "ProjectData.hpp"
 #include <map>
+#include "PhysicsWraper.hpp"
 #define SPAWN_DISTANCE 5.0f
 
 enum ObjectType
@@ -15,6 +16,7 @@ enum ObjectType
 struct ptrClass;
 namespace Ge
 {
+	class CollisionWraper;
 	class Textures;
 	class Editor final : public Behaviour, public ImguiBlock
 	{
@@ -72,14 +74,29 @@ namespace Ge
 
 		int m_playMode = 0;
 		int m_scriptCombo = 0;
+		int m_collisionCombo = 0;
+		int m_subDividCollision = 1;
 		std::map<GObject*, std::vector<std::string>> scriptObject;
+		std::map<GObject*, std::vector<CollisionData>> collisionObj;
 		std::vector<Behaviour*> m_allBehaviourLoaded;
 		std::vector<Behaviour*> m_allBehaviourPaused;
+		std::vector<CollisionShape*> m_allCollisionLoaded;
+		std::vector<CollisionWraper*> m_allCollisionBodyLoaded;
+		std::vector<const char*> collisionType = {"Box","Sphere","Capsule"};
 		//Mouse Mode
 		bool m_clickedSceneSelected = false;
 		glm::vec3 m_offsetMove;
 		unsigned int op;
 		int matCN = 0;
+
+		//pathFinding
+		bool m_activeNextPlay = true;
+		glm::vec3 m_PathPosition;
+		glm::vec3 m_ZoneSize = glm::vec3(10,10,10);
+		glm::vec3 m_PointCount = glm::vec3(10, 10, 10);
+		std::string m_pathFolder;
+		float m_pathLiasonPercent = 0.2f;
+		
 		//Project		
 		int m_iconSize = 64;
 		int m_iconModeSize = 32;

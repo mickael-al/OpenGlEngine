@@ -108,6 +108,11 @@ namespace Ge
         return m_pBody != nullptr;
     }
 
+    const CollisionShape* CollisionBody::getCollisionShape() const
+    {
+        return m_pShape;
+    }
+
     void CollisionBody::mapMemory() {}
 
     CollisionBody::~CollisionBody(void)

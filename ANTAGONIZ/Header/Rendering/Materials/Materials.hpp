@@ -56,8 +56,10 @@ namespace Ge
 		void setAditionalInstanced(unsigned int instance);
 		void updateUniformBufferMaterial();
 		void onGUI();
-		bool getDraw() const;
+		bool getDraw() const;		
 		void setDraw(bool draw);
+		bool getCastShadow() const;
+		void setCastShadow(bool cs);
 		bool * getDrawAddr();
 		void setDepthTest(bool state);
 		bool getDepthTest() const;
@@ -68,6 +70,7 @@ namespace Ge
 	private:
 		const ptrClass * m_pc;
 		bool m_draw = true;
+		bool m_castShadow = true;
 		bool m_depthTest = true;
 		UniformBufferMaterial m_ubm{};
 		GraphicsDataMisc * m_gdm;

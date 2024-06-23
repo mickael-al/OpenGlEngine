@@ -29,7 +29,10 @@ class BoxShape : public CollisionShape
 {
     public:
     BoxShape(glm::vec3 halfExtends, float mass);
-
+    inline glm::vec3 getHalfExtents() const
+    {
+        return m_halfExtents;
+    }
     protected:
     glm::vec3 m_halfExtents;
 };

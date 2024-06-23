@@ -61,7 +61,19 @@ struct ProjectData
 
 JS_OBJ_EXT(glm::vec2, x, y);
 JS_OBJ_EXT(glm::vec3, x, y, z);
+JS_OBJ_EXT(glm::vec4, x, y, z,w);
 JS_OBJ_EXT(glm::quat, x, y, z,w);
+
+struct CollisionData
+{
+	//CollisionType type;
+	int type;//Box,Sphere,Capsule
+	glm::vec3 position;
+	glm::vec3 euler;
+	glm::vec4 data;//3d extend radius capsule height and radius
+	float mass;
+	JS_OBJ(type,position, euler, data,mass);
+};
 
 struct ModelData
 {
@@ -73,13 +85,14 @@ struct ModelData
 	int idBuffer;
 	int idParent;
 	std::vector<std::string> scripts;
+	std::vector<CollisionData> collisions;
 	ModelData()
 	{
 		idMaterial = -1;
 		idBuffer = -1;
 		idParent = -1;
 	}
-	JS_OBJ(name,position, rotation, scale,idMaterial, idBuffer, idParent, scripts);
+	JS_OBJ(name,position, rotation, scale,idMaterial, idBuffer, idParent, scripts, collisions);
 };
 
 struct BufferData
@@ -147,11 +160,12 @@ struct LightData
 	int status;
 	int idParent;
 	std::vector<std::string> scripts;
+	std::vector<CollisionData> collisions;
 	LightData()
 	{
 		idParent = -1;
 	}
-	JS_OBJ(name, position, rotation, scale, color, range, spotAngle, shadow, status, idParent, scripts);
+	JS_OBJ(name, position, rotation, scale, color, range, spotAngle, shadow, status, idParent, scripts, collisions);
 };
 
 struct SoundBufferData
@@ -176,12 +190,13 @@ struct AudioSourceData
 	int idBuffer;
 	int idParent;
 	std::vector<std::string> scripts;
+	std::vector<CollisionData> collisions;
 	AudioSourceData()
 	{
 		idBuffer = -1;
 		idParent = -1;
 	}
-	JS_OBJ(name, position, rotation, scale, pitch, gain, velocity, loop, rolloffFactor, maxDistance, refDistance, idBuffer, idParent, scripts);
+	JS_OBJ(name, position, rotation, scale, pitch, gain, velocity, loop, rolloffFactor, maxDistance, refDistance, idBuffer, idParent, scripts, collisions);
 };
 
 struct EmptyData
@@ -192,12 +207,12 @@ struct EmptyData
 	glm::vec3 scale;
 	int idParent;
 	std::vector<std::string> scripts;
-
+	std::vector<CollisionData> collisions;
 	EmptyData()
 	{
 		idParent = -1;
 	}
-	JS_OBJ(name, position, rotation, scale, idParent, scripts);
+	JS_OBJ(name, position, rotation, scale, idParent, scripts, collisions);
 };
 
 struct SceneData

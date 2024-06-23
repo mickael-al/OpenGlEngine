@@ -6,6 +6,7 @@
 #include "Engine.hpp"
 #include "PointeurClass.hpp"
 #include "RigidWraper.hpp"
+#include "CollisionWraper.hpp"
 
 using namespace Ge;
 
@@ -19,13 +20,11 @@ public:
     void onGUI();
 private:
     const ptrClass * m_pc;
-    CollisionShape* m_cb;
     CollisionShape* m_cb2;
-    CollisionBody* m_cbBody;
     std::vector<RigidWraper*> m_rw;
     std::vector<Model*> m_model;
     ShapeBuffer* m_shape;
-    int countObject = 10;
+    int countObject = 20;
 };
 
 REGISTER(Behaviour, BehaviourTest);

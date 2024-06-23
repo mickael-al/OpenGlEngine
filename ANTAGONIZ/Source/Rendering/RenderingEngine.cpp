@@ -324,7 +324,7 @@ namespace Ge
 				{
 					continue;
 				}
-				if (!currentMaterial->getDraw())
+				if (!currentMaterial->getDraw() || !currentMaterial->getCastShadow())
 				{
 					continue;
 				}

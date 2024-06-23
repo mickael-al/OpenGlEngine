@@ -5,6 +5,7 @@ Trigger Warning a rushed code not optimized
 #include "Editor.hpp"
 #include "PointeurClass.hpp"
 #include "Engine.hpp"
+#include "CollisionWraper.hpp"
 #include "imgui-cmake/Header/imgui.h"
 #include "PathManager.hpp"
 #include "FolderDialog.hpp"
@@ -29,6 +30,12 @@ Trigger Warning a rushed code not optimized
 #include <filesystem>
 #include <vector>
 #include <algorithm>
+#include "PhysicsEngine.hpp"
+#include "CollisionBody.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/transform.hpp"
+#include "glm/gtc/quaternion.hpp"
+#include "glm/gtx/quaternion.hpp"
 
 using std::fstream;
 using namespace Ge;
@@ -109,6 +116,18 @@ void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 		std::copy(tags.begin(), tags.end(), std::back_inserter(mtags));
 		m->setParent(parent);
 		no = m;
+		if (scriptObject.find(model) != scriptObject.end())
+		{
+			std::vector<std::string> copy;
+			copy.assign(scriptObject[model].begin(), scriptObject[model].end());
+			scriptObject[m] = copy;
+		}
+		if (collisionObj.find(model) != collisionObj.end())
+		{
+			std::vector<CollisionData> copy;
+			copy.assign(collisionObj[model].begin(), collisionObj[model].end());
+			collisionObj[m] = copy;
+		}
 		m_currentSceneData->models.push_back(m);
 	}
 	if (Empty* empty = dynamic_cast<Empty*>(obj))
@@ -124,6 +143,18 @@ void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 		std::copy(tags.begin(), tags.end(), std::back_inserter(mtags));
 		e->setParent(parent);
 		no = e;
+		if (scriptObject.find(empty) != scriptObject.end())
+		{
+			std::vector<std::string> copy;
+			copy.assign(scriptObject[empty].begin(), scriptObject[empty].end());
+			scriptObject[e] = copy;
+		}
+		if (collisionObj.find(empty) != collisionObj.end())
+		{
+			std::vector<CollisionData> copy;
+			copy.assign(collisionObj[empty].begin(), collisionObj[empty].end());
+			collisionObj[e] = copy;
+		}
 		m_currentSceneData->empty.push_back(e);
 	}
 	if (DirectionalLight* dl = dynamic_cast<DirectionalLight*>(obj))
@@ -141,6 +172,18 @@ void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 		std::copy(tags.begin(), tags.end(), std::back_inserter(mtags));
 		e->setParent(parent);
 		no = e;
+		if (scriptObject.find(dl) != scriptObject.end())
+		{
+			std::vector<std::string> copy;
+			copy.assign(scriptObject[dl].begin(), scriptObject[dl].end());
+			scriptObject[e] = copy;
+		}
+		if (collisionObj.find(dl) != collisionObj.end())
+		{
+			std::vector<CollisionData> copy;
+			copy.assign(collisionObj[dl].begin(), collisionObj[dl].end());
+			collisionObj[e] = copy;
+		}
 		m_currentSceneData->dlight.push_back(e);
 	}
 	if (SpotLight* dl = dynamic_cast<SpotLight*>(obj))
@@ -158,6 +201,18 @@ void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 		std::copy(tags.begin(), tags.end(), std::back_inserter(mtags));
 		e->setParent(parent);
 		no = e;
+		if (scriptObject.find(dl) != scriptObject.end())
+		{
+			std::vector<std::string> copy;
+			copy.assign(scriptObject[dl].begin(), scriptObject[dl].end());
+			scriptObject[e] = copy;
+		}
+		if (collisionObj.find(dl) != collisionObj.end())
+		{
+			std::vector<CollisionData> copy;
+			copy.assign(collisionObj[dl].begin(), collisionObj[dl].end());
+			collisionObj[e] = copy;
+		}
 		m_currentSceneData->slight.push_back(e);
 	}
 	if (PointLight* dl = dynamic_cast<PointLight*>(obj))
@@ -175,6 +230,18 @@ void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 		std::copy(tags.begin(), tags.end(), std::back_inserter(mtags));
 		e->setParent(parent);
 		no = e;
+		if (scriptObject.find(dl) != scriptObject.end())
+		{
+			std::vector<std::string> copy;
+			copy.assign(scriptObject[dl].begin(), scriptObject[dl].end());
+			scriptObject[e] = copy;
+		}
+		if (collisionObj.find(dl) != collisionObj.end())
+		{
+			std::vector<CollisionData> copy;
+			copy.assign(collisionObj[dl].begin(), collisionObj[dl].end());
+			collisionObj[e] = copy;
+		}
 		m_currentSceneData->plight.push_back(e);
 	}
 	if (AudioSource* au = dynamic_cast<AudioSource*>(obj))
@@ -189,6 +256,18 @@ void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 		std::copy(tags.begin(), tags.end(), std::back_inserter(mtags));
 		e->setParent(parent);
 		no = e;
+		if (scriptObject.find(au) != scriptObject.end())
+		{
+			std::vector<std::string> copy;
+			copy.assign(scriptObject[au].begin(), scriptObject[au].end());
+			scriptObject[e] = copy;
+		}
+		if (collisionObj.find(au) != collisionObj.end())
+		{
+			std::vector<CollisionData> copy;
+			copy.assign(collisionObj[au].begin(), collisionObj[au].end());
+			collisionObj[e] = copy;
+		}
 		m_currentSceneData->audio.push_back(e);
 	}
 	for (int c = 0; c < obj->getChilds().size(); c++)
@@ -899,6 +978,7 @@ void Editor::clearScene(SceneData* sd)
 	}		
 	sd->empty.clear();
 	m_pc->physicsEngine->DebugClearCollider();
+	m_guizmo = false;
 }
 
 void Editor::loadScene(const std::string& filePath, SceneData* sd)
@@ -921,6 +1001,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 	m_currentProjectData->lastSceneOpen = filePath;
 	sd->empty.clear();
 	scriptObject.clear();
+	collisionObj.clear();
 	for (int i = 0; i < sd->emptyData.size(); i++)
 	{
 		Empty* e = new Empty();
@@ -929,6 +1010,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 		e->setRotation(sd->emptyData[i].rotation);
 		e->setScale(sd->emptyData[i].scale);
 		scriptObject[(GObject*)e] = sd->emptyData[i].scripts;
+		collisionObj[(GObject*)e] = sd->emptyData[i].collisions;
 		sd->empty.push_back(e);
 	}
 	sd->shader.clear();
@@ -994,6 +1076,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			m->setRotation(sd->modelData[i].rotation);
 			m->setScale(sd->modelData[i].scale);
 			scriptObject[(GObject*)m] = sd->modelData[i].scripts;
+			collisionObj[(GObject*)m] = sd->modelData[i].collisions;
 			if (sd->modelData[i].idMaterial >= 0)
 			{
 				m->setMaterial(sd->materials[sd->modelData[i].idMaterial]);
@@ -1018,6 +1101,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			dl->setshadow(sd->lightData[i].shadow);
 			sd->dlight.push_back(dl);
 			scriptObject[(GObject*)dl] = sd->lightData[i].scripts;
+			collisionObj[(GObject*)dl] = sd->lightData[i].collisions;
 			allLight.push_back(dl);
 		}
 		else if (sd->lightData[i].status == 1)
@@ -1031,6 +1115,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			pl->setshadow(sd->lightData[i].shadow);
 			sd->plight.push_back(pl);
 			scriptObject[(GObject*)pl] = sd->lightData[i].scripts;
+			collisionObj[(GObject*)pl] = sd->lightData[i].collisions;
 			allLight.push_back(pl);
 		}
 		else if (sd->lightData[i].status == 2)
@@ -1044,6 +1129,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			sl->setshadow(sd->lightData[i].shadow);
 			sd->slight.push_back(sl);
 			scriptObject[(GObject*)sl] = sd->lightData[i].scripts;
+			collisionObj[(GObject*)sl] = sd->lightData[i].collisions;
 			allLight.push_back(sl);
 		}
 	}
@@ -1069,6 +1155,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			as->setLoop(sd->audioData[i].maxDistance);
 			as->setLoop(sd->audioData[i].refDistance);
 			scriptObject[(GObject*)as] = sd->audioData[i].scripts;
+			collisionObj[(GObject*)as] = sd->lightData[i].collisions;
 			sd->audio.push_back(as);
 		}
 	}
@@ -1305,6 +1392,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ed.scale = sd->empty[i]->getScale();
 		GObject* parent = sd->empty[i]->getParent();
 		ed.scripts = scriptObject[(GObject*)sd->empty[i]];
+		ed.collisions = collisionObj[(GObject*)sd->empty[i]];
 		if (parent != nullptr)
 		{
 			for (int j = 0; j < allGObject.size(); j++)
@@ -1334,6 +1422,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		asd.maxDistance = sd->audio[i]->getLoop();
 		asd.refDistance = sd->audio[i]->getLoop();
 		asd.scripts = scriptObject[(GObject*)sd->audio[i]];
+		asd.collisions = collisionObj[(GObject*)sd->audio[i]];
 		for (int j = 0; j < sd->sound.size(); j++)
 		{
 			if (sd->sound[j] == sd->audio[i]->getSoundBuffer())
@@ -1371,6 +1460,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ld.shadow = sd->dlight[i]->getshadow();
 		ld.status = 0;
 		ld.scripts = scriptObject[(GObject*)sd->dlight[i]];
+		ld.collisions = collisionObj[(GObject*)sd->dlight[i]];
 		GObject* parent = sd->dlight[i]->getParent();
 		if (parent != nullptr)
 		{
@@ -1398,6 +1488,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ld.shadow = sd->plight[i]->getshadow();
 		ld.status = 1;
 		ld.scripts = scriptObject[(GObject*)sd->plight[i]];
+		ld.collisions = collisionObj[(GObject*)sd->plight[i]];
 		GObject* parent = sd->plight[i]->getParent();
 		if (parent != nullptr)
 		{
@@ -1425,6 +1516,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ld.shadow = sd->slight[i]->getshadow();
 		ld.status = 2;
 		ld.scripts = scriptObject[(GObject*)sd->slight[i]];
+		ld.collisions = collisionObj[(GObject*)sd->slight[i]];
 		GObject* parent = sd->slight[i]->getParent();
 		if (parent != nullptr)
 		{
@@ -1493,6 +1585,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		md.rotation = sd->models[i]->getRotation();
 		md.scale = sd->models[i]->getScale();
 		md.scripts = scriptObject[(GObject*)sd->models[i]];
+		md.collisions = collisionObj[(GObject*)sd->models[i]];
 		for (int j = 0; j < sd->buffer.size(); j++)
 		{
 			if (sd->buffer[j] == sd->models[i]->getShapeBuffer())
@@ -1902,6 +1995,34 @@ void Editor::render(GraphicsDataMisc* gdm)
 			else
 			{				
 				globalSave();
+				for (const auto& var : collisionObj)
+				{
+					for (const auto& s : var.second)
+					{
+						CollisionShape* cs = nullptr;
+						if (s.type == 0)//box
+						{
+							cs = new BoxShape(glm::vec3(s.data), s.mass);
+						}
+						else if (s.type == 1)
+						{
+							cs = new SphereShape(s.data.x, s.mass);
+						}
+						else if (s.type == 2)
+						{
+							cs = new CapsuleShape(s.data.x, s.data.y, s.mass);
+						}
+						if (cs != nullptr)
+						{
+							m_allCollisionLoaded.push_back(cs);
+							CollisionWraper* cb = m_pc->physicsEngine->AllocateCollision(cs);
+							m_allCollisionBodyLoaded.push_back(cb);
+							cb->setPosition(s.position);
+							cb->setEulerAngles(s.euler);
+							m_pc->physicsEngine->AddCollision(cb);
+						}
+					}
+				}
 				for (const auto& var : scriptObject)
 				{
 					for (const auto& s : var.second)
@@ -1951,7 +2072,17 @@ void Editor::render(GraphicsDataMisc* gdm)
 				m_allBehaviourLoaded[i]->stop();
 				delete m_allBehaviourLoaded[i];
 			}
-			m_allBehaviourLoaded.clear();
+			m_allBehaviourLoaded.clear();					
+			for (int i = 0; i < m_allCollisionBodyLoaded.size(); i++)
+			{
+				m_pc->physicsEngine->ReleaseCollision(m_allCollisionBodyLoaded[i]);				
+			}
+			m_allCollisionBodyLoaded.clear();			
+			for (int i = 0; i < m_allCollisionLoaded.size(); i++)
+			{
+				delete m_allCollisionLoaded[i];
+			}
+			m_allCollisionLoaded.clear();
 			clearScene(m_currentSceneData);
 			loadScene(m_currentProjectData->lastSceneOpen, m_currentSceneData);
 		}		
@@ -2224,6 +2355,108 @@ void Editor::render(GraphicsDataMisc* gdm)
 			for (int i = 0; i < scriptUse.size(); i++)
 			{
 				ImGui::TextColored(m_colRGB, scriptUse[i].c_str());
+			}
+
+			ImGui::EndChild();
+			std::vector<CollisionData>& collisionUse = collisionObj[m_selectedOBJ];
+			
+			if (ImGui::BeginCombo("##CollisionCombo", collisionType[m_collisionCombo]))
+			{
+				for (int n = 0; n < collisionType.size(); n++)
+				{					
+					const bool is_selected = (m_collisionCombo == n);
+					if (ImGui::Selectable(collisionType[n], is_selected))
+					{
+						m_collisionCombo = n;
+					}
+
+					if (is_selected)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+			ImGui::DragInt("SubDivid", &m_subDividCollision,1.0f,1);
+			if (ImGui::Button("Create Collision"))
+			{
+				CollisionData data;
+				
+				if (Model* model = dynamic_cast<Model*>(m_selectedOBJ))
+				{
+					if (m_collisionCombo == 0)
+					{
+						glm::vec3 min = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+						glm::vec3 max = glm::vec3(FLT_MIN, FLT_MIN, FLT_MIN);
+						const std::vector<Vertex>& vertex = ((ShapeBufferBase*)model->getShapeBuffer())->getVertices();
+						glm::mat4 mat = glm::scale(glm::mat4(1.0f), model->getScale());						
+						for (int j = 0; j < vertex.size(); j++)
+						{
+							glm::vec3 np = glm::vec3(mat * glm::vec4(vertex[j].pos, 1));
+							min.x = min.x < np.x ? min.x : np.x;
+							min.y = min.y < np.y ? min.y : np.y;
+							min.z = min.z < np.z ? min.z : np.z;
+
+							max.x = max.x > np.x ? max.x : np.x;
+							max.y = max.y > np.y ? max.y : np.y;
+							max.z = max.z > np.z ? max.z : np.z;
+						}
+						glm::vec3 centerCollision = glm::vec3(glm::translate(glm::mat4(1.0f), model->getPosition()) * glm::toMat4(glm::quat(model->getRotation())) * glm::vec4(((max + min) / 2.0f),1));
+						glm::vec3 extend = (max - min)/2.0f;
+						data.position = centerCollision;
+						data.data = glm::vec4(extend,0);
+						data.euler = model->getEulerAngles();
+					}
+					else if (m_collisionCombo == 1)
+					{
+						data.position = m_selectedOBJ->getPosition();
+						data.data = glm::vec4(1, 1, 1, 1);
+						data.euler = glm::vec3(0, 0, 0);
+					}
+					else
+					{
+						data.position = m_selectedOBJ->getPosition();
+						data.data = glm::vec4(1, 1, 1, 1);
+						data.euler = glm::vec3(0, 0, 0);
+					}
+				}				
+				else
+				{
+					data.position = m_selectedOBJ->getPosition();
+					data.type = m_collisionCombo;
+					data.data = glm::vec4(1, 1, 1, 1);
+				}
+				data.type = m_collisionCombo;
+				data.mass = 1.0f;
+				collisionObj[m_selectedOBJ].push_back(data);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Clear Collision"))
+			{
+				collisionObj[m_selectedOBJ].clear();
+			}
+			ImGui::BeginChild("Collision Group", ImVec2(0, 200), true);
+
+			for (int i = 0; i < collisionUse.size(); i++)
+			{
+				ImGui::DragFloat3("Position", &collisionUse[i].position[0]);
+				if (collisionUse[i].type == 0)
+				{
+					ImGui::DragFloat3("Extend", &collisionUse[i].data[0]);
+				}
+				else if (collisionUse[i].type == 1)
+				{
+					ImGui::DragFloat("radius", &collisionUse[i].data.x);
+				}
+				else if (collisionUse[i].type == 2)
+				{
+					ImGui::DragFloat("radius", &collisionUse[i].data.x);
+					ImGui::DragFloat("Height", &collisionUse[i].data.y);
+				}
+				ImGui::DragFloat3("Euler", &collisionUse[i].euler[0]);
+				ImGui::DragFloat("Mass", &collisionUse[i].mass);
+				ImGui::Separator();
 			}
 			ImGui::EndChild();
 		}

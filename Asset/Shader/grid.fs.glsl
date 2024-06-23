@@ -18,21 +18,6 @@ layout(std430, binding = 1) buffer UniformBufferObject
 	StructUBO ubo[];
 }ubo;
 
-struct StructUBL
-{
-	vec3 position;
-	vec3 color;
-	vec3 direction;
-	float range;
-	float spotAngle;
-	int status;
-};
-
-layout(std430, binding = 2) buffer UniformBufferLight
-{
-	StructUBL ubl[];
-} ubl;
-
 struct StructUBM
 {
 	vec3 albedo;
@@ -44,12 +29,12 @@ struct StructUBM
 	float ao;
 };
 
-layout(std430, binding = 3) buffer UniformBufferMaterials
+layout(std430, binding = 2) buffer UniformBufferMaterials
 {
 	StructUBM ubm[];
 } ubm;
 
-layout(std430, binding = 4) buffer UniformBufferDivers
+layout(std430, binding = 3) buffer UniformBufferDivers
 {
 	int maxLight;
 	float u_time;
@@ -58,15 +43,23 @@ layout(std430, binding = 4) buffer UniformBufferDivers
 	bool ortho;
 } ubd;
 
-const float PI = 3.14159265359;
-
-out vec4 o_FragColor;
+layout(binding = 0) uniform sampler2D albedoTexture;
+layout(binding = 1) uniform sampler2D normalTexture;
+layout(binding = 2) uniform sampler2D metallicTexture;
+layout(binding = 3) uniform sampler2D roughnessTexture;
+layout(binding = 4) uniform sampler2D oclusionTexture;
 
 layout(location = 0) in vec2 fragTexCoord;
 layout(location = 1) in vec3 Color;
 layout(location = 2) in vec3 WorldPos;
-layout(location = 3) in vec3 Normal;
-layout(location = 4) flat in int imaterial;
+layout(location = 3) in mat3 TBN;
+layout(location = 6) flat in int imaterial;
+layout(location = 7) in float Depth;
+
+layout(location = 0) out vec4 gPosition;
+layout(location = 1) out vec4 gNormal;
+layout(location = 2) out vec4 gColorSpec;
+layout(location = 3) out vec2 gOther;
 
 void main(void)
 {
@@ -84,18 +77,18 @@ void main(void)
 	}
 	if ((wp.x >= 0 && wp.x < t) && (wp.y >= 0 && wp.y < t))
 	{
-		o_FragColor = vec4(0.25, 0.25, 0.7, clamp((1.0f-((d-25.0f) / 250.0))*0.6f, 0.0, 0.6));
+		gPosition = vec4(0.25, 0.25, 0.7, clamp((1.0f-((d-25.0f) / 250.0))*0.6f, 0.0, 0.0));
 	}
 	else if((wp.x >= 0 && wp.x < t) && (wp.z >= 0 && wp.z < t))
 	{		
-		o_FragColor = vec4(0.25, 0.7, 0.25, clamp((1.0f-((d-25.0f) / 250.0))*0.6f, 0.0, 0.6));
+		gPosition = vec4(0.25, 0.7, 0.25, clamp((1.0f-((d-25.0f) / 250.0))*0.6f, 0.0, 0.0));
 	}
 	else if((wp.y >= 0 && wp.y < t) && (wp.z >= 0 && wp.z < t))
 	{
-		o_FragColor = vec4(0.7, 0.25, 0.25, clamp((1.0f-((d-25.0f) / 250.0))*0.6f, 0.0, 0.6));
+		gPosition = vec4(0.7, 0.25, 0.25, clamp((1.0f-((d-25.0f) / 250.0))*0.6f, 0.0, 0.0));
 	}
 	else
 	{
-		o_FragColor = vec4(0.4, 0.4, 0.45, clamp((1.0f - ((d - 25.0f) / 250.0))*0.4f, 0.0, 0.4));
+		gPosition = vec4(0.4, 0.4, 0.45, clamp((1.0f - ((d - 25.0f) / 250.0))*0.4f, 0.0, 0.0));
 	}
 }

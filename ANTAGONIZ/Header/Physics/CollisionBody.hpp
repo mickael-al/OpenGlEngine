@@ -26,6 +26,7 @@ namespace Ge
         void setFriction(float friction);
         void setRestitution(float restitution);
         bool IsInitialized();
+        const CollisionShape* getCollisionShape() const;
         void mapMemory() override;
         virtual ~CollisionBody();
     protected:

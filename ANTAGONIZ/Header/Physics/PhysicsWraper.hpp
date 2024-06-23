@@ -16,22 +16,24 @@ namespace Ge
     class Model;
     class ShapeBuffer;
     class GObject;
+    class Materials;
     class GraphiquePipeline;
     class RigidWraper;
+    class CollisionWraper;
     class PhysicsWraper : public Behaviour
     {
     public:
         PhysicsWraper(PhysicsEngine*pe, CommandQueue* queue);
         RigidWraper* AllocateRigidbody(CollisionShape* shape, bool hasInertia = true);
         std::vector<RigidWraper*> AllocateRigidbody(CollisionShape* shape, int nb, bool hasInertia = true);
-        CollisionBody* AllocateCollision(CollisionShape* shape);
-        std::vector<CollisionBody*> AllocateCollision(CollisionShape* shape, int nb);
+        CollisionWraper* AllocateCollision(CollisionShape* shape);
+        std::vector<CollisionWraper*> AllocateCollision(CollisionShape* shape, int nb);
         Muscle* AllocateMuscle(RigidBody* rb1, RigidBody* rb2, float degres, float scale = 1.0f, bool adaptePos = true);
         void ReleaseMuscle(Muscle* pBody);
         void AddRigidbody(RigidWraper* pbody, int group = 1, int mask = -1);
         void ReleaseRigidbody(RigidWraper* pBody);
-        void AddCollision(CollisionBody* body);
-        void ReleaseCollision(CollisionBody* pBody);
+        void AddCollision(CollisionWraper* body);
+        void ReleaseCollision(CollisionWraper* pBody);
         bool raycast(const glm::vec3* start, const glm::vec3* end, glm::vec3* hitPoint);
         void DebugDrawCollider();
         void DebugClearCollider();
@@ -46,6 +48,7 @@ namespace Ge
         bool m_debugDraw =false;
         std::vector<Model*> m_models;
         ShapeBuffer * m_shapeBuffer;
+        Materials* m_material;
         GraphiquePipeline* m_cubeShader;
     };
 }

@@ -90,6 +90,11 @@ namespace Ge
 		return m_rigidbody;
 	}
 
+	const std::vector<CollisionBody*> PhysicsEngine::getCollisionbody() const
+	{
+		return m_collisionbody;
+	}
+
 	bool PhysicsEngine::raycast(const glm::vec3* start, const glm::vec3* end, glm::vec3* hitPoint)
 	{
 		btVector3 btstart = btVector3(start->x, start->y, start->z);

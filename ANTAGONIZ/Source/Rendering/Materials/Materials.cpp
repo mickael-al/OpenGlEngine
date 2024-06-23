@@ -261,6 +261,16 @@ namespace Ge
 		m_draw = draw;
 	}
 
+	bool Materials::getCastShadow() const
+	{
+		return m_castShadow;
+	}
+
+	void Materials::setCastShadow(bool cs)
+	{
+		m_castShadow = cs;
+	}
+
 	void Materials::onGUI()
 	{
 		if (m_gdm->str_default_material == this)

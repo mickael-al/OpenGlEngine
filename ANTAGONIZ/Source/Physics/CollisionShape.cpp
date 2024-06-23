@@ -24,7 +24,8 @@ namespace Ge
         return m_mass;
     }
 
-    btCollisionShape* CollisionShape::GetShape(void) const
+     
+    btCollisionShape* CollisionShape::GetShape() const
     {
         return m_pShape;
     }
@@ -35,7 +36,7 @@ namespace Ge
     }
 
     BoxShape::BoxShape(glm::vec3 halfExtents, float mass) : CollisionShape(mass), m_halfExtents(halfExtents)
-    {
+    {        
         m_pShape = new btBoxShape(btVector3(halfExtents.x, halfExtents.y, halfExtents.z));    
     }
 
