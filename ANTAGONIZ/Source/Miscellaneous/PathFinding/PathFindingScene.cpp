@@ -2,6 +2,8 @@
 #include "Materials.hpp"
 #include "Model.hpp"
 
+PathFindingScene* PathFindingScene::instance = nullptr;
+
 PathFindingScene::PathFindingScene(glm::vec3 position, glm::vec3 zoneSize, glm::vec3 pointCount, std::string path, float liasonPercent)
 {
 	m_pc = Engine::getPtrClass();
@@ -14,6 +16,7 @@ PathFindingScene::PathFindingScene(glm::vec3 position, glm::vec3 zoneSize, glm::
 	m_boundsMin = glm::vec3(0);
 	m_vec3Astars = nullptr;
 	m_path = path;
+	instance = this;
 }
 
 PathFindingScene::~PathFindingScene()
@@ -149,9 +152,12 @@ void PathFindingScene::generateMap()
 
 void PathFindingScene::debugPoint()
 {
-	ShapeBuffer* sb = m_pc.modelManager->allocateBuffer("../Model/Cube.obj");
+	ShapeBuffer* sb = m_pc.modelManager->allocateBuffer("../Asset/Model/Cube.obj");	
+	m_shapes.push_back(sb);
 	Materials* material = m_pc.materialManager->createMaterial();
 	Materials* materialEdge = m_pc.materialManager->createMaterial();
+	m_materials.push_back(material);
+	m_materials.push_back(materialEdge);
 	material->setColor(glm::vec3(0, 1, 0));
 	material->setMetallic(0.0f);
 	material->setRoughness(1.0f);
@@ -166,6 +172,7 @@ void PathFindingScene::debugPoint()
 		m->setPosition(m_points[i]);
 		m->setMaterial(material);
 		m->setScale(glm::vec3(scale_base));
+		m_models.push_back(m);		
 	}
 
 	for (int i = 0; i < m_points.size(); i++) 
@@ -186,6 +193,7 @@ void PathFindingScene::debugPoint()
 			edgeModel->setRotation(glm::quatLookAt(direction, glm::vec3(0, 1, 0)));
 			edgeModel->setScale(scale);
 			edgeModel->setMaterial(materialEdge);
+			m_models.push_back(edgeModel);
 		}
 	}
 }
@@ -466,7 +474,26 @@ void PathFindingScene::update()
 
 void PathFindingScene::stop()
 {
+	for (int i = 0; i < m_shapes.size(); i++)
+	{
+		m_pc.modelManager->destroyBuffer(m_shapes[i]);
+	}
+	m_shapes.clear();
+	for (int i = 0; i < m_models.size(); i++)
+	{
+		m_pc.modelManager->destroyModel(m_models[i]);
+	}
+	m_models.clear();
+	for (int i = 0; i < m_materials.size(); i++)
+	{
+		m_pc.materialManager->destroyMaterial(m_materials[i]);
+	}
+	m_materials.clear();
+}
 
+PathFindingScene* PathFindingScene::getInstance()
+{
+	return instance;
 }
 
 void PathFindingScene::onGUI()

@@ -36,6 +36,7 @@ Trigger Warning a rushed code not optimized
 #include "glm/gtx/transform.hpp"
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtx/quaternion.hpp"
+#include "PathFindingScene.hpp"
 
 using std::fstream;
 using namespace Ge;
@@ -68,6 +69,16 @@ ImVec4 HSVtoRGB(float h, float s, float v) {
 	default:
 		return ImVec4(v, p, q, 1.0f);
 	}
+}
+
+std::string cropPath(std::string& str1, std::string& str2)
+{
+	size_t pos = str1.find(str2);
+	if (pos != std::string::npos)
+	{
+		str1.erase(pos, str2.length());
+	}
+	return str1;
 }
 
 bool copyAndRenameDirectory(const std::string& sourceDir, const std::string& targetDir) 
@@ -276,6 +287,73 @@ void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 	}
 }
 
+
+void removeExistTexture(Textures* texture, SceneData* sd, TextureManager* tm, GraphicsDataMisc* gdm)
+{
+	if (sd != nullptr)
+	{
+		if (texture == gdm->str_default_normal_texture || texture == gdm->str_default_texture)
+		{
+			return;
+		}
+		int count = 0;
+		for (int i = 0; i < sd->materials.size(); i++)
+		{
+			if (sd->materials[i]->getAlbedoTexture() == texture) { count++; }
+			if (sd->materials[i]->getMetallicTexture() == texture) { count++; }
+			if (sd->materials[i]->getRoughnessTexture() == texture) { count++; }
+			if (sd->materials[i]->getNormalTexture() == texture) { count++; }
+			if (sd->materials[i]->getOclusionTexture() == texture) { count++; }
+		}
+		if (count <= 1)
+		{
+			for (int i = 0; i < sd->textures.size(); i++)
+			{
+				if (sd->textures[i] == texture)
+				{
+					sd->textures.erase(sd->textures.begin() + i);
+					sd->textureData.erase(sd->textureData.begin() + i);
+					break;
+				}
+			}
+			tm->destroyTexture(texture);
+		}
+	}
+}
+
+void removeExistMaterial(Model* obj, SceneData* sd, MaterialManager* mm, TextureManager* tm, GraphicsDataMisc* gdm)
+{
+	if (sd != nullptr)
+	{
+		Materials* current = obj->getMaterial();
+		int count = 0;
+		if (current != nullptr)
+		{
+			for (int i = 0; i < sd->models.size(); i++)
+			{
+				if (sd->models[i]->getMaterial() == current)
+				{
+					count++;
+				}
+			}
+			if (count <= 1)
+			{
+				removeExistTexture(current->getAlbedoTexture(), sd, tm, gdm);
+				removeExistTexture(current->getMetallicTexture(), sd, tm, gdm);
+				removeExistTexture(current->getRoughnessTexture(), sd, tm, gdm);
+				removeExistTexture(current->getNormalTexture(), sd, tm, gdm);
+				removeExistTexture(current->getOclusionTexture(), sd, tm, gdm);
+				obj->setMaterial(nullptr);
+				sd->materials.erase(std::remove(sd->materials.begin(), sd->materials.end(), current), sd->materials.end());
+				if (gdm->str_default_material != current)
+				{
+					mm->destroyMaterial(current);
+				}
+			}
+		}
+	}
+}
+
 void Editor::deleteSceneObject(GObject * obj)
 {
 	if (obj == nullptr)
@@ -295,6 +373,10 @@ void Editor::deleteSceneObject(GObject * obj)
 			sbCheck = m_currentSceneData->models[i]->getShapeBuffer();
 			Model* m = m_currentSceneData->models[i];
 			m_currentSceneData->models.erase(m_currentSceneData->models.begin() + i);
+			if (m->getMaterial() != nullptr)
+			{
+				removeExistMaterial(m, m_currentSceneData, m_pc->materialManager, m_pc->textureManager, m_gdm);
+			}
 			m_pc->modelManager->destroyModel(m);
 			i = m_currentSceneData->models.size();
 		}
@@ -437,7 +519,7 @@ std::string extractExtension(const std::string& fullPath)
 	return fullPath.substr(dotPosition);
 }
 
-std::string dropTargetImage()
+std::string Editor::dropTargetImage()
 {
 	std::string path = "";
 	if (ImGui::BeginDragDropTarget())
@@ -450,7 +532,7 @@ std::string dropTargetImage()
 			std::string ext = extractExtension(data);
 			if (stat(data.c_str(), &sb) == 0 && (ext == ".png" || ext == ".jpeg"))
 			{
-				path = data;
+				path = cropPath(data, m_baseProjectLocation);
 			}		
 		}
 		ImGui::EndDragDropTarget();
@@ -727,6 +809,7 @@ void Editor::drawFolderContents(const std::string& basePath,std::string& path)
 				if (m_currentSceneData == nullptr)
 				{
 					m_currentSceneData = new SceneData();
+					m_currentSceneData->path.has = false;
 				}
 				clearScene(m_currentSceneData);
 				loadScene(entry.path().string(), m_currentSceneData);
@@ -866,12 +949,15 @@ void Editor::loadProject(const std::string& filePath, ProjectData* ec)
 	file.close();
 	JS::ParseContext context(jsonFile);
 	context.parseTo(*ec);
+	ec->assetPath = filePath;
+	m_baseProjectLocation = filePath;
 	m_currentProjectLocation = ec->assetPath;
 }
 
 void Editor::saveProject(const std::string& filePath, ProjectData* ec)
 {
 	std::string projectPath= filePath + "\\" + ec->projetName;
+	m_baseProjectLocation = projectPath;
 	createDirectory(projectPath);
 	createDirectory(projectPath + "\\Scene");	
 	createDirectory(projectPath + "\\Ressources");
@@ -1022,7 +1108,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 	sd->textures.clear();
 	for (int i = 0; i < sd->textureData.size(); i++)
 	{
-		sd->textures.push_back(m_pc->textureManager->createTexture(sd->textureData[i].path.c_str(), sd->textureData[i].filter));
+		sd->textures.push_back(m_pc->textureManager->createTexture((m_baseProjectLocation+sd->textureData[i].path).c_str(), sd->textureData[i].filter));
 	}
 	sd->materials.clear();
 	for (int i = 0; i < sd->materialData.size(); i++)
@@ -1064,13 +1150,13 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 	sd->buffer.clear();
 	for (int i = 0; i < sd->bufferData.size(); i++)
 	{		
-		sd->buffer.push_back(m_pc->modelManager->allocateBuffer(sd->bufferData[i].path.c_str(), sd->bufferData[i].normalRecalculate));
+		sd->buffer.push_back(m_pc->modelManager->allocateBuffer((m_baseProjectLocation+sd->bufferData[i].path).c_str(), sd->bufferData[i].normalRecalculate));
 	}
 	sd->models.clear();
 	for (int i = 0; i < sd->modelData.size(); i++)
 	{
 		if (sd->modelData[i].idBuffer >= 0)
-		{
+		{			
 			Model* m = m_pc->modelManager->createModel(sd->buffer[sd->modelData[i].idBuffer], sd->modelData[i].name);
 			m->setPosition(sd->modelData[i].position);
 			m->setRotation(sd->modelData[i].rotation);
@@ -1136,7 +1222,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 	sd->sound.clear();
 	for (int i = 0; i < sd->soundBufferData.size(); i++)
 	{
-		sd->sound.push_back(m_pc->soundManager->createBuffer(sd->soundBufferData[i].path.c_str()));
+		sd->sound.push_back(m_pc->soundManager->createBuffer((m_baseProjectLocation+sd->soundBufferData[i].path).c_str()));
 	}
 	sd->audio.clear();
 	for (int i = 0; i < sd->audioData.size(); i++)
@@ -1229,72 +1315,6 @@ void Editor::addEmptyToScene()
 	}
 }
 
-void removeExistTexture(Textures* texture, SceneData* sd, TextureManager* tm,GraphicsDataMisc * gdm)
-{
-	if (sd != nullptr)
-	{
-		if (texture == gdm->str_default_normal_texture || texture == gdm->str_default_texture)
-		{
-			return;
-		}
-		int count = 0;
-		for (int i = 0; i < sd->materials.size(); i++)
-		{
-			if (sd->materials[i]->getAlbedoTexture() == texture) { count++; }
-			if (sd->materials[i]->getMetallicTexture() == texture) { count++; }
-			if (sd->materials[i]->getRoughnessTexture() == texture) { count++; }
-			if (sd->materials[i]->getNormalTexture() == texture) { count++; }
-			if (sd->materials[i]->getOclusionTexture() == texture) { count++; }
-		}
-		if (count <= 1)
-		{
-			for (int i = 0; i < sd->textures.size(); i++)
-			{
-				if (sd->textures[i] == texture)
-				{
-					sd->textures.erase(sd->textures.begin()+i);
-					sd->textureData.erase(sd->textureData.begin() + i);
-					break;
-				}
-			}
-			tm->destroyTexture(texture);
-		}
-	}
-}
-
-void removeExistMaterial(Model* obj, SceneData* sd, MaterialManager * mm, TextureManager* tm, GraphicsDataMisc* gdm)
-{
-	if (sd != nullptr)
-	{
-		Materials* current = obj->getMaterial();
-		int count = 0;
-		if (current != nullptr)
-		{
-			for (int i = 0; i < sd->models.size(); i++)
-			{
-				if (sd->models[i]->getMaterial() == current)
-				{
-					count++;
-				}
-			}
-			if (count <= 1)
-			{				
-				removeExistTexture(current->getAlbedoTexture(), sd, tm, gdm);
-				removeExistTexture(current->getMetallicTexture(), sd, tm, gdm);
-				removeExistTexture(current->getRoughnessTexture(), sd, tm, gdm);
-				removeExistTexture(current->getNormalTexture(), sd, tm, gdm);
-				removeExistTexture(current->getOclusionTexture(), sd, tm, gdm);
-				obj->setMaterial(nullptr);				
-				sd->materials.erase(std::remove(sd->materials.begin(), sd->materials.end(), current), sd->materials.end());
-				if (gdm->str_default_material != current)
-				{
-					mm->destroyMaterial(current);
-				}
-			}
-		}
-	}
-}
-
 void Editor::addMaterialToModel(Model* obj)
 {
 	if (m_currentSceneData != nullptr)
@@ -1313,7 +1333,7 @@ void Editor::addAudioToScene(const std::string& filePath)
 		SoundBuffer* sb = nullptr;
 		for (int i = 0; i < m_currentSceneData->soundBufferData.size(); i++)
 		{
-			if (m_currentSceneData->soundBufferData[i].path == filePath)
+			if ((m_baseProjectLocation+m_currentSceneData->soundBufferData[i].path) == filePath)
 			{
 				sb = m_currentSceneData->sound[i];
 				i = m_currentSceneData->soundBufferData.size();
@@ -1324,7 +1344,8 @@ void Editor::addAudioToScene(const std::string& filePath)
 			sb = m_pc->soundManager->createBuffer(filePath.c_str());
 			m_currentSceneData->sound.push_back(sb);
 			SoundBufferData sbd;
-			sbd.path = filePath.c_str();
+			std::string temp = filePath;
+			sbd.path = cropPath(temp, m_baseProjectLocation).c_str();
 			m_currentSceneData->soundBufferData.push_back(sbd);
 		}
 		AudioSource* au = m_pc->soundManager->createSource(sb, extractFileName(filePath));
@@ -1344,7 +1365,7 @@ void Editor::addModelToScene(const std::string& filePath)
 		bool normalR = false;
 		for (int i = 0; i < m_currentSceneData->bufferData.size(); i++)
 		{			
-			if (m_currentSceneData->bufferData[i].path == filePath)
+			if (m_baseProjectLocation+m_currentSceneData->bufferData[i].path == filePath)
 			{
 				sb = m_currentSceneData->buffer[i];				
 				normalR = m_currentSceneData->bufferData[i].normalRecalculate;
@@ -1357,7 +1378,8 @@ void Editor::addModelToScene(const std::string& filePath)
 			m_currentSceneData->buffer.push_back(sb);
 			BufferData bd;
 			bd.normalRecalculate = normalR;
-			bd.path = filePath.c_str();
+			std::string temp = filePath;
+			bd.path = cropPath(temp,m_baseProjectLocation).c_str();
 			m_currentSceneData->bufferData.push_back(bd);
 		}
 		Model* m = m_pc->modelManager->createModel(sb,extractFileName(filePath));
@@ -1687,7 +1709,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 	{
 		m_openProjectModal = true;
 	}
-	if (m_pc->inputManager->getKeyDown(GLFW_KEY_S) && m_pc->inputManager->getKey(GLFW_KEY_LEFT_CONTROL))
+	if (m_pc->inputManager->getKeyDown(GLFW_KEY_S) && m_pc->inputManager->getKey(GLFW_KEY_LEFT_CONTROL) && m_playMode == 0)
 	{
 		globalSave();		
 	}
@@ -1738,41 +1760,16 @@ void Editor::render(GraphicsDataMisc* gdm)
 					addEmptyToScene();
 				}
 				if (ImGui::MenuItem("PathFinding"))
-				{		
+				{							
 					if (m_currentSceneData != nullptr)
 					{
-						ImGui::OpenPopup("PathFinding");
+						m_openPathFinding = true;
 					}
 				}
 				ImGui::EndMenu();
 			}
 		}
-		if (ImGui::BeginPopup("PathFinding") && m_currentSceneData != nullptr)
-		{			
-			ImGui::InputText("PathFinding##inputFieldPathOpen", m_pathFindingName, IM_ARRAYSIZE(m_pathFindingName));
-			ImGui::SameLine();
-			if (ImGui::Button("..."))
-			{
-				std::string path = FolderDialog::openDialog();
-				strncpy(m_pathFindingName, path.c_str(), sizeof(m_pathFindingName) - 1);
-				m_pathFindingName[sizeof(m_pathFindingName) - 1] = '\0';
-			}
-			ImGui::DragFloat3("Position", &m_currentSceneData->path.pathPosition[0]);
-			ImGui::DragFloat3("Zone", &m_currentSceneData->path.zoneSize[0]);
-			ImGui::DragFloat3("Point", &m_currentSceneData->path.pointCount[0]);
-			ImGui::DragFloat("LiasonPercent",&m_currentSceneData->path.pathLiasonPercent);			
-			if (ImGui::Button("Apply"))
-			{
-				m_generatePathFindingNextPlay = true;
-				m_currentSceneData->path.pathFolder = m_pathFindingName;
-				ImGui::CloseCurrentPopup();
-			}
-			if (ImGui::Button("Close"))
-			{
-				ImGui::CloseCurrentPopup();
-			}
-			ImGui::EndPopup();
-		}
+				
 		if (ImGui::BeginMenu("Window"))
 		{
 			if (ImGui::MenuItem("Game"))
@@ -1804,7 +1801,48 @@ void Editor::render(GraphicsDataMisc* gdm)
 		}
 		ImGui::EndMainMenuBar();
 	}
-	
+
+	if (m_openPathFinding)
+	{
+		ImGui::OpenPopup("PathFinding");
+		m_currentSceneData->path.pathPosition = glm::vec3(0,0,0);
+		m_currentSceneData->path.zoneSize = glm::vec3(10, 10, 10);
+		m_currentSceneData->path.pointCount = glm::vec3(10, 10, 10);
+		m_currentSceneData->path.pathLiasonPercent = 0.1f;		
+		m_currentSceneData->path.has = false;
+		std::string computeName = cropPath(m_currentProjectLocation + "\\" + m_currentSceneData->name + ".path", m_baseProjectLocation);
+		strcpy(m_pathFindingName, computeName.c_str());
+		m_openPathFinding = false;
+	}
+
+	if (ImGui::BeginPopupModal("PathFinding") && m_currentSceneData != nullptr)
+	{
+		ImGui::InputText("PathFinding##inputFieldPathOpen", m_pathFindingName, IM_ARRAYSIZE(m_pathFindingName));
+		ImGui::SameLine();
+		if (ImGui::Button("..."))
+		{
+			std::string path = FolderDialog::openDialog();
+			strncpy(m_pathFindingName, path.c_str(), sizeof(m_pathFindingName) - 1);
+			m_pathFindingName[sizeof(m_pathFindingName) - 1] = '\0';
+		}
+		ImGui::DragFloat3("Position", &m_currentSceneData->path.pathPosition[0]);
+		ImGui::DragFloat3("Zone", &m_currentSceneData->path.zoneSize[0]);
+		ImGui::DragFloat3("Point", &m_currentSceneData->path.pointCount[0]);
+		ImGui::DragFloat("LiasonPercent", &m_currentSceneData->path.pathLiasonPercent);
+		if (ImGui::Button("Apply"))
+		{
+			m_generatePathFindingNextPlay = true;
+			m_currentSceneData->path.pathFolder = m_pathFindingName;
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Close"))
+		{
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+
 	if (m_newProjectModal)
 	{
 		ImGui::OpenPopup("New Project");
@@ -1940,6 +1978,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 					}
 					SceneData* sd = new SceneData();
 					m_currentSceneData = sd;
+					m_currentSceneData->path.has = false;
 					saveScene(m_currentProjectData->lastSceneOpen, m_currentSceneData);
 					m_currentSceneData->currentPath = m_currentProjectData->lastSceneOpen;
 					m_currentSceneData->name = "Main";
@@ -1986,7 +2025,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 						SceneData* sd = new SceneData();
 						m_currentSceneData = sd;
 						sd->name = m_objectName;
-						sd->currentPath = m_currentProjectLocation + "\\" + m_objectName + ".scene";
+						sd->currentPath = cropPath(m_currentProjectLocation + "\\" + m_objectName + ".scene", m_baseProjectLocation);
 						m_currentProjectData->lastSceneOpen = sd->currentPath;
 						sd->dlight.push_back(m_pc->lightManager->createDirectionalLight(glm::vec3(-45,45,0),glm::vec3(1,1,1)));
 						globalSave();
@@ -2012,7 +2051,8 @@ void Editor::render(GraphicsDataMisc* gdm)
 		ImGui::Begin("Game Mode", &m_editorData->gameMode, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar);
 		style.Colors[ImGuiCol_Button] = ImVec4(0, 0, 0, 0);
 		int popCol = 0;
-		if (m_playMode == 1) {
+		if (m_playMode == 1) 
+		{
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.7f, 0.0f, 1.0f));
 			popCol++;
 		}
@@ -2068,8 +2108,17 @@ void Editor::render(GraphicsDataMisc* gdm)
 				}
 				if (m_generatePathFindingNextPlay)
 				{
-
+					Behaviour* b = new PathFindingScene(m_currentSceneData->path.pathPosition, m_currentSceneData->path.zoneSize, m_currentSceneData->path.pointCount, m_currentSceneData->path.pathFolder, m_currentSceneData->path.pathLiasonPercent);
+					m_allBehaviourLoaded.push_back(b);
+					m_pc->behaviourManager->addBehaviour(b);
 					m_generatePathFindingNextPlay = false;
+				}
+				else if (m_currentSceneData->path.has)
+				{
+					PathFindingScene* b = new PathFindingScene(m_currentSceneData->path.pathPosition, m_currentSceneData->path.zoneSize, m_currentSceneData->path.pointCount, m_currentSceneData->path.pathFolder, m_currentSceneData->path.pathLiasonPercent);
+					b->loadFromFile();
+					m_allBehaviourLoaded.push_back(b);
+					m_pc->behaviourManager->addBehaviour(b);
 				}
 			}
 			m_playMode = 1;
@@ -2179,6 +2228,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 				Materials* mat = model->getMaterial();
 				if (mat != nullptr)
 				{
+					bool filter = !m_pc->inputManager->getKey(GLFW_KEY_SPACE);
 					ImGui::Text("Base       ");
 					ImGui::SameLine();
 					ImGui::Image((ImTextureID)mat->getAlbedoTexture()->getTextureID(),ImVec2(80, 80));
@@ -2188,9 +2238,10 @@ void Editor::render(GraphicsDataMisc* gdm)
 						removeExistTexture(mat->getAlbedoTexture(), m_currentSceneData, m_pc->textureManager, gdm);
 						bool found = false;
 						Textures* t = nullptr;
+						
 						for (int i = 0; i < m_currentSceneData->textureData.size(); i++)
 						{
-							if (m_currentSceneData->textureData[i].path == path)
+							if (m_currentSceneData->textureData[i].path == path && m_currentSceneData->textureData[i].filter == filter)
 							{
 								t = m_currentSceneData->textures[i];
 								found = true;
@@ -2198,7 +2249,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 						}
 						if (!found)
 						{
-							t = m_pc->textureManager->createTexture(path.c_str());
+							t = m_pc->textureManager->createTexture((m_baseProjectLocation+path).c_str(), filter);
 						}
 						mat->setAlbedoTexture(t);
 						if (mat != m_gdm->str_default_material && !found)
@@ -2206,7 +2257,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 							m_currentSceneData->textures.push_back(t);
 							TextureData td;
 							td.path = path;
-							td.filter = true;
+							td.filter = t->getFilter();
 							m_currentSceneData->textureData.push_back(td);
 						}
 					}
@@ -2224,7 +2275,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 						Textures* t = nullptr;
 						for (int i = 0; i < m_currentSceneData->textureData.size(); i++)
 						{
-							if (m_currentSceneData->textureData[i].path == path)
+							if (m_currentSceneData->textureData[i].path == path && m_currentSceneData->textureData[i].filter == filter)
 							{
 								t = m_currentSceneData->textures[i];
 								found = true;
@@ -2232,7 +2283,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 						}
 						if (!found)
 						{
-							t = m_pc->textureManager->createTexture(path.c_str());
+							t = m_pc->textureManager->createTexture((m_baseProjectLocation+path).c_str(), filter);
 						}
 						mat->setMetallicTexture(t);
 						if (mat != m_gdm->str_default_material && !found)
@@ -2240,7 +2291,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 							m_currentSceneData->textures.push_back(t);
 							TextureData td;
 							td.path = path;
-							td.filter = true;
+							td.filter = t->getFilter();
 							m_currentSceneData->textureData.push_back(td);
 						}
 					}
@@ -2258,7 +2309,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 						Textures* t = nullptr;
 						for (int i = 0; i < m_currentSceneData->textureData.size(); i++)
 						{
-							if (m_currentSceneData->textureData[i].path == path)
+							if (m_currentSceneData->textureData[i].path == path && m_currentSceneData->textureData[i].filter == filter)
 							{
 								t = m_currentSceneData->textures[i];
 								found = true;
@@ -2266,7 +2317,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 						}
 						if (!found)
 						{
-							t = m_pc->textureManager->createTexture(path.c_str());
+							t = m_pc->textureManager->createTexture((m_baseProjectLocation+path).c_str(), filter);
 						}
 						mat->setRoughnessTexture(t);
 						
@@ -2275,7 +2326,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 							m_currentSceneData->textures.push_back(t);
 							TextureData td;
 							td.path = path;
-							td.filter = true;
+							td.filter = t->getFilter();
 							m_currentSceneData->textureData.push_back(td);
 						}
 					}
@@ -2293,7 +2344,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 						Textures* t = nullptr;
 						for (int i = 0; i < m_currentSceneData->textureData.size(); i++)
 						{
-							if (m_currentSceneData->textureData[i].path == path)
+							if (m_currentSceneData->textureData[i].path == path && m_currentSceneData->textureData[i].filter == filter)
 							{
 								t = m_currentSceneData->textures[i];								
 								found = true;
@@ -2301,7 +2352,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 						}
 						if (!found)
 						{
-							t = m_pc->textureManager->createTexture(path.c_str());							
+							t = m_pc->textureManager->createTexture((m_baseProjectLocation+path).c_str(), filter);
 						}
 						mat->setNormalTexture(t);
 						if (mat != m_gdm->str_default_material && !found)
@@ -2309,7 +2360,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 							m_currentSceneData->textures.push_back(t);
 							TextureData td;
 							td.path = path;
-							td.filter = true;
+							td.filter = t->getFilter();
 							m_currentSceneData->textureData.push_back(td);
 						}
 					}
@@ -2331,7 +2382,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 						Textures* t = nullptr;
 						for (int i = 0; i < m_currentSceneData->textureData.size(); i++)
 						{
-							if (m_currentSceneData->textureData[i].path == path)
+							if (m_currentSceneData->textureData[i].path == path && m_currentSceneData->textureData[i].filter == filter)
 							{
 								t = m_currentSceneData->textures[i];
 								found = true;
@@ -2339,7 +2390,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 						}
 						if (!found)
 						{
-							t = m_pc->textureManager->createTexture(path.c_str());
+							t = m_pc->textureManager->createTexture((m_baseProjectLocation+path).c_str(), filter);
 						}
 						mat->setOclusionTexture(t);
 						if (mat != m_gdm->str_default_material && !found)
@@ -2347,7 +2398,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 							m_currentSceneData->textures.push_back(t);
 							TextureData td;
 							td.path = path;
-							td.filter = true;
+							td.filter = t->getFilter();
 							m_currentSceneData->textureData.push_back(td);
 						}
 					}
@@ -2628,6 +2679,14 @@ void Editor::render(GraphicsDataMisc* gdm)
 				}						
 			}
 		}	
+		if (m_currentSceneData != nullptr && m_generatePathFindingNextPlay && m_playMode == 1)
+		{
+			if (m_pc->inputManager->getKeyDown(GLFW_KEY_K))
+			{
+				m_currentSceneData->path.has = true;
+				Debug::Log("Scene Add Current path");
+			}
+		}
 		if (m_pc->inputManager->getMouse(GLFW_MOUSE_BUTTON_LEFT) && m_currentSceneData != nullptr)
 		{
 			if (!m_clickedSceneSelected && !ImGuizmo::IsUsing() && !ImGui::GetIO().WantCaptureMouse)

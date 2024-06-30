@@ -27,10 +27,12 @@ public:
 	void update();
 	void stop();
 	void onGUI();
+	static PathFindingScene* getInstance();
 private:
 	void filterClosePoints();
 	void generateNeighbors();
 private:
+	static PathFindingScene* instance;
 	ptrClass m_pc;
 	glm::vec3 m_position;
 	glm::vec3 m_zoneSize;
@@ -41,6 +43,10 @@ private:
 	Vec3AStar* m_vec3Astars;
 	std::vector<glm::vec3> m_points;
 	std::vector<std::vector<unsigned int>> m_neighbors;
+
+	std::vector<Model*> m_models;
+	std::vector<Materials*> m_materials;
+	std::vector<ShapeBuffer*> m_shapes;
 
 	glm::vec3 m_boundsMin;
 	glm::vec3 m_boundsMax;

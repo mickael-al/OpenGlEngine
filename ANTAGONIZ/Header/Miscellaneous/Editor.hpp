@@ -46,6 +46,7 @@ namespace Ge
 		void addEmptyToScene();
 		void globalSave();
 		void clearCurrentProject();
+		std::string dropTargetImage();
 		void init(GraphicsDataMisc* gdm);
 		void render(GraphicsDataMisc* gdm);
 	private:
@@ -57,6 +58,7 @@ namespace Ge
 		ImVec4 m_colRGB = ImVec4(0,0,0,1);
 		bool m_newProjectModal = false;
 		bool m_openProjectModal = false;
+		bool m_openPathFinding = false;
 		bool m_createObject = false;
 		bool m_deleteOject = false;		
 		bool m_guizmo = false;
@@ -98,6 +100,7 @@ namespace Ge
 		int m_iconMoveSize = 16;
 		int m_columns = 8;	
 		std::string m_currentProjectLocation;
+		std::string m_baseProjectLocation;
 		SceneData* m_currentSceneData = nullptr;
 	};
 }

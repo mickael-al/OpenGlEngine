@@ -13,7 +13,7 @@ namespace Ge
 		glGenTextures(1, &m_textureID);
 		glBindTexture(GL_TEXTURE_2D, m_textureID);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, Width, Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pc);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter ? GL_LINEAR : GL_NEAREST);
 		if (mipmaps)
 		{
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST);
@@ -23,6 +23,7 @@ namespace Ge
 		{
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter ? GL_LINEAR : GL_NEAREST);
 		}
+		m_filter = filter;
 	}
 
 	Textures::~Textures()
@@ -38,6 +39,11 @@ namespace Ge
 	unsigned int Textures::getTextureID() const
 	{
 		return m_textureID;
+	}
+
+	const bool Textures::getFilter() const
+	{
+		return m_filter;
 	}
 
 	void Textures::setIndex(unsigned int index)
