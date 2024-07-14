@@ -59,6 +59,28 @@ namespace Ge
             return false;
         }
 
+        glGenFramebuffers(1, &m_framebufferFoward);
+        glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferFoward);
+
+        glGenTextures(1, &m_fColor);
+        glBindTexture(GL_TEXTURE_2D, m_fColor);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_fColor, 0);
+
+        unsigned int attachmentsF[1] = { GL_COLOR_ATTACHMENT0 };
+        glDrawBuffers(1, attachmentsF);
+
+        status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE)
+        {
+            Debug::Error("Erreur lors de la creation du framebuffer forward.");
+            return false;
+        }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         Debug::INITSUCCESS("FrameBuffer");
@@ -87,14 +109,28 @@ namespace Ge
         if (status != GL_FRAMEBUFFER_COMPLETE)
         {
             Debug::Error("Erreur lors de la recreation du framebuffer apres redimensionnement de la fenêtre.");
-        }
+        }        
 
+        glBindTexture(GL_TEXTURE_2D, m_fColor);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGB, GL_FLOAT, NULL);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferFoward);
+        status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE)
+        {
+            Debug::Error("Erreur lors de la recreation du framebuffer forward apres redimensionnement de la fenêtre.");
+        }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     unsigned int FrameBuffer::getFrameBuffer() const
     {
         return m_framebuffer;
+    }
+
+    unsigned int FrameBuffer::getFowardFrameBuffer() const
+    {
+        return m_framebufferFoward;
     }
 
     unsigned int FrameBuffer::getPosition() const
@@ -112,6 +148,11 @@ namespace Ge
         return m_gColorSpec;
     }
 
+    unsigned int FrameBuffer::getColorFoward() const
+    {
+        return m_fColor;
+    }
+
     unsigned int FrameBuffer::getOther() const
     {
         return m_gOther;
@@ -125,5 +166,7 @@ namespace Ge
         glDeleteTextures(1, &m_gColorSpec);
         glDeleteTextures(1, &m_gOther);
         glDeleteTextures(1, &m_gDepth);
+        glDeleteFramebuffers(1, &m_framebufferFoward);
+        glDeleteTextures(1, &m_fColor);
     }
 }

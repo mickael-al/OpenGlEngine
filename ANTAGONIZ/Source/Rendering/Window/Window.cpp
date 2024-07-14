@@ -6,12 +6,14 @@
 #include "Engine.hpp"
 #include "EngineHeader.hpp"
 #include "FrameBuffer.hpp"
+#include "PostProcess.hpp"
 
 namespace Ge
 {
-	Window::Window(FrameBuffer* fb)
+	Window::Window(FrameBuffer* fb, PostProcess * pp)
 	{
 		m_fb = fb;
+		m_pp = pp;
 	}
 
 	bool Window::initialize(uint32_t Width, uint32_t Height, const char * name, const char * iconPath,bool vsync, GraphicsDataMisc * gdm)
@@ -73,6 +75,7 @@ namespace Ge
 		pc.settingManager->setWindowHeight(height);
 		pc.settingManager->setWindowWidth(width);
 		win->m_fb->resize(width, height);
+		win->m_pp->resize(width, height);
 		Debug::Info("Redimension de la fenetre : %d , %d", width, height);
 	}
 

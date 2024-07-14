@@ -39,7 +39,7 @@ namespace Ge
 		void clearScene(SceneData* sd);
 		void loadScene(const std::string& filePath, SceneData* sd);
 		void saveScene(const std::string& filePath, SceneData* sd);
-		void addModelToScene(const std::string& filePath);
+		void addModelToScene(const std::string& filePath, bool fbx = false);
 		void addAudioToScene(const std::string& filePath);
 		void addMaterialToModel(Model * obj);
 		void addLightToScene(int type);

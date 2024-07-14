@@ -20,11 +20,20 @@ namespace Ge
 		m_gdm = gdm;
 		glGenBuffers(1, &m_ssbo);
 		m_gdm->str_ssbo.str_model = m_ssbo;
-		float pos[] = { -1.0f, 1.0f,0.0f, -1.0f, -1.0f,0.0f , 1.0f, 1.0f,0.0f, 1.0f, -1.0f,0.0f };
-		float texCord[] = {0.0f,1.0f,0.0f,0.0f,1.0f,1.0f,1.0f,0.0f};
-		float normal[] = { 0.0f,0.0f,1.0f,0.0f,0.0f,1.0f, 0.0f,0.0f,1.0f, 0.0f,0.0f,1.0f };
-		unsigned int indice[] = { 0,1,2,3,2,1 };
-		m_defferedQuad = allocateBuffer(pos, texCord, normal, indice,12,6);
+		float pos[] = { -1.0f, 1.0f,0.0f, -1.0f, -3.0f,0.0f , 3.0f, 1.0f,0.0f };
+		float texCord[] = {0.0f,0.0f,0.0f,-2.0f,2.0f,0.0f};
+		float normal[] = { 0.0f,0.0f,1.0f,0.0f,0.0f,1.0f, 0.0f,0.0f,1.0f };
+		unsigned int indice[] = { 0,1,2};
+
+		m_fullScreenTriangle = allocateBuffer(pos, texCord, normal, indice, 9, 3);
+		m_fullScreenTriangle->SetupVAO(gdm->str_default_pipeline_forward->getProgram());
+
+		float posQ[] = { -1.0f, 1.0f,0.0f, -1.0f, -1.0f,0.0f , 1.0f, 1.0f,0.0f, 1.0f, -1.0f,0.0f };
+		float texCordQ[] = { 0.0f,1.0f,0.0f,0.0f,1.0f,1.0f,1.0f,0.0f };
+		float normalQ[] = { 0.0f,0.0f,1.0f,0.0f,0.0f,1.0f, 0.0f,0.0f,1.0f, 0.0f,0.0f,1.0f };
+		unsigned int indiceQ[] = { 0,1,2,3,2,1 };
+
+		m_defferedQuad = allocateBuffer(posQ, texCordQ, normalQ, indiceQ, 12, 6);
 		m_defferedQuad->SetupVAO(gdm->str_default_pipeline_forward->getProgram());
 		Debug::INITSUCCESS("ModelManager");
 		return true;
@@ -305,6 +314,11 @@ namespace Ge
 	ShapeBuffer* ModelManager::getDefferedQuad() const
 	{
 		return m_defferedQuad;
+	}
+
+	ShapeBuffer* ModelManager::getFullScreenTriangle() const
+	{
+		return m_fullScreenTriangle;
 	}
 
 	void ModelManager::ComputationTangent(std::vector<Vertex> &vertices)

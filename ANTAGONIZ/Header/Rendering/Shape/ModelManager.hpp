@@ -42,6 +42,7 @@ namespace Ge
 		std::unordered_map<Materials*, std::unordered_map<ShapeBuffer*,std::vector<Model*>>> & getInstancedModels();		
         void ComputationTangent(std::vector<Vertex> & vertices);
 		ShapeBuffer* getDefferedQuad() const;
+		ShapeBuffer* getFullScreenTriangle() const;
 	private:
 		friend class Model;		
 		void buildInstancedModels(Model * target, Materials * mat);
@@ -55,6 +56,7 @@ namespace Ge
         std::vector<ShapeBuffer *> m_shapeBuffers;        
 		GraphicsDataMisc * m_gdm;
 		ShapeBuffer* m_defferedQuad;
+		ShapeBuffer* m_fullScreenTriangle;
     };
 }
 

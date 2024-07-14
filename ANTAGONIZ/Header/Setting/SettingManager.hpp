@@ -39,6 +39,9 @@ namespace Ge
 		friend class Hud;
 		void setFramerate(float * fr);
     private:
+        friend class PostProcess;
+        float* getGammaAddr();
+    private:
         SettingInfo m_settingInfo;
     };
 }

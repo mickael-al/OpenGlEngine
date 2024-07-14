@@ -28,6 +28,7 @@ struct EditorConfig
 	bool inspector;
 	bool project;
 	bool hiearchy;
+	bool postProcess;
 	std::string lastProjectpathOpen;
 	EditorConfig()
 	{
@@ -35,10 +36,10 @@ struct EditorConfig
 		inspector = false;
 		project = false;
 		hiearchy = false;
-		lastProjectpathOpen = "";
-		 
+		postProcess = false;
+		lastProjectpathOpen = "";		 
 	}
-	JS_OBJ(gameMode, inspector, project, hiearchy, lastProjectpathOpen);
+	JS_OBJ(gameMode, inspector, project, hiearchy, postProcess, lastProjectpathOpen);
 };
 
 struct ProjectData

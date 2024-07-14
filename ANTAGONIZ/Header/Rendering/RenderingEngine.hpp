@@ -19,6 +19,7 @@ namespace Ge
 	class ShaderDataMisc;
 	class FrameBuffer;
 	class SSAOBuffer;
+	class PostProcess;
 }
 
 namespace Ge
@@ -46,6 +47,7 @@ namespace Ge
 		Hud * m_hud;
 		LightManager * m_lightManager;
 		ShaderDataMisc * m_shaderDataMisc;
+		PostProcess* m_postProcess;
     };
 }
 

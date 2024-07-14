@@ -22,11 +22,12 @@
 #include "Textures.hpp"
 #include "Lights.hpp"
 #include "SSAOBuffer.hpp"
+#include "Camera.hpp"
+#include "PostProcess.hpp"
 #include <stack>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "Camera.hpp"
 
 namespace Ge
 {
@@ -35,7 +36,8 @@ namespace Ge
 		m_graphicsDataMisc = graphicsDataMisc;
 		m_frameBuffer = new FrameBuffer();
 		m_ssaoBuffer = new SSAOBuffer();
-		m_window = new Window(m_frameBuffer);
+		m_postProcess = new PostProcess();
+		m_window = new Window(m_frameBuffer, m_postProcess);
 		m_textureManager = new TextureManager();
 		m_materialManager = new MaterialManager();
 		m_modelManager = new ModelManager();
@@ -43,11 +45,12 @@ namespace Ge
 		m_graphiquePipelineManager = new GraphiquePipelineManager();
 		m_hud = new Hud();
 		m_lightManager = new LightManager();
-		m_shaderDataMisc = new ShaderDataMisc();		
+		m_shaderDataMisc = new ShaderDataMisc();			
     }
 
 	RenderingEngine::~RenderingEngine()
 	{
+		delete m_postProcess;
 		delete m_frameBuffer;
 		delete m_ssaoBuffer;
 		delete m_shaderDataMisc;
@@ -56,7 +59,7 @@ namespace Ge
 		delete m_modelManager;
 		delete m_materialManager;
 		delete m_textureManager;
-		delete m_window;		
+		delete m_window;			
 		m_graphicsDataMisc = nullptr;		
 	}
 
@@ -102,7 +105,9 @@ namespace Ge
 		m_ptrClass->materialManager = m_materialManager;
 		m_ptrClass->graphiquePipelineManager = m_graphiquePipelineManager;
 		m_ptrClass->lightManager = m_lightManager;
+		m_ptrClass->postProcess = m_postProcess;
 		m_ptrClass->renderingEngine = this;
+
         Debug::Info("Initialisation du moteur de rendu");
 
 		if (!m_window->initialize(p_ptrClass->settingManager->getWindowWidth(), p_ptrClass->settingManager->getWindowHeight(), p_ptrClass->settingManager->getName(), p_ptrClass->settingManager->getIconPath(), p_ptrClass->settingManager->getVsync(), m_graphicsDataMisc))
@@ -178,6 +183,11 @@ namespace Ge
 			Debug::INITFAILED("SSAOManager");
 			return false;
 		}
+		if (!m_postProcess->initialize(m_graphicsDataMisc))
+		{
+			Debug::INITFAILED("PostProcess");
+			return false;
+		}
 		
         Debug::INITSUCCESS("RenderingEngine");
 
@@ -186,6 +196,7 @@ namespace Ge
 
     void RenderingEngine::release()
     {        	
+		RenderingEngine::m_postProcess->release();
 		RenderingEngine::m_shaderDataMisc->release();
 		RenderingEngine::m_ssaoBuffer->release();
 		RenderingEngine::m_lightManager->release();
@@ -363,7 +374,7 @@ namespace Ge
 		glCullFace(GL_BACK);
 		/*  Shadow  */
 
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer->getFowardFrameBuffer());
 		glDisable(GL_DEPTH_TEST);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_cameraManager->getSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_lightManager->getSSBO());
@@ -385,11 +396,22 @@ namespace Ge
 		glUseProgram(m_graphicsDataMisc->str_default_pipeline_forward->getProgram());
 		glViewport(0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height);
 
-		ShapeBuffer* sb = m_modelManager->getDefferedQuad();
+		ShapeBuffer* sb = m_modelManager->getFullScreenTriangle();
 		glBindVertexArray(sb->getVAO());
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sb->getIBO());
 		glDrawElements(GL_TRIANGLES, sb->getIndiceSize(), GL_UNSIGNED_INT, 0);
 
+		m_postProcess->compute(m_frameBuffer->getFowardFrameBuffer(), m_frameBuffer->getColorFoward(), m_modelManager->getDefferedQuad());
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_frameBuffer->getFowardFrameBuffer());
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBlitFramebuffer(
+			0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height,
+			0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height,
+			GL_COLOR_BUFFER_BIT,
+			GL_NEAREST
+		);
+		
 		m_hud->render();		
 		glfwSwapBuffers(m_graphicsDataMisc->str_window);
     }

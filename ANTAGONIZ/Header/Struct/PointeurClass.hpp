@@ -15,6 +15,7 @@
 #include "GraphiquePipelineManager.hpp"
 #include "PhysicsWraper.hpp"
 #include "SoundManager.hpp"
+#include "PostProcess.hpp"
 
 using namespace Ge;
 namespace Ge
@@ -39,6 +40,7 @@ struct ptrClass
 	Hud * hud;
 	GraphiquePipelineManager * graphiquePipelineManager;
 	RenderingEngine * renderingEngine;
+	PostProcess* postProcess;
 };
 
 #endif //__ENGINE_POINTEUR_CLASS__

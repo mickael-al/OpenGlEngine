@@ -15,6 +15,8 @@ namespace Ge
 		unsigned int getNormal() const;
 		unsigned int getColorSpec() const;
 		unsigned int getOther() const;
+		unsigned int getColorFoward() const;		
+		unsigned int getFowardFrameBuffer() const;
 		void release();
 	protected:
 		friend class Window;
@@ -27,6 +29,9 @@ namespace Ge
 		unsigned int m_gOther;
 		unsigned int m_gDepth;
 		GraphicsDataMisc* m_gdm;
+
+		unsigned int m_framebufferFoward;
+		unsigned int m_fColor;
 	};
 }
 #endif // !__FRAME_BUFFER__

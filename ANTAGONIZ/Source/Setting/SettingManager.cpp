@@ -128,6 +128,11 @@ namespace Ge
 		m_settingInfo.m_framerate = fr;
 	}
 
+    float* SettingManager::getGammaAddr()
+    {
+        return &m_settingInfo.m_gamma;
+    }
+
 	const char * SettingManager::getIconPath() const
 	{
 		return m_settingInfo.iconPath;
