@@ -181,14 +181,14 @@ float SSAO(vec3 fragPos, vec3 normal)
 	return 1.0 - (occlusion / 64);
 }
 
-out vec4 o_FragColor;
+out vec3 o_FragColor;
 
 void main()
-{
+{	
 	vec4 positionAO = texture(gPosition, v_UV).rgba;
 	vec4 normalRoughness = texture(gNormal, v_UV).rgba;
 	vec4 colSpec = texture(gColorSpec, v_UV).rgba;
-	float viewZ = texture(gOther, v_UV).r;
+	vec2 viewZEmit = texture(gOther, v_UV).rg;
 
 	vec3 color = colSpec.rgb;	
 	color = pow(color, vec3(ubd.gamma));
@@ -199,91 +199,96 @@ void main()
 
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, color, colSpec.a);
-
-	// Reflectance equation
-	vec3 Lo = vec3(0.0);
-	for (int i = 0; i < ubd.maxLight; i++)
+	if (viewZEmit.y <= 0)
 	{
-		float shadow = 1.0;
-		vec3 L = normalize(ubl.ubl[i].position - positionAO.rgb);		
-		float distance = length(ubl.ubl[i].position - positionAO.rgb);
-		float attenuation = 1.0 / (distance * distance);
-		vec3 radiance = ubl.ubl[i].color * attenuation * ubl.ubl[i].range;
-		if (ubl.ubl[i].status == 0)
+		// Reflectance equation
+		vec3 Lo = vec3(0.0);
+		for (int i = 0; i < ubd.maxLight; i++)
 		{
-			L = normalize(-ubl.ubl[i].direction);
-		}
-		vec3 H = normalize(V + L);
-
-		// Cook-Torrance BRDF
-		float NDF = DistributionGGX(normalRoughness.rgb, H, normalRoughness.a);
-		float G = GeometrySmith(normalRoughness.rgb, V, L, normalRoughness.a);
-		vec3 F = fresnelSchlick(max(dot(H, V), 0.001), F0);
-
-		vec3 kS = F;
-		vec3 kD = vec3(1.0) - kS;
-		kD *= 1.0 - colSpec.a;
-
-		vec3 numerator = NDF * G * F;
-		float denominator = 4.0 * max(dot(normalRoughness.rgb, V), 0.0) * max(dot(normalRoughness.rgb, L), 0.0) + 0.0001;
-		vec3 specular = (numerator / denominator);
-
-		// Add to outgoing radiance Lo
-		float NdotL = max(dot(normalRoughness.rgb, L), 0.0);
-
-		if (ubl.ubl[i].status == 0) // DirLight
-		{
-			if (ubl.ubl[i].shadowID >= 0)
+			float shadow = 1.0;
+			vec3 L = normalize(ubl.ubl[i].position - positionAO.rgb);
+			float distance = length(ubl.ubl[i].position - positionAO.rgb);
+			float attenuation = 1.0 / (distance * distance);
+			vec3 radiance = ubl.ubl[i].color * attenuation * ubl.ubl[i].range;
+			if (ubl.ubl[i].status == 0)
 			{
-				uint cascadeIndex = 0;
-				for (uint k = 0; k < SHADOW_MAP_CASCADE_COUNT - 1; ++k)
+				L = normalize(-ubl.ubl[i].direction);
+			}
+			vec3 H = normalize(V + L);
+
+			// Cook-Torrance BRDF
+			float NDF = DistributionGGX(normalRoughness.rgb, H, normalRoughness.a);
+			float G = GeometrySmith(normalRoughness.rgb, V, L, normalRoughness.a);
+			vec3 F = fresnelSchlick(max(dot(H, V), 0.001), F0);
+
+			vec3 kS = F;
+			vec3 kD = vec3(1.0) - kS;
+			kD *= 1.0 - colSpec.a;
+
+			vec3 numerator = NDF * G * F;
+			float denominator = 4.0 * max(dot(normalRoughness.rgb, V), 0.0) * max(dot(normalRoughness.rgb, L), 0.0) + 0.0001;
+			vec3 specular = (numerator / denominator);
+
+			// Add to outgoing radiance Lo
+			float NdotL = max(dot(normalRoughness.rgb, L), 0.0);
+
+			if (ubl.ubl[i].status == 0) // DirLight
+			{
+				if (ubl.ubl[i].shadowID >= 0)
 				{
-					if (viewZ < ubs.s[ubl.ubl[i].shadowID + k].splitDepth)
+					uint cascadeIndex = 0;
+					for (uint k = 0; k < SHADOW_MAP_CASCADE_COUNT - 1; ++k)
 					{
-						cascadeIndex = k + 1;
+						if (viewZEmit.x < ubs.s[ubl.ubl[i].shadowID + k].splitDepth)
+						{
+							cascadeIndex = k + 1;
+						}
+					}
+					vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + cascadeIndex].projview) * vec4(positionAO.rgb, 1.0);
+					float bias = calculateBias(shadowCoord, normalRoughness.rgb, L);
+					shadow = filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + cascadeIndex, bias);
+				}
+				Lo += ((kD * color / PI + specular) * ubl.ubl[i].color * (ubl.ubl[i].range / 10.0) * NdotL) * shadow;
+			}
+			else if (ubl.ubl[i].status == 1) // PointLight
+			{
+				if (ubl.ubl[i].shadowID >= 0)
+				{
+					for (uint k = 0; k < SHADOW_MAP_CUBE_COUNT && shadow > 0.5f; ++k)
+					{
+						vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + k].projview) * vec4(positionAO.rgb, 1.0);
+						float bias = calculateBias(shadowCoord, normalRoughness.rgb, L);
+						shadow *= filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + k, bias);
 					}
 				}
-				vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + cascadeIndex].projview) * vec4(positionAO.rgb, 1.0);
-				float bias = calculateBias(shadowCoord, normalRoughness.rgb, L);
-				shadow = filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + cascadeIndex, bias);
+				Lo += (kD * color / PI + specular) * radiance * NdotL * shadow;
 			}
-			Lo += ((kD * color / PI + specular) * ubl.ubl[i].color *(ubl.ubl[i].range / 10.0)* NdotL)* shadow;
-		}
-		else if (ubl.ubl[i].status == 1) // PointLight
-		{
-			if (ubl.ubl[i].shadowID >= 0)
+			else if (ubl.ubl[i].status == 2) // SpotLight
 			{
-				for (uint k = 0; k < SHADOW_MAP_CUBE_COUNT && shadow > 0.5f; ++k)
+				vec3 lightDir = normalize(ubl.ubl[i].direction);
+				float spotAngle = radians(ubl.ubl[i].spotAngle);
+				float spotEffect = dot(lightDir, -L);
+
+				if (spotEffect > cos(spotAngle / 2.0))
 				{
-					vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + k].projview) * vec4(positionAO.rgb, 1.0);
-					float bias = calculateBias(shadowCoord, normalRoughness.rgb, L);
-					shadow *= filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + k, bias);
+					float transitionAngle = radians(4.0);
+					float edge0 = cos(spotAngle / 2.0 - transitionAngle);
+					float edge1 = cos(spotAngle / 2.0);
+					float smoothFactor = smoothstep(edge1, edge0, spotEffect);
+
+					Lo += (kD * color / PI + specular) * radiance * NdotL * pow(smoothFactor, 2.0) * shadow;
 				}
 			}
-			Lo += (kD * color / PI + specular) * radiance * NdotL * shadow;
 		}
-		else if (ubl.ubl[i].status == 2) // SpotLight
-		{
-			vec3 lightDir = normalize(ubl.ubl[i].direction);
-			float spotAngle = radians(ubl.ubl[i].spotAngle);
-			float spotEffect = dot(lightDir, -L);
-
-			if (spotEffect > cos(spotAngle / 2.0))
-			{
-				float transitionAngle = radians(4.0);
-				float edge0 = cos(spotAngle / 2.0 - transitionAngle);
-				float edge1 = cos(spotAngle / 2.0);
-				float smoothFactor = smoothstep(edge1, edge0, spotEffect);
-
-				Lo += (kD * color / PI + specular) * radiance * NdotL * pow(smoothFactor, 2.0) * shadow;
-			}
-		}
+		color = ambient + Lo;// *SSAO(positionAO.rgb, normalRoughness.rgb);
 	}
+	else
+	{
+		color = viewZEmit.y * color;
+	}
+	
+	/*color = color / (color + vec3(1.0));
+	color = pow(color, vec3(1.0 / ubd.gamma));*/
 
-	color = ambient + Lo;// *SSAO(positionAO.rgb, normalRoughness.rgb);
-
-	color = color / (color + vec3(1.0));
-	color = pow(color, vec3(1.0 / ubd.gamma));
-
-	o_FragColor = vec4(color.rgb, 1.0);
+	o_FragColor = color;
 }

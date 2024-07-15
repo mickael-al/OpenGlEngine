@@ -63,15 +63,21 @@ layout(location = 3) out vec2 gOther;
 
 void main(void)
 {   
+	vec4 col = texture(albedoTexture, fragTexCoord);
+	if (col.a < 0.5)
+	{
+		discard;
+	}
 	gPosition.rgb = WorldPos;
 	vec3 normal = texture(normalTexture, fragTexCoord).rgb;
 	normal = mix(vec3(0.5, 0.5, 1.0), normal, ubm.ubm[imaterial].normal);
 	normal = normalize(normal * 2.0 - 1.0);
 	gNormal.rgb = normalize(TBN * normal);
-
-	gColorSpec.rgb = ubm.ubm[imaterial].albedo * Color * texture(albedoTexture, fragTexCoord).rgb;
+	
+	gColorSpec.rgb = ubm.ubm[imaterial].albedo * Color * col.rgb;
 	gColorSpec.a = ubm.ubm[imaterial].metallic * texture(metallicTexture, fragTexCoord).r;
 	gNormal.a = ubm.ubm[imaterial].roughness * texture(roughnessTexture, fragTexCoord).r;
 	gPosition.a = ubm.ubm[imaterial].ao * texture(oclusionTexture, fragTexCoord).r;
 	gOther.r = Depth;
+	gOther.g = 0.0;//emit
 }

@@ -92,6 +92,7 @@ void main(void)
 	gColorSpec.rgb = ubm.ubm[imaterial].albedo * Color * texture(albedoTexture, fragTexCoord).rgb;
 	gColorSpec.a = ubm.ubm[imaterial].metallic * texture(metallicTexture, fragTexCoord).r;
 	gNormal.a = ubm.ubm[imaterial].roughness * texture(roughnessTexture, fragTexCoord).r;
-	gPosition.a = ubm.ubm[imaterial].ao * texture(oclusionTexture, fragTexCoord).r * 1000.0f;
+	gPosition.a = ubm.ubm[imaterial].ao * texture(oclusionTexture, fragTexCoord).r;
 	gOther.r = Depth;
+	gOther.g = 2.0;//emit
 }
