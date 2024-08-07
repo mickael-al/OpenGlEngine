@@ -39,6 +39,7 @@ layout(std430, binding = 3) buffer UniformBufferDivers
 	int maxLight;
 	float u_time;
 	float gamma;
+	float ambiant;
 	float fov;
 	bool ortho;
 } ubd;
@@ -51,7 +52,7 @@ layout(binding = 4) uniform sampler2D oclusionTexture;
 
 layout(location = 0) in vec2 fragTexCoord;
 layout(location = 1) in vec3 Color;
-layout(location = 2) in vec3 WorldPos;
+layout(location = 2) in vec3 ViewPos;
 layout(location = 3) in mat3 TBN;
 layout(location = 6) flat in int imaterial;
 layout(location = 7) in float Depth;
@@ -63,7 +64,7 @@ layout(location = 3) out vec2 gOther;
 
 void main(void)
 {
-	float d = length(ubc.camPos - WorldPos) * (ubd.ortho ? 1.0f : (ubd.fov / 80.0f));
+	/*float d = length(ubc.camPos - WorldPos) * (ubd.ortho ? 1.0f : (ubd.fov / 80.0f));
 	float t = ubm.ubm[imaterial].roughness + (ubm.ubm[imaterial].normal > 0.5 ? clamp((d / 250.0)*0.4f, 0.0, 0.4) : clamp((d / 200.0)*0.5f, 0.0, 0.5));
 	vec3 wp = vec3(WorldPos.x + (t / 2), WorldPos.y + (t / 2), WorldPos.z + (t / 2));
 
@@ -90,5 +91,5 @@ void main(void)
 	else
 	{
 		gPosition = vec4(0.4, 0.4, 0.45, clamp((1.0f - ((d - 25.0f) / 250.0))*0.4f, 0.0, 0.0));
-	}
+	}*/
 }

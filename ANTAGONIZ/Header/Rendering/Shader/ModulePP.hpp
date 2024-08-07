@@ -23,6 +23,14 @@ namespace Ge
 			exposure = 1.0;
 			gamma = nullptr;
 		}
+		void copy(PPSetting pp)
+		{
+			bloom = pp.bloom;
+			bloom_filter = pp.bloom_filter;
+			bloom_threshold = pp.bloom_threshold;
+			bloom_intensity = pp.bloom_intensity;
+			exposure = pp.exposure;			
+		}
 	};
 	class ShapeBuffer;
 	class ModulePP : public InitializerAPI

@@ -38,6 +38,7 @@ void ShaderDataMisc::update(Camera * cam)
 	m_ubd.u_time = m_time->getTime();
 	m_ubd.maxLight = m_gdm->str_dataMisc.lightCount;
 	m_ubd.gamma = m_settingManager->getGamma();
+	m_ubd.ambiant = m_settingManager->getAmbient();
 	m_ubd.fov = cam->getFieldOfView();
 	m_ubd.ortho = cam->getOrtho();
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ssbo);

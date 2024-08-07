@@ -27,6 +27,7 @@ struct StructUBM
 	float roughness;
 	float normal;
 	float ao;
+	float emit;
 };
 
 layout(std430, binding = 2) buffer UniformBufferMaterials
@@ -39,6 +40,7 @@ layout(std430, binding = 3) buffer UniformBufferDivers
 	int maxLight;
 	float u_time;
 	float gamma;
+	float ambiant;
 	float fov;
 	bool ortho;
 } ubd;
@@ -52,7 +54,7 @@ layout(binding = 4) uniform sampler2D oclusionTexture;
 layout(location = 0) in vec2 fragTexCoord;
 layout(location = 1) in vec3 Color;
 layout(location = 2) in vec3 LocalPos;
-layout(location = 3) in vec3 WorldPos;
+layout(location = 3) in vec3 ViewPos;
 layout(location = 4) in mat3 TBN;
 layout(location = 7) flat in int imaterial;
 layout(location = 8) in float Depth;
@@ -83,7 +85,7 @@ void main(void)
 	}
 
 
-	gPosition.rgb = WorldPos;
+	gPosition.rgb = ViewPos;
 	vec3 normal = texture(normalTexture, fragTexCoord).rgb;
 	normal = mix(vec3(0.5, 0.5, 1.0), normal, ubm.ubm[imaterial].normal);
 	normal = normalize(normal * 2.0 - 1.0);

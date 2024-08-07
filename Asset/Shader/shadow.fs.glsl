@@ -23,10 +23,18 @@ layout(std430, binding = 1) buffer UniformBufferObject
 	StructUBO ubo[];
 }ubo;
 
+layout(binding = 0) uniform sampler2D albedoTexture;
+
 uniform int offsetUbo;
 uniform int offsetShadow;
 
+layout(location = 0) in vec2 fragTexCoord;
+
 void main()
 {
-
+	vec4 col = texture(albedoTexture, fragTexCoord);
+	if (col.a < 0.5)
+	{
+		discard;
+	}
 }

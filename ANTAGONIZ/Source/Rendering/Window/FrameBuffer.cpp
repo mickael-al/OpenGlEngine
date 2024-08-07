@@ -16,7 +16,7 @@ namespace Ge
 
         glGenTextures(1, &m_gPosition);
         glBindTexture(GL_TEXTURE_2D, m_gPosition);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_gPosition, 0);
@@ -30,7 +30,7 @@ namespace Ge
 
         glGenTextures(1, &m_gColorSpec);
         glBindTexture(GL_TEXTURE_2D, m_gColorSpec);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_gColorSpec, 0);
@@ -90,13 +90,13 @@ namespace Ge
     void FrameBuffer::resize(int width, int height)
     {
         glBindTexture(GL_TEXTURE_2D, m_gPosition);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
 
         glBindTexture(GL_TEXTURE_2D, m_gNormal);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
 
         glBindTexture(GL_TEXTURE_2D, m_gColorSpec);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
 
         glBindTexture(GL_TEXTURE_2D, m_gOther);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, m_gdm->str_width, m_gdm->str_height, 0, GL_R, GL_FLOAT, NULL);

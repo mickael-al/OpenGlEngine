@@ -5,6 +5,7 @@
 #include "json_struct.h"
 #include <glm/glm.hpp>
 #include "GObject.hpp"
+#include "ModulePP.hpp"
 
 namespace Ge
 {
@@ -64,6 +65,7 @@ JS_OBJ_EXT(glm::vec2, x, y);
 JS_OBJ_EXT(glm::vec3, x, y, z);
 JS_OBJ_EXT(glm::vec4, x, y, z,w);
 JS_OBJ_EXT(glm::quat, x, y, z,w);
+JS_OBJ_EXT(PPSetting, bloom, bloom_filter, bloom_threshold, bloom_intensity, exposure);
 
 struct CollisionData
 {
@@ -134,6 +136,7 @@ struct MaterialData
 	float roughness;
 	float normal;
 	float ao;
+	float emit;
 	int albedoMap;
 	int normalMap;
 	int metallicMap;
@@ -149,7 +152,7 @@ struct MaterialData
 		aoMap = -1;
 		shader = -1;
 	}
-	JS_OBJ(albedo, offset, tilling, metallic, roughness, normal, ao, albedoMap, normalMap, metallicMap, RoughnessMap, aoMap, shader);
+	JS_OBJ(albedo, offset, tilling, metallic, roughness, normal, ao, emit, albedoMap, normalMap, metallicMap, RoughnessMap, aoMap, shader);
 };
 
 struct TextureData
@@ -231,6 +234,7 @@ struct SceneData
 {
 	std::string name;
 	std::string currentPath;
+	std::string skyboxPath;
 	glm::vec3 freeCamPos;
 	glm::quat freeCamRot;
 	std::vector<BufferData> bufferData;
@@ -243,6 +247,7 @@ struct SceneData
 	std::vector<AudioSourceData> audioData;
 	std::vector<EmptyData> emptyData;
 	PathFindingData path;
+	PPSetting pp;
 
 	/*Engine Part*/
 	std::vector<ShapeBuffer*> buffer;
@@ -261,8 +266,9 @@ struct SceneData
 	{
 		name = "";
 		currentPath = "";
+		skyboxPath = "";
 	}	
-	JS_OBJ(freeCamPos, freeCamRot,bufferData, shaderData, materialData, textureData, modelData, lightData, soundBufferData, audioData, emptyData, path);
+	JS_OBJ(freeCamPos, freeCamRot,bufferData, shaderData, materialData, textureData, modelData, lightData, soundBufferData, audioData, emptyData, path, skyboxPath, pp);
 };
 
 #endif //!__PROJECT_DATA__

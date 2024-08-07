@@ -26,6 +26,8 @@ namespace Ge
 		const glm::vec4 & getClearColor() const;
         void setGamma(float gamma);
         float getGamma() const;
+        void setAmbient(float ambiant);
+        float getAmbient() const;
         void setEditor(bool state);
         bool getEditor() const;
         void setEditorPath(const char * path);

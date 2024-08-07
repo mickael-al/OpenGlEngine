@@ -74,6 +74,7 @@ namespace Ge
 		char m_pathOpenProject[256];
 		char m_objectName[256];
 		char m_pathFindingName[256];
+		float m_ambient = 0.1f;
 
 		int m_playMode = 0;
 		int m_scriptCombo = 0;
@@ -98,7 +99,7 @@ namespace Ge
 		int m_iconSize = 64;
 		int m_iconModeSize = 32;
 		int m_iconMoveSize = 16;
-		int m_columns = 8;	
+		int m_columns = 8;
 		std::string m_currentProjectLocation;
 		std::string m_baseProjectLocation;
 		SceneData* m_currentSceneData = nullptr;

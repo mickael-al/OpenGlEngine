@@ -12,6 +12,7 @@ struct UniformBufferMaterial
     float roughness;
     float normal;
     float ao;
+    float emit;
 };
 
 #endif //!__ENGINE_UNIFORM_BUFFER_MATERIAL__

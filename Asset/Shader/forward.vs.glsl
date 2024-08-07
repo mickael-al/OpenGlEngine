@@ -28,6 +28,7 @@ layout(std430, binding = 2) buffer UniformBufferDivers
 	int maxLight;
 	float u_time;
 	float gamma;
+	float ambiant;
 	float fov;
 	bool ortho;
 } ubd;

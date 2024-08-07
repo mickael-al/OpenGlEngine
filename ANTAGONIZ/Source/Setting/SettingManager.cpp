@@ -83,6 +83,16 @@ namespace Ge
         return m_settingInfo.m_gamma;
     }
 
+    void SettingManager::setAmbient(float ambiant)
+    {
+        m_settingInfo.m_ambient = ambiant;
+    }
+
+    float SettingManager::getAmbient() const
+    {
+        return m_settingInfo.m_ambient;
+    }
+
     void SettingManager::setEditor(bool state)
     {
         m_settingInfo.m_editor = state;

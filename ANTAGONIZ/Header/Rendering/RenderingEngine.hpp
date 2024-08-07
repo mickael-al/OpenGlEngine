@@ -20,6 +20,7 @@ namespace Ge
 	class FrameBuffer;
 	class SSAOBuffer;
 	class PostProcess;
+	class Skybox;
 }
 
 namespace Ge
@@ -48,6 +49,7 @@ namespace Ge
 		LightManager * m_lightManager;
 		ShaderDataMisc * m_shaderDataMisc;
 		PostProcess* m_postProcess;
+		Skybox* m_skybox;
     };
 }
 

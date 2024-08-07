@@ -33,6 +33,7 @@ layout(std430, binding = 2) buffer UniformBufferDivers
 	int maxLight;
 	float u_time;
 	float gamma;
+	float ambiant;
 	float fov;
 	bool ortho;
 } ubd;
@@ -94,6 +95,11 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
 const mat4 biasMat = mat4(
 	0.5, 0.0, 0.0, 0.0,
 	0.0, 0.5, 0.0, 0.0,
@@ -107,6 +113,9 @@ layout(binding = 2) uniform sampler2D gColorSpec;
 layout(binding = 3) uniform sampler2D gOther;
 layout(binding = 4) uniform sampler2DArray shadowDepth;
 layout(binding = 5) uniform sampler2D texNoise;
+layout(binding = 6) uniform samplerCube irradianceMap;
+layout(binding = 7) uniform samplerCube prefilterMap;
+layout(binding = 8) uniform sampler2D brdfLUT;
 
 float calculateBias(vec4 shadowCoord, vec3 normal, vec3 lightDir)
 {
@@ -157,7 +166,7 @@ in vec2 v_UV;
 float SSAO(vec3 fragPos, vec3 normal)
 {
 	ivec2 ts = textureSize(gPosition,0);
-	vec3 randomVec = texture(texNoise, v_UV * vec2(float(ts.x) / 4.0, float(ts.y) / 4.0)).xyz;
+	vec3 randomVec = normalize(texture(texNoise, v_UV * vec2(float(ts.x) / 4.0, float(ts.y) / 4.0)).xyz);
 
 	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
 	vec3 bitangent = cross(normal, tangent);
@@ -165,12 +174,13 @@ float SSAO(vec3 fragPos, vec3 normal)
 	float occlusion = 0.0;
 	float radius = 0.5;	
 	float bias = 0.025;
+
 	for (int i = 0; i < 64; ++i)
 	{
 		vec3 samplePos = TBN * ubssao.samples[i];
 		samplePos = fragPos + samplePos * radius;
 		vec4 offset = vec4(samplePos, 1.0);
-		offset = (ubc.proj * ubc.view) * offset;    // from view to clip-space
+		offset = ubc.proj * offset;    // from view to clip-space		
 		offset.xyz /= offset.w;               // perspective divide
 		offset.xyz = offset.xyz * 0.5 + 0.5;
 		float sampleDepth = texture(gPosition, offset.xy).z;
@@ -192,10 +202,9 @@ void main()
 
 	vec3 color = colSpec.rgb;	
 	color = pow(color, vec3(ubd.gamma));
+	vec3 worldPos = (inverse(ubc.view) * vec4(positionAO.rgb, 1)).xyz;
 
-	vec3 ambient = vec3(0.01f) * color * positionAO.a;
-
-	vec3 V = normalize(ubc.camPos - positionAO.rgb);
+	vec3 V = normalize(ubc.camPos - worldPos);
 
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, color, colSpec.a);
@@ -206,8 +215,8 @@ void main()
 		for (int i = 0; i < ubd.maxLight; i++)
 		{
 			float shadow = 1.0;
-			vec3 L = normalize(ubl.ubl[i].position - positionAO.rgb);
-			float distance = length(ubl.ubl[i].position - positionAO.rgb);
+			vec3 L = normalize(ubl.ubl[i].position - worldPos);
+			float distance = length(ubl.ubl[i].position - worldPos);
 			float attenuation = 1.0 / (distance * distance);
 			vec3 radiance = ubl.ubl[i].color * attenuation * ubl.ubl[i].range;
 			if (ubl.ubl[i].status == 0)
@@ -244,11 +253,11 @@ void main()
 							cascadeIndex = k + 1;
 						}
 					}
-					vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + cascadeIndex].projview) * vec4(positionAO.rgb, 1.0);
+					vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + cascadeIndex].projview) * vec4(worldPos, 1.0);
 					float bias = calculateBias(shadowCoord, normalRoughness.rgb, L);
 					shadow = filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + cascadeIndex, bias);
 				}
-				Lo += ((kD * color / PI + specular) * ubl.ubl[i].color * (ubl.ubl[i].range / 10.0) * NdotL) * shadow;
+				Lo += ((kD * color / PI + specular) * ubl.ubl[i].color * (ubl.ubl[i].range / 10.0) * NdotL) * mix(ubd.ambiant, 1.0, shadow);
 			}
 			else if (ubl.ubl[i].status == 1) // PointLight
 			{
@@ -256,12 +265,12 @@ void main()
 				{
 					for (uint k = 0; k < SHADOW_MAP_CUBE_COUNT && shadow > 0.5f; ++k)
 					{
-						vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + k].projview) * vec4(positionAO.rgb, 1.0);
+						vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + k].projview) * vec4(worldPos, 1.0);
 						float bias = calculateBias(shadowCoord, normalRoughness.rgb, L);
 						shadow *= filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + k, bias);
 					}
 				}
-				Lo += (kD * color / PI + specular) * radiance * NdotL * shadow;
+				Lo += (kD * color / PI + specular) * radiance * NdotL * mix(ubd.ambiant,1.0, shadow);
 			}
 			else if (ubl.ubl[i].status == 2) // SpotLight
 			{
@@ -276,11 +285,31 @@ void main()
 					float edge1 = cos(spotAngle / 2.0);
 					float smoothFactor = smoothstep(edge1, edge0, spotEffect);
 
-					Lo += (kD * color / PI + specular) * radiance * NdotL * pow(smoothFactor, 2.0) * shadow;
+					Lo += (kD * color / PI + specular) * radiance * NdotL * pow(smoothFactor, 2.0) * mix(ubd.ambiant, 1.0, shadow);
 				}
 			}
 		}
-		color = ambient + Lo;// *SSAO(positionAO.rgb, normalRoughness.rgb);
+		//IBL PBR
+		vec3 R = reflect(-V, normalRoughness.rgb);
+		vec3 F = fresnelSchlickRoughness(max(dot(normalRoughness.rgb, V), 0.0), F0, normalRoughness.a);
+
+		vec3 kS = F;
+		vec3 kD = 1.0 - kS;
+		kD *= 1.0 - colSpec.a;
+
+		vec3 irradiance = texture(irradianceMap, normalRoughness.rgb).rgb;
+		vec3 diffuse = vec3(ubd.ambiant) * irradiance * color;
+
+		// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
+		const float MAX_REFLECTION_LOD = 4.0;
+		vec3 prefilteredColor = textureLod(prefilterMap, R, normalRoughness.a * MAX_REFLECTION_LOD).rgb;
+		vec2 brdf = texture(brdfLUT, vec2(max(dot(normalRoughness.rgb, V), 0.0), normalRoughness.a)).rg;
+		vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+		//IBL PBR
+
+		vec3 ambient = (kD * diffuse + specular) * positionAO.a;
+
+		color = ambient + Lo * SSAO(positionAO.rgb, normalRoughness.rgb);
 	}
 	else
 	{

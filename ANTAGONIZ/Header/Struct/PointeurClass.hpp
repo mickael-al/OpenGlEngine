@@ -16,6 +16,7 @@
 #include "PhysicsWraper.hpp"
 #include "SoundManager.hpp"
 #include "PostProcess.hpp"
+#include "Skybox.hpp"
 
 using namespace Ge;
 namespace Ge
@@ -41,6 +42,7 @@ struct ptrClass
 	GraphiquePipelineManager * graphiquePipelineManager;
 	RenderingEngine * renderingEngine;
 	PostProcess* postProcess;
+	Skybox * skybox;
 };
 
 #endif //__ENGINE_POINTEUR_CLASS__

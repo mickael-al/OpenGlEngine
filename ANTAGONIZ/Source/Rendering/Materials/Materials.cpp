@@ -24,6 +24,7 @@ namespace Ge
 		m_ubm.roughness = 1.0f;
 		m_ubm.normal = 1.0f;
 		m_ubm.ao = 1.0f;
+		m_ubm.emit = 0.0f;
 		m_ubm.tilling = glm::vec2(1.0f);
 		m_ubm.offset = glm::vec2(0.0f);
 		m_offset[0] = m_ubm.offset.x;
@@ -74,6 +75,12 @@ namespace Ge
 	void Materials::setOclusion(float ao)
 	{
 		m_ubm.ao = ao;
+		updateUniformBufferMaterial();
+	}
+
+	void Materials::setEmission(float emit)
+	{
+		m_ubm.emit = emit;
 		updateUniformBufferMaterial();
 	}
 
@@ -162,6 +169,11 @@ namespace Ge
 	float Materials::getOclusion() const
 	{
 		return m_ubm.ao;
+	}
+
+	float Materials::getEmission() const
+	{
+		return m_ubm.emit;
 	}
 
 	Textures * Materials::getAlbedoTexture() const
@@ -303,6 +315,10 @@ namespace Ge
 			updateUniformBufferMaterial();
 		}
 		if (ImGui::DragFloat("AO", &m_ubm.ao, 0.05f))
+		{
+			updateUniformBufferMaterial();
+		}
+		if (ImGui::DragFloat("Emission", &m_ubm.emit, 0.05f))
 		{
 			updateUniformBufferMaterial();
 		}

@@ -6,6 +6,7 @@ struct UniformBufferDiver
     int maxLight;
     float u_time;
     float gamma;
+    float ambiant;
 	float fov;
 	bool ortho;
 };

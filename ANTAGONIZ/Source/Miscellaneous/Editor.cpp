@@ -71,6 +71,27 @@ ImVec4 HSVtoRGB(float h, float s, float v) {
 	}
 }
 
+std::string removeFilename(const std::string& path) 
+{
+	// Trouver la dernière occurrence de '/' ou '\'
+	size_t posSlash = path.find_last_of('/');
+	size_t posBackslash = path.find_last_of('\\');
+
+	// Trouver la position maximum des deux
+	size_t pos = (posSlash == std::string::npos) ? posBackslash :
+		(posBackslash == std::string::npos) ? posSlash :
+		(posSlash > posBackslash ? posSlash : posBackslash);
+
+	// Si aucun séparateur n'a été trouvé, retourner le chemin original
+	if (pos == std::string::npos) {
+		return path;
+	}
+
+	// Retourner la sous-chaîne jusqu'à la position du dernier séparateur
+	return path.substr(0, pos);
+}
+
+
 std::string cropPath(std::string& str1, std::string& str2)
 {
 	size_t pos = str1.find(str2);
@@ -792,7 +813,11 @@ void Editor::drawFolderContents(const std::string& basePath,std::string& path)
 		{
 			if (ImGui::ImageButton(m_icon[4], ImVec2(m_iconSize, m_iconSize)))
 			{
-
+				if (m_pc->inputManager->getKey(GLFW_KEY_L))
+				{
+					m_pc->skybox->loadTextureSkybox(entry.path().string());
+					m_currentSceneData->skyboxPath = cropPath(entry.path().string(), m_baseProjectLocation);
+				}
 			}
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
 			{				
@@ -1128,6 +1153,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 		mat->setRoughness(sd->materialData[i].roughness);
 		mat->setNormal(sd->materialData[i].normal);
 		mat->setOclusion(sd->materialData[i].ao);
+		mat->setEmission(sd->materialData[i].emit);
 		if (sd->materialData[i].albedoMap != -1)
 		{
 			mat->setAlbedoTexture(sd->textures[sd->materialData[i].albedoMap]);
@@ -1282,6 +1308,16 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 	Camera* cam = m_pc->cameraManager->getCurrentCamera();
 	cam->setPosition(sd->freeCamPos);
 	cam->setRotation(sd->freeCamRot);
+	if (sd->skyboxPath.empty())
+	{
+		m_pc->skybox->clearTextureSkybox();
+	}
+	else
+	{
+		m_pc->skybox->loadTextureSkybox(m_baseProjectLocation + sd->skyboxPath);
+	}
+	PPSetting* setting = m_pc->postProcess->getPPSetting();
+	setting->copy(sd->pp);
 }
 
 void Editor::globalSave()
@@ -1597,7 +1633,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		md.roughness = sd->materials[i]->getRoughness();
 		md.normal = sd->materials[i]->getNormal();
 		md.ao = sd->materials[i]->getOclusion();
-		
+		md.emit = sd->materials[i]->getEmission();
 		for (int j = 0; j < sd->textures.size(); j++)
 		{			
 			if (sd->textures[j] == sd->materials[i]->getAlbedoTexture())
@@ -1799,6 +1835,14 @@ void Editor::render(GraphicsDataMisc* gdm)
 						m_openPathFinding = true;
 					}
 				}
+				if (ImGui::MenuItem("Skybox Clear"))
+				{
+					m_pc->skybox->clearTextureSkybox();
+					if (m_currentSceneData != nullptr)
+					{						
+						m_currentSceneData->skyboxPath = "";
+					}
+				}
 				ImGui::EndMenu();
 			}
 		}
@@ -1871,6 +1915,8 @@ void Editor::render(GraphicsDataMisc* gdm)
 		{
 			m_generatePathFindingNextPlay = true;
 			m_currentSceneData->path.pathFolder = m_pathFindingName;
+			m_currentSceneData->path.pathFolder = cropPath(m_currentSceneData->path.pathFolder, m_baseProjectLocation);
+			Debug::Log("%s", m_currentSceneData->path.pathFolder.c_str());
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::SameLine();
@@ -2147,14 +2193,14 @@ void Editor::render(GraphicsDataMisc* gdm)
 				}
 				if (m_generatePathFindingNextPlay)
 				{
-					Behaviour* b = new PathFindingScene(m_currentSceneData->path.pathPosition, m_currentSceneData->path.zoneSize, m_currentSceneData->path.pointCount, m_currentSceneData->path.pathFolder, m_currentSceneData->path.pathLiasonPercent);
+					Behaviour* b = new PathFindingScene(m_currentSceneData->path.pathPosition, m_currentSceneData->path.zoneSize, m_currentSceneData->path.pointCount, m_baseProjectLocation+m_currentSceneData->path.pathFolder, m_currentSceneData->path.pathLiasonPercent);
 					m_allBehaviourLoaded.push_back(b);
 					m_pc->behaviourManager->addBehaviour(b);
 					m_generatePathFindingNextPlay = false;
 				}
 				else if (m_currentSceneData->path.has)
 				{
-					PathFindingScene* b = new PathFindingScene(m_currentSceneData->path.pathPosition, m_currentSceneData->path.zoneSize, m_currentSceneData->path.pointCount, m_currentSceneData->path.pathFolder, m_currentSceneData->path.pathLiasonPercent);
+					PathFindingScene* b = new PathFindingScene(m_currentSceneData->path.pathPosition, m_currentSceneData->path.zoneSize, m_currentSceneData->path.pointCount, m_baseProjectLocation+m_currentSceneData->path.pathFolder, m_currentSceneData->path.pathLiasonPercent);
 					b->loadFromFile();
 					m_allBehaviourLoaded.push_back(b);
 					m_pc->behaviourManager->addBehaviour(b);
@@ -2267,10 +2313,20 @@ void Editor::render(GraphicsDataMisc* gdm)
 				Materials* mat = model->getMaterial();
 				if (mat != nullptr)
 				{
-					bool filter = !m_pc->inputManager->getKey(GLFW_KEY_SPACE);
+					bool filter = !m_pc->inputManager->getKey(GLFW_KEY_N);
 					ImGui::Text("Base       ");
 					ImGui::SameLine();
 					ImGui::Image((ImTextureID)mat->getAlbedoTexture()->getTextureID(),ImVec2(80, 80));
+					if (ImGui::IsItemClicked(0))
+					{
+						for (int i = 0; i < m_currentSceneData->textures.size(); i++)
+						{
+							if (m_currentSceneData->textures[i] == mat->getAlbedoTexture())
+							{								
+								m_currentProjectLocation = m_baseProjectLocation + removeFilename(m_currentSceneData->textureData[i].path);
+							}
+						}
+					}
 					std::string path = dropTargetImage();
 					if (!path.empty())
 					{
@@ -2306,6 +2362,16 @@ void Editor::render(GraphicsDataMisc* gdm)
 					ImGui::Text("Metallic   ");
 					ImGui::SameLine();
 					ImGui::Image((ImTextureID)mat->getMetallicTexture()->getTextureID(), ImVec2(80, 80));
+					if (ImGui::IsItemClicked(0))
+					{
+						for (int i = 0; i < m_currentSceneData->textures.size(); i++)
+						{
+							if (m_currentSceneData->textures[i] == mat->getMetallicTexture())
+							{
+								m_currentProjectLocation = m_baseProjectLocation + removeFilename(m_currentSceneData->textureData[i].path);
+							}
+						}
+					}
 					path = dropTargetImage();
 					if (!path.empty())
 					{
@@ -2340,6 +2406,16 @@ void Editor::render(GraphicsDataMisc* gdm)
 					ImGui::Text("Roughness  ");
 					ImGui::SameLine();
 					ImGui::Image((ImTextureID)mat->getRoughnessTexture()->getTextureID(), ImVec2(80, 80));
+					if (ImGui::IsItemClicked(0))
+					{
+						for (int i = 0; i < m_currentSceneData->textures.size(); i++)
+						{
+							if (m_currentSceneData->textures[i] == mat->getRoughnessTexture())
+							{
+								m_currentProjectLocation = m_baseProjectLocation + removeFilename(m_currentSceneData->textureData[i].path);
+							}
+						}
+					}
 					path = dropTargetImage();
 					if (!path.empty())
 					{
@@ -2375,6 +2451,16 @@ void Editor::render(GraphicsDataMisc* gdm)
 					ImGui::Text("Normal     ");
 					ImGui::SameLine();
 					ImGui::Image((ImTextureID)mat->getNormalTexture()->getTextureID(), ImVec2(80, 80));
+					if (ImGui::IsItemClicked(0))
+					{
+						for (int i = 0; i < m_currentSceneData->textures.size(); i++)
+						{
+							if (m_currentSceneData->textures[i] == mat->getNormalTexture())
+							{
+								m_currentProjectLocation = m_baseProjectLocation + removeFilename(m_currentSceneData->textureData[i].path);
+							}
+						}
+					}
 					path = dropTargetImage();
 					if (!path.empty())
 					{
@@ -2413,6 +2499,16 @@ void Editor::render(GraphicsDataMisc* gdm)
 					ImGui::Text("Oclusion   ");
 					ImGui::SameLine();
 					ImGui::Image((ImTextureID)mat->getOclusionTexture()->getTextureID(), ImVec2(80, 80));
+					if (ImGui::IsItemClicked(0))
+					{
+						for (int i = 0; i < m_currentSceneData->textures.size(); i++)
+						{
+							if (m_currentSceneData->textures[i] == mat->getOclusionTexture())
+							{
+								m_currentProjectLocation = m_baseProjectLocation + removeFilename(m_currentSceneData->textureData[i].path);
+							}
+						}
+					}
 					path = dropTargetImage();
 					if (!path.empty())
 					{
@@ -2606,15 +2702,38 @@ void Editor::render(GraphicsDataMisc* gdm)
 		ImGui::SetNextWindowSize(ImVec2(300, 300), ImGuiCond_FirstUseEver);
 		ImGui::Begin("Post Process", &m_editorData->postProcess);
 		PPSetting* setting = m_pc->postProcess->getPPSetting();
-		ImGui::Text("Post processing");
-		ImGui::DragFloat("Gamma", setting->gamma);
-		ImGui::DragFloat("Exposure##Bloom", &setting->exposure, 0.1f);
+		ImGui::Text("Post processing");		
+		m_ambient = m_pc->settingManager->getAmbient();
+		if (ImGui::DragFloat("Ambient", &m_ambient))
+		{
+			m_pc->settingManager->setAmbient(m_ambient);			
+		}
+		if(ImGui::DragFloat("Gamma", setting->gamma))
+		{
+			if (m_currentSceneData != nullptr) { m_currentSceneData->pp.gamma = setting->gamma; }
+		}
+		if (ImGui::DragFloat("Exposure##Bloom", &setting->exposure, 0.1f))
+		{
+			if (m_currentSceneData != nullptr) { m_currentSceneData->pp.exposure = setting->exposure; }
+		}
 		if (ImGui::TreeNodeEx("Bloom"))
 		{
-			ImGui::Checkbox("Active##Bloom", &setting->bloom);
-			ImGui::DragFloat("Filter##Bloom", &setting->bloom_filter,0.01f);			
-			ImGui::DragFloat("Threshold##Bloom", &setting->bloom_threshold, 0.01f);
-			ImGui::DragFloat("Intensity##Bloom", &setting->bloom_intensity, 0.01f);
+			if (ImGui::Checkbox("Active##Bloom", &setting->bloom))
+			{
+				if (m_currentSceneData != nullptr) { m_currentSceneData->pp.bloom = setting->bloom; }
+			}
+			if (ImGui::DragFloat("Filter##Bloom", &setting->bloom_filter,0.01f))
+			{
+				if (m_currentSceneData != nullptr) { m_currentSceneData->pp.bloom_filter = setting->bloom_filter; }
+			}
+			if (ImGui::DragFloat("Threshold##Bloom", &setting->bloom_threshold, 0.01f))
+			{
+				if (m_currentSceneData != nullptr) { m_currentSceneData->pp.bloom_threshold = setting->bloom_threshold; }
+			}
+			if (ImGui::DragFloat("Intensity##Bloom", &setting->bloom_intensity, 0.01f))
+			{
+				if (m_currentSceneData != nullptr) { m_currentSceneData->pp.bloom_intensity = setting->bloom_intensity; }
+			}
 			ImGui::TreePop();			
 		}
 		

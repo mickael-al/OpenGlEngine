@@ -27,6 +27,7 @@ struct StructUBM
 	float roughness;
 	float normal;
 	float ao;
+	float emit;
 };
 
 layout(std430, binding = 2) buffer UniformBufferMaterials
@@ -39,6 +40,7 @@ layout(std430, binding = 3) buffer UniformBufferDivers
 	int maxLight;
 	float u_time;
 	float gamma;
+	float ambiant;
 	float fov;
 	bool ortho;
 } ubd;
@@ -51,7 +53,7 @@ layout(binding = 4) uniform sampler2D oclusionTexture;
 
 layout(location = 0) in vec2 fragTexCoord;
 layout(location = 1) in vec3 Color;
-layout(location = 2) in vec3 WorldPos;
+layout(location = 2) in vec3 ViewPos;
 layout(location = 3) in mat3 TBN;
 layout(location = 6) flat in int imaterial;
 layout(location = 7) in float Depth;
@@ -68,7 +70,7 @@ void main(void)
 	{
 		discard;
 	}
-	gPosition.rgb = WorldPos;
+	gPosition.rgb = ViewPos;
 	vec3 normal = texture(normalTexture, fragTexCoord).rgb;
 	normal = mix(vec3(0.5, 0.5, 1.0), normal, ubm.ubm[imaterial].normal);
 	normal = normalize(normal * 2.0 - 1.0);
@@ -77,7 +79,8 @@ void main(void)
 	gColorSpec.rgb = ubm.ubm[imaterial].albedo * Color * col.rgb;
 	gColorSpec.a = ubm.ubm[imaterial].metallic * texture(metallicTexture, fragTexCoord).r;
 	gNormal.a = ubm.ubm[imaterial].roughness * texture(roughnessTexture, fragTexCoord).r;
-	gPosition.a = ubm.ubm[imaterial].ao * texture(oclusionTexture, fragTexCoord).r;
+	vec2 aoe = texture(oclusionTexture, fragTexCoord).rg;
+	gPosition.a = ubm.ubm[imaterial].ao * aoe.x;
 	gOther.r = Depth;
-	gOther.g = 0.0;//emit
+	gOther.g = ubm.ubm[imaterial].emit * aoe.y;
 }

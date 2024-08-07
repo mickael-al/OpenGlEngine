@@ -28,6 +28,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "Skybox.hpp"
 
 namespace Ge
 {
@@ -45,11 +46,13 @@ namespace Ge
 		m_graphiquePipelineManager = new GraphiquePipelineManager();
 		m_hud = new Hud();
 		m_lightManager = new LightManager();
-		m_shaderDataMisc = new ShaderDataMisc();			
+		m_shaderDataMisc = new ShaderDataMisc();		
+		m_skybox = new Skybox();
     }
 
 	RenderingEngine::~RenderingEngine()
 	{
+		delete m_skybox;
 		delete m_postProcess;
 		delete m_frameBuffer;
 		delete m_ssaoBuffer;
@@ -106,6 +109,7 @@ namespace Ge
 		m_ptrClass->graphiquePipelineManager = m_graphiquePipelineManager;
 		m_ptrClass->lightManager = m_lightManager;
 		m_ptrClass->postProcess = m_postProcess;
+		m_ptrClass->skybox = m_skybox;
 		m_ptrClass->renderingEngine = this;
 
         Debug::Info("Initialisation du moteur de rendu");
@@ -188,7 +192,11 @@ namespace Ge
 			Debug::INITFAILED("PostProcess");
 			return false;
 		}
-		
+		if (!m_skybox->initialize(m_graphicsDataMisc))
+		{
+			Debug::INITFAILED("Skybox");
+			return false;
+		}
         Debug::INITSUCCESS("RenderingEngine");
 
         return true;
@@ -196,6 +204,7 @@ namespace Ge
 
     void RenderingEngine::release()
     {        	
+		RenderingEngine::m_skybox->release();
 		RenderingEngine::m_postProcess->release();
 		RenderingEngine::m_shaderDataMisc->release();
 		RenderingEngine::m_ssaoBuffer->release();
@@ -221,7 +230,7 @@ namespace Ge
 		const glm::vec4 & clear = m_ptrClass->settingManager->getClearColor();
 		glClearColor(clear.x, clear.y, clear.z, clear.w);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+		m_skybox->render(m_cameraManager->getSSBO());
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
 		glDisable(GL_BLEND);
@@ -306,12 +315,13 @@ namespace Ge
 			{
 				glEnable(GL_CULL_FACE);
 			}
-		}
+		}		
 		/*  Shadow  */
 		
-		glEnable(GL_CULL_FACE);
+		//glEnable(GL_CULL_FACE);
+		glDisable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
-		glCullFace(GL_FRONT);
+	//	glCullFace(GL_FRONT);
 		glDisable(GL_BLEND);		
 		const std::vector<unsigned int>& frameBufferDepthShadow = m_lightManager->getFrameShadowBuffer();
 		for (int i = 0; i < frameBufferDepthShadow.size(); i++)
@@ -321,6 +331,7 @@ namespace Ge
 			glViewport(0, 0, TEXTURE_DIM, TEXTURE_DIM);
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_lightManager->getSsboShadow());
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_modelManager->getSSBO());
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_materialManager->getSSBO());
 			currentPipeline = m_graphicsDataMisc->str_default_pipeline_shadow;
 			unsigned int program = currentPipeline->getProgram();
 			glUseProgram(program);
@@ -347,11 +358,12 @@ namespace Ge
 						continue;
 					}
 				}
-
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, currentMaterial->getAlbedoTexture()->getTextureID());
 				ShaderPair* sp = currentMaterial->getPipeline()->getShaderPair();
 				if (sp->cullMode == 2)
 				{
-					glDisable(GL_CULL_FACE);
+					//glDisable(GL_CULL_FACE);
 				}
 				for (auto& buffer : mku)
 				{
@@ -367,14 +379,14 @@ namespace Ge
 				}
 				if (sp->cullMode == 2)
 				{
-					glEnable(GL_CULL_FACE);
+					//glEnable(GL_CULL_FACE);
 				}
 			}
 		}
 		glCullFace(GL_BACK);
 		/*  Shadow  */
 
-		glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer->getFowardFrameBuffer());
+		glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer->getFowardFrameBuffer());		
 		glDisable(GL_DEPTH_TEST);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_cameraManager->getSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_lightManager->getSSBO());
@@ -393,6 +405,12 @@ namespace Ge
 		glBindTexture(GL_TEXTURE_2D_ARRAY, m_lightManager->getTextureShadowArray());
 		glActiveTexture(GL_TEXTURE5);
 		glBindTexture(GL_TEXTURE_2D, m_ssaoBuffer->getNoiseTexture());
+		glActiveTexture(GL_TEXTURE6);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, m_skybox->getIrradianceMap());
+		glActiveTexture(GL_TEXTURE7);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, m_skybox->getPrefilterMap());
+		glActiveTexture(GL_TEXTURE8);
+		glBindTexture(GL_TEXTURE_2D, m_skybox->getBrdfLUTTexture());
 		glUseProgram(m_graphicsDataMisc->str_default_pipeline_forward->getProgram());
 		glViewport(0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height);
 

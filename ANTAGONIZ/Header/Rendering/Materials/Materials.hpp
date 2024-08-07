@@ -28,6 +28,7 @@ namespace Ge
 		void setRoughness(float roughness);
 		void setNormal(float normal);
 		void setOclusion(float ao);
+		void setEmission(float emit);
 		void setAlbedoTexture(Textures * albedo);
 		void setNormalTexture(Textures * normal);
 		void setMetallicTexture(Textures * metallic);
@@ -43,6 +44,7 @@ namespace Ge
 		float getRoughness() const;
 		float getNormal() const;
 		float getOclusion() const;
+		float getEmission() const;
 		Textures * getAlbedoTexture() const;
 		Textures * getNormalTexture() const;
 		Textures * getMetallicTexture() const;

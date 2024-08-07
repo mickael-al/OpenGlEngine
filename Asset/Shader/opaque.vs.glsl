@@ -28,6 +28,7 @@ struct StructUBM
 	float roughness;
 	float normal;
 	float ao;
+	float emit;
 };
 
 layout(std430, binding = 2) buffer UniformBufferMaterials
@@ -40,6 +41,7 @@ layout(std430, binding = 3) buffer UniformBufferDivers
 	int maxLight;
 	float u_time;
 	float gamma;
+	float ambiant;
 	float fov;
 	bool ortho;
 } ubd;
@@ -54,7 +56,7 @@ in vec2 a_TexCoords;
 
 layout(location = 0) out vec2 fragTexCoord;
 layout(location = 1) out vec3 Color;
-layout(location = 2) out vec3 WorldPos;
+layout(location = 2) out vec3 ViewPos;
 layout(location = 3) out mat3 TBN;
 layout(location = 6) out flat int imaterial;
 layout(location = 7) out float Depth;
@@ -63,14 +65,14 @@ void main()
 {
 	imaterial = ubo.ubo[offsetUbo + gl_InstanceID].mat_index;
 	fragTexCoord = ubm.ubm[imaterial].offset + a_TexCoords * ubm.ubm[imaterial].tilling;
-	vec4 wp = ubo.ubo[offsetUbo + gl_InstanceID].ubo * vec4(a_Position, 1.0);
-	WorldPos = vec3(wp);
+	vec4 wp = ubc.view * ubo.ubo[offsetUbo + gl_InstanceID].ubo * vec4(a_Position, 1.0);
+	ViewPos = vec3(wp);
 	Color = a_Color;
 	vec3 T = normalize(vec3(ubo.ubo[offsetUbo + gl_InstanceID].ubo * vec4(a_Tangents, 0.0)));
 	vec3 N = normalize(vec3(ubo.ubo[offsetUbo + gl_InstanceID].ubo * vec4(a_Normal, 0.0)));
 	T = normalize(T - dot(T, N) * N);
 	vec3 B = cross(N, T);
 	TBN = mat3(T, B, N);
-	Depth = (ubc.view * wp).z;
-	gl_Position = ubc.proj * ubc.view * wp;
+	Depth = wp.z;
+	gl_Position = ubc.proj * wp;
 }
