@@ -14,12 +14,12 @@
 
 namespace Ge
 {
-	Camera::Camera(GraphicsDataMisc * gdm) : GObject()
+	Camera::Camera(GraphicsDataMisc * gdm, int priority) : GObject()
 	{
 		m_far = 500.0f;
 		m_fov = 70.0f;
 		m_near = 0.1f;
-		m_priority = 0;
+		m_priority = priority;
 		m_gdm = gdm;
 		m_ssbo = m_gdm->str_ssbo.str_camera;
 		m_ortho = false;
@@ -62,13 +62,16 @@ namespace Ge
 	}
 
 	void Camera::mapMemory()
-	{		
-		m_uniformBufferCamera.camPos = m_transform.position;
-		m_uniformBufferCamera.view = getViewMatrix();
-		m_uniformBufferCamera.proj = getProjectionMatrix();
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ssbo);
-		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(UniformBufferCamera), &m_uniformBufferCamera);
-		m_lm->updateShadowCascadeMatrix();
+	{	
+		if (m_gdm->current_camera == this)
+		{
+			m_uniformBufferCamera.camPos = m_transform.position;
+			m_uniformBufferCamera.view = getViewMatrix();
+			m_uniformBufferCamera.proj = getProjectionMatrix();
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ssbo);
+			glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(UniformBufferCamera), &m_uniformBufferCamera);
+			m_lm->updateShadowCascadeMatrix();
+		}
 	}
 
 	void Camera::setFieldOfView(float fov)

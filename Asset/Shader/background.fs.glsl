@@ -5,16 +5,16 @@ layout(location = 1) in vec3 ViewPos;
 
 uniform samplerCube environmentMap;
 
-layout(location = 0) out vec4 gPosition;
+layout(location = 0) out vec3 gPosition;
 layout(location = 1) out vec4 gNormal;
-layout(location = 2) out vec4 gColorSpec;
-layout(location = 3) out vec2 gOther;
+layout(location = 2) out vec4 gColor;
+layout(location = 3) out vec3 gOther;
 
 void main()
 {		
     vec3 envColor = texture(environmentMap, WorldPos).rgb;
     
-    gPosition.rgb = ViewPos;
-    gColorSpec.rgb = envColor;
-    gOther.g = 1.0;
+    gPosition = ViewPos;
+    gColor = vec4(envColor,1.0);
+    gNormal.a = 1.0;
 }

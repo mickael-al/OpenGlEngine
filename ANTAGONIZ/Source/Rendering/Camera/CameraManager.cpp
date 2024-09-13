@@ -25,9 +25,9 @@ namespace Ge
         return true;
     }
 
-    Camera *CameraManager::createCamera(std::string name)
+    Camera *CameraManager::createCamera(std::string name,int priority)
     {
-        Camera * cam = new Camera(m_gdm);
+        Camera * cam = new Camera(m_gdm, priority);
 		m_cameras.push_back(cam);
 		cam->setName(name);
 		updatePriorityCamera();
@@ -60,7 +60,8 @@ namespace Ge
 				m_currentCamera = m_cameras[i];
 				m_gdm->current_camera = m_currentCamera;
 			}
-		}    		
+		}    	
+		updateStorage();
     }
 
     Camera *CameraManager::getCurrentCamera()

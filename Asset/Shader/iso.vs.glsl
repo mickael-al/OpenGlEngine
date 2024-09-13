@@ -21,7 +21,7 @@ layout(std430, binding = 1) buffer UniformBufferObject
 
 struct StructUBM
 {
-	vec3 albedo;
+	vec4 albedo;
 	vec2 offset;
 	vec2 tilling;
 	float metallic;
@@ -60,8 +60,7 @@ layout(location = 2) out vec3 LocalPos;
 layout(location = 3) out vec3 ViewPos;
 layout(location = 4) out mat3 TBN;
 layout(location = 7) out flat int imaterial;
-layout(location = 8) out float Depth;
-layout(location = 9) out vec3 size;
+layout(location = 8) out vec3 size;
 
 vec3 extractScale(mat4 modelMatrix) 
 {
@@ -93,6 +92,5 @@ void main()
 	T = normalize(T - dot(T, N) * N);
 	vec3 B = cross(N, T);
 	TBN = mat3(T, B, N);
-	Depth = wp.z;
 	gl_Position = ubc.proj * wp;
 }

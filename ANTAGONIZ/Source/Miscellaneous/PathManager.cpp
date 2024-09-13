@@ -15,6 +15,7 @@ namespace fs = std::filesystem;
 #include <cstring>
 #endif
 
+std::string PathManager::homeProjectPath = "";
 
 std::string PathManager::getHomeDirectory()
 {
@@ -68,4 +69,14 @@ void PathManager::workDirectory(const char * path)
 	result[lastSlash + 1] = '\0';
 	chdir(result);
 #endif
+}
+
+std::string & PathManager::getHomeProjectPath()
+{
+	return homeProjectPath;
+}
+
+void PathManager::setHomeProjectPath(std::string path)
+{
+	homeProjectPath = path;
 }

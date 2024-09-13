@@ -4,6 +4,7 @@
 #include "Initializer.hpp"
 #include <vector>
 #include <string>
+#include <map>
 
 namespace Ge
 {
@@ -13,7 +14,7 @@ namespace Ge
 }
 
 struct ImGuiIO;
-
+struct ImFont;
 namespace Ge
 {
 	class Hud final : public InitializerAPI
@@ -23,6 +24,7 @@ namespace Ge
 		~Hud();
 		void addImgui(ImguiBlock * ib);
 		void removeImgui(ImguiBlock * ib);
+		ImFont* addFont(std::string path, float size);
 		bool IsMouseOverAnyWindow();
 		void pass();
 	protected:
@@ -32,6 +34,7 @@ namespace Ge
 		void render();
 	public:
 		GraphicsDataMisc * m_gdm;
+		std::map<size_t, std::pair<unsigned int, ImFont*>> m_fontID;
 		std::vector<ImguiBlock *> m_imguiBlock;
 		EngineInfo * m_engineInfo;
 		Console * m_console;

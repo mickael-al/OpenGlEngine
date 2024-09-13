@@ -158,11 +158,11 @@ void PathFindingScene::debugPoint()
 	Materials* materialEdge = m_pc.materialManager->createMaterial();
 	m_materials.push_back(material);
 	m_materials.push_back(materialEdge);
-	material->setColor(glm::vec3(0, 1, 0));
+	material->setColor(glm::vec4(0, 1, 0, 1));
 	material->setMetallic(0.0f);
 	material->setRoughness(1.0f);
 
-	materialEdge->setColor(glm::vec3(0, 0, 1));
+	materialEdge->setColor(glm::vec4(0, 0, 1, 1));
 	materialEdge->setMetallic(0.0f);
 	materialEdge->setRoughness(1.0f);
 	float scale_base = 0.1f;
@@ -307,6 +307,14 @@ void PathFindingScene::loadFromFile()
 	FillGraph();
 }
 
+void PathFindingScene::help()
+{
+	Debug::Log("PathFindingScene generateMap -> P");
+	Debug::Log("PathFindingScene debugPoint -> O");
+	Debug::Log("PathFindingScene loadFromFile -> L");
+	Debug::Log("PathFindingScene saveToFile -> K");
+}
+
 void PathFindingScene::FillGraph()
 {
 	if (m_finder != nullptr)
@@ -421,7 +429,7 @@ void PathFindingScene::generateNeighbors()
 	maxDistance += maxDistance * m_liasonPercent;
 
 	m_neighbors.resize(m_points.size());
-
+	glm::vec3 hitp;
 	for (std::size_t i = 0; i < m_points.size(); ++i) 
 	{
 		for (std::size_t j = 0; j < m_points.size(); ++j) 
@@ -431,7 +439,13 @@ void PathFindingScene::generateNeighbors()
 				float distance = glm::distance(m_points[i], m_points[j]);
 				if (distance <= maxDistance) 
 				{
-					m_neighbors[i].push_back(j);
+					hitp = m_points[j];
+					m_pc.physicsEngine->raycast(&m_points[i], &m_points[j], &hitp);
+					if (glm::distance(m_points[i], hitp) >= distance)
+					{
+						m_neighbors[i].push_back(j);
+					}
+					
 				}
 			}
 		}
@@ -441,7 +455,7 @@ void PathFindingScene::generateNeighbors()
 
 void PathFindingScene::start()
 {
-
+	
 }
 
 void PathFindingScene::fixedUpdate()

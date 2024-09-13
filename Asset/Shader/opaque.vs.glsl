@@ -18,10 +18,9 @@ layout(std430, binding = 1) buffer UniformBufferObject
 	StructUBO ubo[];
 }ubo;
 
-
 struct StructUBM
 {
-	vec3 albedo;
+	vec4 albedo;
 	vec2 offset;
 	vec2 tilling;
 	float metallic;
@@ -59,7 +58,6 @@ layout(location = 1) out vec3 Color;
 layout(location = 2) out vec3 ViewPos;
 layout(location = 3) out mat3 TBN;
 layout(location = 6) out flat int imaterial;
-layout(location = 7) out float Depth;
 
 void main()
 {
@@ -73,6 +71,5 @@ void main()
 	T = normalize(T - dot(T, N) * N);
 	vec3 B = cross(N, T);
 	TBN = mat3(T, B, N);
-	Depth = wp.z;
 	gl_Position = ubc.proj * wp;
 }

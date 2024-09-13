@@ -23,7 +23,7 @@ namespace Ge
 	public:
 		Materials(unsigned int index, GraphicsDataMisc * gdm);
 		~Materials();
-		void setColor(glm::vec3 color);
+		void setColor(glm::vec4 color);
 		void setMetallic(float metal);
 		void setRoughness(float roughness);
 		void setNormal(float normal);
@@ -39,7 +39,7 @@ namespace Ge
 		void setPipeline(GraphiquePipeline * p);		
 		void setIndex(int i);
 		int getIndex() const;
-		glm::vec3 getColor() const;
+		glm::vec4 getColor() const;
 		float getMetallic() const;
 		float getRoughness() const;
 		float getNormal() const;
@@ -65,6 +65,8 @@ namespace Ge
 		bool * getDrawAddr();
 		void setDepthTest(bool state);
 		bool getDepthTest() const;
+		void setDepthWrite(bool state);
+		bool getDepthWrite() const;
 	public:
 		friend class Model;
 		void addModel(Model * model);
@@ -74,6 +76,7 @@ namespace Ge
 		bool m_draw = true;
 		bool m_castShadow = true;
 		bool m_depthTest = true;
+		bool m_depthWrite = true;
 		UniformBufferMaterial m_ubm{};
 		GraphicsDataMisc * m_gdm;
 		Textures * m_albedoMap;
@@ -85,9 +88,6 @@ namespace Ge
 		std::vector<Model*> m_model;
 		std::vector<unsigned int> m_aditionalSSBO;
 		unsigned int m_aditionalInstanced = 0;
-		float m_color[3];
-		float m_offset[2];
-		float m_tilling[2];
 		unsigned int m_ssbo;
 		unsigned int m_index = 0;
 	};

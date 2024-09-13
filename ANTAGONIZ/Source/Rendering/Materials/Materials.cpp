@@ -16,10 +16,7 @@ namespace Ge
 	Materials::Materials(unsigned int index, GraphicsDataMisc * gdm)
 	{
 		m_gdm = gdm;
-		m_ubm.albedo = glm::vec3(1.0f, 1.0f, 1.0f);
-		m_color[0] = m_ubm.albedo.x;
-		m_color[1] = m_ubm.albedo.y;
-		m_color[2] = m_ubm.albedo.z;
+		m_ubm.albedo = glm::vec4(1.0f, 1.0f, 1.0f,1.0f);
 		m_ubm.metallic = 1.0f;		
 		m_ubm.roughness = 1.0f;
 		m_ubm.normal = 1.0f;
@@ -27,10 +24,6 @@ namespace Ge
 		m_ubm.emit = 0.0f;
 		m_ubm.tilling = glm::vec2(1.0f);
 		m_ubm.offset = glm::vec2(0.0f);
-		m_offset[0] = m_ubm.offset.x;
-		m_offset[1] = m_ubm.offset.y;
-		m_tilling[0] = m_ubm.tilling.x;
-		m_tilling[1] = m_ubm.tilling.y;
 		m_index = index;
 		m_ssbo = m_gdm->str_ssbo.str_material;
 		m_pipeline = m_gdm->str_default_pipeline;
@@ -48,7 +41,7 @@ namespace Ge
 
 	}
 
-	void Materials::setColor(glm::vec3 color)
+	void Materials::setColor(glm::vec4 color)
 	{
 		m_ubm.albedo = color;
 		updateUniformBufferMaterial();
@@ -93,6 +86,16 @@ namespace Ge
 	bool Materials::getDepthTest() const
 	{
 		return m_depthTest;
+	}
+
+	void Materials::setDepthWrite(bool state)
+	{
+		m_depthWrite = state;
+	}
+
+	bool Materials::getDepthWrite() const
+	{
+		return m_depthWrite;
 	}
 
 	void Materials::setPipeline(GraphiquePipeline * p)
@@ -146,7 +149,7 @@ namespace Ge
 		m_aoMap = oclu == nullptr ? m_gdm->str_default_texture : oclu;
 	}
 
-	glm::vec3 Materials::getColor() const
+	glm::vec4 Materials::getColor() const
 	{
 		return m_ubm.albedo;
 	}
@@ -290,7 +293,7 @@ namespace Ge
 			ImGui::TextColored(ImVec4(1.0f, 0, 0.0f, 1), "Default Material Not Saved");
 		}		
 		ImGui::TextColored(ImVec4(0.2f, 1, 0.2f, 1), "Material\n");
-		if (ImGui::ColorEdit3("Albedo", (float *)&m_ubm.albedo))
+		if (ImGui::ColorEdit4("Albedo", (float *)&m_ubm.albedo))
 		{
 			updateUniformBufferMaterial();
 		}

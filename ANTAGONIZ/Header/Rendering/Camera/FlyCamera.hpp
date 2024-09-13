@@ -18,6 +18,7 @@ namespace Ge
 		void updateCamera();
 	private:	
 		InputManager * m_im;
+		bool m_lock = false;
 		float m_angleX;
 		float m_angleY;
 		float m_maxSpeed = 10.0f;

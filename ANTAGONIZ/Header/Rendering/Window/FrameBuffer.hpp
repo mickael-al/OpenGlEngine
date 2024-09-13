@@ -13,8 +13,9 @@ namespace Ge
 		unsigned int getFrameBuffer() const;
 		unsigned int getPosition() const;
 		unsigned int getNormal() const;
-		unsigned int getColorSpec() const;
+		unsigned int getColor() const;
 		unsigned int getOther() const;
+		unsigned int getDepth() const;
 		unsigned int getColorFoward() const;		
 		unsigned int getFowardFrameBuffer() const;
 		void release();
@@ -25,7 +26,7 @@ namespace Ge
 		unsigned int m_framebuffer;
 		unsigned int m_gPosition;
 		unsigned int m_gNormal;
-		unsigned int m_gColorSpec;
+		unsigned int m_gColor;
 		unsigned int m_gOther;
 		unsigned int m_gDepth;
 		GraphicsDataMisc* m_gdm;

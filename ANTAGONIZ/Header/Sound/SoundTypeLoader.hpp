@@ -18,7 +18,7 @@ namespace Ge
 	class SoundTypeLoader
 	{
 	public:
-		static int8_t* LoadWavFormat(const char* filePath, uint64_t* size, uint32_t* frequency, int32_t* format);
+		static int8_t* LoadWavFormat(const char* filePath, uint64_t* size, uint32_t* frequency, int32_t* format,double * time);
 	private:
 		static int getFileSize(FILE* inFile);
 	};

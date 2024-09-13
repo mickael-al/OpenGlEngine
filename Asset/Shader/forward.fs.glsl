@@ -109,7 +109,7 @@ const mat4 biasMat = mat4(
 
 layout(binding = 0) uniform sampler2D gPosition;
 layout(binding = 1) uniform sampler2D gNormal;
-layout(binding = 2) uniform sampler2D gColorSpec;
+layout(binding = 2) uniform sampler2D gColor;
 layout(binding = 3) uniform sampler2D gOther;
 layout(binding = 4) uniform sampler2DArray shadowDepth;
 layout(binding = 5) uniform sampler2D texNoise;
@@ -163,7 +163,7 @@ float filterPCF(vec4 sc, uint cascadeIndex, float bias)
 
 in vec2 v_UV;
 
-float SSAO(vec3 fragPos, vec3 normal)
+float SSAO(vec3 viewPos, vec3 normal)
 {
 	ivec2 ts = textureSize(gPosition,0);
 	vec3 randomVec = normalize(texture(texNoise, v_UV * vec2(float(ts.x) / 4.0, float(ts.y) / 4.0)).xyz);
@@ -178,14 +178,14 @@ float SSAO(vec3 fragPos, vec3 normal)
 	for (int i = 0; i < 64; ++i)
 	{
 		vec3 samplePos = TBN * ubssao.samples[i];
-		samplePos = fragPos + samplePos * radius;
+		samplePos = viewPos + samplePos * radius;
 		vec4 offset = vec4(samplePos, 1.0);
 		offset = ubc.proj * offset;    // from view to clip-space		
 		offset.xyz /= offset.w;               // perspective divide
 		offset.xyz = offset.xyz * 0.5 + 0.5;
 		float sampleDepth = texture(gPosition, offset.xy).z;
 		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0);
-		float rangeCheck = smoothstep(0.0, 1.0, radius / abs(fragPos.z - sampleDepth));
+		float rangeCheck = smoothstep(0.0, 1.0, radius / abs(viewPos.z - sampleDepth));
 		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0) * rangeCheck;
 	}
 	return 1.0 - (occlusion / 64);
@@ -195,20 +195,20 @@ out vec3 o_FragColor;
 
 void main()
 {	
-	vec4 positionAO = texture(gPosition, v_UV).rgba;
-	vec4 normalRoughness = texture(gNormal, v_UV).rgba;
-	vec4 colSpec = texture(gColorSpec, v_UV).rgba;
-	vec2 viewZEmit = texture(gOther, v_UV).rg;
+	vec3 viewPos = texture(gPosition, v_UV).rgb;
+	vec4 normal = texture(gNormal, v_UV).rgba;
+	vec4 col = texture(gColor, v_UV).rgba;
+	vec3 other = texture(gOther, v_UV).rgb;//metallic roughness ao emit
 
-	vec3 color = colSpec.rgb;	
+	vec3 color = col.rgb;
 	color = pow(color, vec3(ubd.gamma));
-	vec3 worldPos = (inverse(ubc.view) * vec4(positionAO.rgb, 1)).xyz;
+	vec3 worldPos = (inverse(ubc.view) * vec4(viewPos, 1)).xyz;
 
 	vec3 V = normalize(ubc.camPos - worldPos);
 
 	vec3 F0 = vec3(0.04);
-	F0 = mix(F0, color, colSpec.a);
-	if (viewZEmit.y <= 0)
+	F0 = mix(F0, color, other.x);
+	if (normal.a <= 0)
 	{
 		// Reflectance equation
 		vec3 Lo = vec3(0.0);
@@ -226,20 +226,20 @@ void main()
 			vec3 H = normalize(V + L);
 
 			// Cook-Torrance BRDF
-			float NDF = DistributionGGX(normalRoughness.rgb, H, normalRoughness.a);
-			float G = GeometrySmith(normalRoughness.rgb, V, L, normalRoughness.a);
+			float NDF = DistributionGGX(normal.rgb, H, other.y);
+			float G = GeometrySmith(normal.rgb, V, L, other.y);
 			vec3 F = fresnelSchlick(max(dot(H, V), 0.001), F0);
 
 			vec3 kS = F;
 			vec3 kD = vec3(1.0) - kS;
-			kD *= 1.0 - colSpec.a;
+			kD *= 1.0 - other.x;
 
 			vec3 numerator = NDF * G * F;
-			float denominator = 4.0 * max(dot(normalRoughness.rgb, V), 0.0) * max(dot(normalRoughness.rgb, L), 0.0) + 0.0001;
+			float denominator = 4.0 * max(dot(normal.rgb, V), 0.0) * max(dot(normal.rgb, L), 0.0) + 0.0001;
 			vec3 specular = (numerator / denominator);
 
 			// Add to outgoing radiance Lo
-			float NdotL = max(dot(normalRoughness.rgb, L), 0.0);
+			float NdotL = max(dot(normal.rgb, L), 0.0);
 
 			if (ubl.ubl[i].status == 0) // DirLight
 			{
@@ -248,13 +248,13 @@ void main()
 					uint cascadeIndex = 0;
 					for (uint k = 0; k < SHADOW_MAP_CASCADE_COUNT - 1; ++k)
 					{
-						if (viewZEmit.x < ubs.s[ubl.ubl[i].shadowID + k].splitDepth)
+						if (viewPos.z < ubs.s[ubl.ubl[i].shadowID + k].splitDepth)
 						{
 							cascadeIndex = k + 1;
 						}
 					}
 					vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + cascadeIndex].projview) * vec4(worldPos, 1.0);
-					float bias = calculateBias(shadowCoord, normalRoughness.rgb, L);
+					float bias = calculateBias(shadowCoord, normal.rgb, L);
 					shadow = filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + cascadeIndex, bias);
 				}
 				Lo += ((kD * color / PI + specular) * ubl.ubl[i].color * (ubl.ubl[i].range / 10.0) * NdotL) * mix(ubd.ambiant, 1.0, shadow);
@@ -266,7 +266,7 @@ void main()
 					for (uint k = 0; k < SHADOW_MAP_CUBE_COUNT && shadow > 0.5f; ++k)
 					{
 						vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + k].projview) * vec4(worldPos, 1.0);
-						float bias = calculateBias(shadowCoord, normalRoughness.rgb, L);
+						float bias = calculateBias(shadowCoord, normal.rgb, L);
 						shadow *= filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + k, bias);
 					}
 				}
@@ -290,34 +290,31 @@ void main()
 			}
 		}
 		//IBL PBR
-		vec3 R = reflect(-V, normalRoughness.rgb);
-		vec3 F = fresnelSchlickRoughness(max(dot(normalRoughness.rgb, V), 0.0), F0, normalRoughness.a);
+		vec3 R = reflect(-V, normal.rgb);
+		vec3 F = fresnelSchlickRoughness(max(dot(normal.rgb, V), 0.0), F0, other.y);
 
 		vec3 kS = F;
 		vec3 kD = 1.0 - kS;
-		kD *= 1.0 - colSpec.a;
+		kD *= 1.0 - other.x;
 
-		vec3 irradiance = texture(irradianceMap, normalRoughness.rgb).rgb;
+		vec3 irradiance = texture(irradianceMap, normal.rgb).rgb;
 		vec3 diffuse = vec3(ubd.ambiant) * irradiance * color;
 
 		// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
 		const float MAX_REFLECTION_LOD = 4.0;
-		vec3 prefilteredColor = textureLod(prefilterMap, R, normalRoughness.a * MAX_REFLECTION_LOD).rgb;
-		vec2 brdf = texture(brdfLUT, vec2(max(dot(normalRoughness.rgb, V), 0.0), normalRoughness.a)).rg;
+		vec3 prefilteredColor = textureLod(prefilterMap, R, other.y * MAX_REFLECTION_LOD).rgb;
+		vec2 brdf = texture(brdfLUT, vec2(max(dot(normal.rgb, V), 0.0), other.y)).rg;
 		vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 		//IBL PBR
 
-		vec3 ambient = (kD * diffuse + specular) * positionAO.a;
+		vec3 ambient = (kD * diffuse + specular) * other.z;
 
-		color = ambient + Lo * SSAO(positionAO.rgb, normalRoughness.rgb);
+		color = ambient + Lo * SSAO(viewPos, normal.rgb);
 	}
 	else
 	{
-		color = viewZEmit.y * color;
+		color = normal.a * color;
 	}
-	
-	/*color = color / (color + vec3(1.0));
-	color = pow(color, vec3(1.0 / ubd.gamma));*/
 
 	o_FragColor = color;
 }

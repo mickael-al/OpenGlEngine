@@ -33,6 +33,7 @@ namespace Ge
 		m_pointeurClass.soundManager = m_soundManager = new SoundManager();
 		m_editor = new Editor();
 		m_renderingEngine = new RenderingEngine(m_graphicsDataMisc);		
+		m_pointeurClass.gdm = m_graphicsDataMisc;
 	}
 
 	Engine::~Engine()

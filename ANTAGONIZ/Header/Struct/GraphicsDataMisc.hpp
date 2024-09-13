@@ -22,6 +22,7 @@ struct GraphicsDataMisc
 	unsigned int str_height;
 	Textures * str_default_texture;
 	Textures* str_default_normal_texture;
+	Textures* str_depth_texture;
 	Materials * str_default_material;
 	GraphiquePipeline * str_default_pipeline;
 	GraphiquePipeline * str_default_pipeline_forward;

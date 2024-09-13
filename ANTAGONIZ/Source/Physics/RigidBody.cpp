@@ -102,7 +102,7 @@ void RigidBody::SetRestitution(float coef)
     m_pBody->setRestitution(coef);
 }
 
-void RigidBody::SetLinearVelocity(glm::vec3 const& velocity)
+void RigidBody::SetLinearVelocity(const glm::vec3 velocity)
 {
     m_pBody->setLinearVelocity(btVector3(velocity.x, velocity.y, velocity.z));
 }

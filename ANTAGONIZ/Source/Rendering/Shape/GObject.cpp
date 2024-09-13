@@ -276,7 +276,7 @@ namespace Ge
 
 	void GObject::applyTransform(const glm::vec3& localPosition, const glm::quat& localRotation,const GObject * parent)
 	{
-		glm::mat4 localMatrix = glm::translate(glm::mat4(1.0f), localPosition) * glm::mat4_cast(localRotation) * glm::scale(glm::mat4(1.0f), m_transform.scale);
+		glm::mat4 localMatrix = glm::translate(glm::mat4(1.0f), localPosition) * glm::mat4_cast(localRotation);// *glm::scale(glm::mat4(1.0f), m_transform.scale);
 		glm::mat4 parentMatrix = glm::translate(glm::mat4(1.0f), parent->m_transform.position) * glm::mat4_cast(parent->m_transform.rotation);// *glm::scale(glm::mat4(1.0f), parent->m_transform.scale);
 		glm::mat4 globalMatrix = parentMatrix * localMatrix;
 		m_transform.position = glm::vec3(globalMatrix[3][0], globalMatrix[3][1], globalMatrix[3][2]);

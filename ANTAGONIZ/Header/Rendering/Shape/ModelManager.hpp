@@ -34,6 +34,7 @@ namespace Ge
         std::vector<ShapeBuffer*> allocateBuffers(const char* path, bool normal_recalculate = false);
 		ShapeBuffer *allocateBuffer(float * pos, float * texCord, float * normal, unsigned int * indice, unsigned vertexSize, unsigned indiceSize);
 		std::vector<ShapeBuffer*> allocateFBXBuffer(const char* path, bool normal_recalculate, std::vector<int> m_loadIdMesh);
+		std::vector<ShapeBuffer*> allocateFBXBufferNoOptimize(const char* path, bool normal_recalculate, std::vector<int> m_loadIdMesh);
 		void printModelInfo(const char *path);
         Model * createModel(ShapeBuffer *buffer, std::string nom = "Model");
         void destroyModel(Model *model);

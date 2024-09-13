@@ -19,6 +19,8 @@ namespace Ge
 		static std::string openFileDialog();
 		static std::string openDialog();
 		static std::string savePngFileDialog();
+		static std::string saveFileWindowsDialog(std::string ext);
+		static void openFolder(std::string path);
 	private:
 #ifdef _WIN32
 		static std::string openWindowsFileDialog(); 

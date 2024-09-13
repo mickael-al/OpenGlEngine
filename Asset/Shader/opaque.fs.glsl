@@ -20,7 +20,7 @@ layout(std430, binding = 1) buffer UniformBufferObject
 
 struct StructUBM
 {
-	vec3 albedo;
+	vec4 albedo;
 	vec2 offset;
 	vec2 tilling;
 	float metallic;
@@ -56,12 +56,11 @@ layout(location = 1) in vec3 Color;
 layout(location = 2) in vec3 ViewPos;
 layout(location = 3) in mat3 TBN;
 layout(location = 6) flat in int imaterial;
-layout(location = 7) in float Depth;
 
-layout(location = 0) out vec4 gPosition;
+layout(location = 0) out vec3 gPosition;
 layout(location = 1) out vec4 gNormal;
-layout(location = 2) out vec4 gColorSpec;
-layout(location = 3) out vec2 gOther;
+layout(location = 2) out vec4 gColor;
+layout(location = 3) out vec3 gOther;
 
 void main(void)
 {   
@@ -70,17 +69,16 @@ void main(void)
 	{
 		discard;
 	}
-	gPosition.rgb = ViewPos;
+	gPosition = ViewPos;
 	vec3 normal = texture(normalTexture, fragTexCoord).rgb;
 	normal = mix(vec3(0.5, 0.5, 1.0), normal, ubm.ubm[imaterial].normal);
 	normal = normalize(normal * 2.0 - 1.0);
 	gNormal.rgb = normalize(TBN * normal);
 	
-	gColorSpec.rgb = ubm.ubm[imaterial].albedo * Color * col.rgb;
-	gColorSpec.a = ubm.ubm[imaterial].metallic * texture(metallicTexture, fragTexCoord).r;
-	gNormal.a = ubm.ubm[imaterial].roughness * texture(roughnessTexture, fragTexCoord).r;
+	gColor = ubm.ubm[imaterial].albedo * col * vec4(Color, 1.0);
+	gOther.r = ubm.ubm[imaterial].metallic * texture(metallicTexture, fragTexCoord).r;
+	gOther.g = ubm.ubm[imaterial].roughness * texture(roughnessTexture, fragTexCoord).r;
 	vec2 aoe = texture(oclusionTexture, fragTexCoord).rg;
-	gPosition.a = ubm.ubm[imaterial].ao * aoe.x;
-	gOther.r = Depth;
-	gOther.g = ubm.ubm[imaterial].emit * aoe.y;
+	gOther.b = ubm.ubm[imaterial].ao * aoe.x;
+	gNormal.a = ubm.ubm[imaterial].emit * aoe.y;
 }

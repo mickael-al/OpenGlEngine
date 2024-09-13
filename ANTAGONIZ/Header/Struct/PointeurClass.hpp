@@ -43,6 +43,7 @@ struct ptrClass
 	RenderingEngine * renderingEngine;
 	PostProcess* postProcess;
 	Skybox * skybox;
+	GraphicsDataMisc* gdm;
 };
 
 #endif //__ENGINE_POINTEUR_CLASS__

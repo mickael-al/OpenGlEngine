@@ -32,7 +32,8 @@ namespace Ge
 		uint64_t size;
 		uint32_t frequency;
 		ALenum format;
-		int8_t* buffer = SoundTypeLoader::LoadWavFormat(filepath,&size,&frequency,&format);
+		double time;
+		int8_t* buffer = SoundTypeLoader::LoadWavFormat(filepath,&size,&frequency,&format,&time);
 		
 		if (buffer == nullptr)
 		{
@@ -40,7 +41,7 @@ namespace Ge
 			return nullptr;
 		}
 
-		SoundBuffer* sb = m_poolBuffer.newObject(size, frequency, format, buffer);;
+		SoundBuffer* sb = m_poolBuffer.newObject(size, frequency, format, buffer, time);
 
 		delete[] buffer;
 		buffer = nullptr;

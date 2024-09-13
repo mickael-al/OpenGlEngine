@@ -24,7 +24,7 @@ namespace Ge
 		void updateStorage();
 		void updatePriorityCamera();
 	public:
-        Camera *createCamera(std::string name = "Camera");
+        Camera *createCamera(std::string name = "Camera",int priority = 0);		
         void releaseCamera(Camera *camera);      
         Camera *getCurrentCamera();
 		void updateFlyCam();	

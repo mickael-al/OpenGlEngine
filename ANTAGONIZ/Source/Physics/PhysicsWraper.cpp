@@ -177,6 +177,14 @@ namespace Ge
 					m->setScale(scale);
 					m_models.push_back(m);					
 				}
+				else if (const CapsuleShape* cas = dynamic_cast<const CapsuleShape*>(cs))
+				{
+					glm::vec3 scale = glm::vec3(0.5f) * 2.0f;
+					Model* m = pc->modelManager->createModel(m_shapeBuffer);
+					m->setMaterial(m_material);
+					m->setScale(scale);
+					m_models.push_back(m);
+				}
 			}		
 			for (int i = 0; i < m_collisionBody.size(); i++)
 			{
@@ -184,6 +192,14 @@ namespace Ge
 				if (const BoxShape* bs = dynamic_cast<const BoxShape*>(cs))
 				{
 					glm::vec3 scale = bs->getHalfExtents() * 2.0f;
+					Model* m = pc->modelManager->createModel(m_shapeBuffer);
+					m->setMaterial(m_material);
+					m->setScale(scale);
+					m_models.push_back(m);
+				}
+				else if (const CapsuleShape* cas = dynamic_cast<const CapsuleShape*>(cs))
+				{
+					glm::vec3 scale = glm::vec3(0.5f) * 2.0f;
 					Model* m = pc->modelManager->createModel(m_shapeBuffer);
 					m->setMaterial(m_material);
 					m->setScale(scale);

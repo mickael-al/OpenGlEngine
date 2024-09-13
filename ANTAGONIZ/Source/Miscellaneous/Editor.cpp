@@ -6,6 +6,7 @@ Trigger Warning a rushed code not optimized
 #include "PointeurClass.hpp"
 #include "Engine.hpp"
 #include "CollisionWraper.hpp"
+#include "PhysicsWraper.hpp"
 #include "imgui-cmake/Header/imgui.h"
 #include "PathManager.hpp"
 #include "FolderDialog.hpp"
@@ -128,6 +129,8 @@ bool copyAndRenameDirectory(const std::string& sourceDir, const std::string& tar
 	}
 }
 
+Editor* Editor::s_instance = nullptr;
+
 void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 {
 	if (obj == nullptr)
@@ -150,8 +153,8 @@ void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 		no = m;
 		if (scriptObject.find(model) != scriptObject.end())
 		{
-			std::vector<std::string> copy;
-			copy.assign(scriptObject[model].begin(), scriptObject[model].end());
+			std::vector<ScriptData> copy;
+			copy.assign(scriptObject[model].begin(), scriptObject[model].end()); 
 			scriptObject[m] = copy;
 		}
 		if (collisionObj.find(model) != collisionObj.end())
@@ -177,7 +180,7 @@ void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 		no = e;
 		if (scriptObject.find(empty) != scriptObject.end())
 		{
-			std::vector<std::string> copy;
+			std::vector<ScriptData> copy;
 			copy.assign(scriptObject[empty].begin(), scriptObject[empty].end());
 			scriptObject[e] = copy;
 		}
@@ -206,7 +209,7 @@ void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 		no = e;
 		if (scriptObject.find(dl) != scriptObject.end())
 		{
-			std::vector<std::string> copy;
+			std::vector<ScriptData> copy;
 			copy.assign(scriptObject[dl].begin(), scriptObject[dl].end());
 			scriptObject[e] = copy;
 		}
@@ -235,7 +238,7 @@ void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 		no = e;
 		if (scriptObject.find(dl) != scriptObject.end())
 		{
-			std::vector<std::string> copy;
+			std::vector<ScriptData> copy;
 			copy.assign(scriptObject[dl].begin(), scriptObject[dl].end());
 			scriptObject[e] = copy;
 		}
@@ -264,7 +267,7 @@ void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 		no = e;
 		if (scriptObject.find(dl) != scriptObject.end())
 		{
-			std::vector<std::string> copy;
+			std::vector<ScriptData> copy;
 			copy.assign(scriptObject[dl].begin(), scriptObject[dl].end());
 			scriptObject[e] = copy;
 		}
@@ -290,7 +293,7 @@ void Editor::duplicateSceneObject(GObject* obj, GObject* parent)
 		no = e;
 		if (scriptObject.find(au) != scriptObject.end())
 		{
-			std::vector<std::string> copy;
+			std::vector<ScriptData> copy;
 			copy.assign(scriptObject[au].begin(), scriptObject[au].end());
 			scriptObject[e] = copy;
 		}
@@ -792,6 +795,10 @@ void Editor::drawFolderContents(const std::string& basePath,std::string& path)
 			{
 				newPath += + "\\" + subPaths[j];
 			}
+			if (path == newPath)
+			{
+				FolderDialog::openFolder(path);
+			}
 			path = newPath;
 		}
 	}
@@ -892,7 +899,15 @@ void Editor::drawFolderContents(const std::string& basePath,std::string& path)
 	style.Colors[ImGuiCol_Button] = col;
 }
 
+Editor::Editor()
+{
+	s_instance = this;
+}
 
+Editor* Editor::instance()
+{
+	return s_instance;
+}
 
 void Editor::start()
 {
@@ -908,6 +923,7 @@ void Editor::start()
 	}
 	op = ImGuizmo::TRANSLATE;
 }
+
 void Editor::loadConfig(const std::string& filePath,EditorConfig* ec)
 {
 	std::ifstream file(filePath);
@@ -983,6 +999,7 @@ void Editor::loadProject(const std::string& filePath, ProjectData* ec)
 	context.parseTo(*ec);
 	ec->assetPath = filePath;
 	m_baseProjectLocation = filePath;
+	PathManager::setHomeProjectPath(m_baseProjectLocation);
 	m_currentProjectLocation = ec->assetPath;
 }
 
@@ -1099,6 +1116,65 @@ void Editor::clearScene(SceneData* sd)
 	m_guizmo = false;
 }
 
+GraphiquePipeline* Editor::getPipelineByScene(const std::string& Name)
+{
+	for (int i = 0; i < m_currentSceneData->shaderData.size(); i++)
+	{
+		if (m_currentSceneData->shaderData[i].name == Name)
+		{
+			return m_currentSceneData->shader[i];
+		}
+	}
+	Debug::Error("getPipelineByScene %s not found in this scene",Name.c_str());
+	return nullptr;
+}
+
+std::vector<Materials*> Editor::getMaterialByScene(const std::string& Name)
+{
+	std::vector<Materials*> mat;
+	GraphiquePipeline* gp = nullptr;
+	for (int i = 0; i < m_currentSceneData->shaderData.size() && gp == nullptr; i++)
+	{
+		if (m_currentSceneData->shaderData[i].name == Name)
+		{
+			gp = m_currentSceneData->shader[i];
+		}
+	}
+	if (gp == nullptr)
+	{
+		Debug::Error("getMaterialByScene %s not found in this scene", Name.c_str());
+		return mat;
+	}
+
+	for (int i = 0; i < m_currentSceneData->materials.size(); i++)
+	{
+		if (m_currentSceneData->materials[i]->getPipeline() == gp)
+		{
+			mat.push_back(m_currentSceneData->materials[i]);
+		}
+	}
+	return mat;
+}
+
+void Editor::loadSceneGame(const std::string& filePath, LoadSceneType type)
+{			
+	if (type == LoadSceneType::Override)
+	{
+		stopScene();
+		clearScene(m_currentSceneData);
+	}
+	else
+	{
+		Debug::Warn("Additive not implemented");
+	}
+	m_tempFlyCamera = m_pc->cameraManager->getCurrentCamera();
+	m_currentFovCS = m_tempFlyCamera->getFieldOfView();
+	m_tempFlyCamera->setFieldOfView(0);
+	m_gameChangeScene = true;
+	loadScene(filePath, m_currentSceneData);
+	playScene();	
+}
+
 void Editor::loadScene(const std::string& filePath, SceneData* sd)
 {
 	std::ifstream file(filePath);
@@ -1134,7 +1210,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 	sd->shader.clear();
 	for (int i = 0; i < sd->shaderData.size(); i++)
 	{		
-		GraphiquePipeline* gp = m_pc->graphiquePipelineManager->createPipeline(sd->shaderData[i].frag, sd->shaderData[i].vert, sd->shaderData[i].back, sd->shaderData[i].multiS, sd->shaderData[i].transparency, sd->shaderData[i].cullmode);
+		GraphiquePipeline* gp = m_pc->graphiquePipelineManager->createPipeline(m_baseProjectLocation+ sd->shaderData[i].frag, m_baseProjectLocation + sd->shaderData[i].vert, sd->shaderData[i].back, sd->shaderData[i].multiS, sd->shaderData[i].transparency, sd->shaderData[i].cullmode);
 		sd->shader.push_back(gp);
 	}
 	sd->textures.clear();
@@ -1154,6 +1230,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 		mat->setNormal(sd->materialData[i].normal);
 		mat->setOclusion(sd->materialData[i].ao);
 		mat->setEmission(sd->materialData[i].emit);
+		mat->setDraw(sd->materialData[i].active);
 		if (sd->materialData[i].albedoMap != -1)
 		{
 			mat->setAlbedoTexture(sd->textures[sd->materialData[i].albedoMap]);
@@ -1371,6 +1448,85 @@ void Editor::addEmptyToScene()
 	}
 }
 
+void Editor::playScene()
+{
+	for (const auto& var : collisionObj)
+	{
+		for (const auto& s : var.second)
+		{
+			CollisionShape* cs = nullptr;
+			if (s.type == 0)//box
+			{
+				cs = new BoxShape(glm::vec3(s.data), s.mass);
+			}
+			else if (s.type == 1)
+			{
+				cs = new SphereShape(s.data.x, s.mass);
+			}
+			else if (s.type == 2)
+			{
+				cs = new CapsuleShape(s.data.x, s.data.y, s.mass);
+			}
+			if (cs != nullptr)
+			{
+				m_allCollisionLoaded.push_back(cs);
+				CollisionWraper* cb = m_pc->physicsEngine->AllocateCollision(cs);
+				m_allCollisionBodyLoaded.push_back(cb);
+				cb->setPosition(s.position);
+				cb->setEulerAngles(s.euler);
+				m_pc->physicsEngine->AddCollision(cb);
+			}
+		}
+	}
+	for (const auto& var : scriptObject)
+	{
+		for (const auto& s : var.second)
+		{
+			Behaviour* b = FACTORY(Behaviour).create(s.pathName);
+			var.first->addComponent(b);
+			b->load(s.data);
+			m_pc->behaviourManager->addBehaviour(b);
+			m_allBehaviourLoaded.push_back(b);
+		}
+	}
+	if (m_generatePathFindingNextPlay)
+	{
+		PathFindingScene* b = new PathFindingScene(m_currentSceneData->path.pathPosition, m_currentSceneData->path.zoneSize, m_currentSceneData->path.pointCount, m_baseProjectLocation + m_currentSceneData->path.pathFolder, m_currentSceneData->path.pathLiasonPercent);
+		b->help();
+		m_allBehaviourLoaded.push_back(b);
+		m_pc->behaviourManager->addBehaviour(b);
+		m_generatePathFindingNextPlay = false;
+	}
+	else if (m_currentSceneData->path.has)
+	{
+		PathFindingScene* b = new PathFindingScene(m_currentSceneData->path.pathPosition, m_currentSceneData->path.zoneSize, m_currentSceneData->path.pointCount, m_baseProjectLocation + m_currentSceneData->path.pathFolder, m_currentSceneData->path.pathLiasonPercent);
+		b->loadFromFile();
+		m_allBehaviourLoaded.push_back(b);
+		//m_pc->behaviourManager->addBehaviour(b);
+	}
+}
+
+void Editor::stopScene()
+{
+	for (int i = 0; i < m_allBehaviourLoaded.size(); i++)
+	{
+		m_pc->behaviourManager->removeBehaviour(m_allBehaviourLoaded[i], true);
+		m_allBehaviourLoaded[i]->stop();
+		delete m_allBehaviourLoaded[i];
+	}
+	m_allBehaviourLoaded.clear();
+	for (int i = 0; i < m_allCollisionBodyLoaded.size(); i++)
+	{
+		m_pc->physicsEngine->ReleaseCollision(m_allCollisionBodyLoaded[i]);
+	}
+	m_allCollisionBodyLoaded.clear();
+	for (int i = 0; i < m_allCollisionLoaded.size(); i++)
+	{
+		delete m_allCollisionLoaded[i];
+	}
+	m_allCollisionLoaded.clear();
+}
+
 void Editor::addMaterialToModel(Model* obj)
 {
 	if (m_currentSceneData != nullptr)
@@ -1379,6 +1535,37 @@ void Editor::addMaterialToModel(Model* obj)
 		Materials* mat = m_pc->materialManager->createMaterial();
 		obj->setMaterial(mat);
 		m_currentSceneData->materials.push_back(mat);
+	}
+}
+
+void Editor::addDuplicateMaterialToModel(Model* obj)
+{
+	if (m_currentSceneData != nullptr)
+	{
+		Materials* mat = m_pc->materialManager->createMaterial();
+		Materials* prevMat = obj->getMaterial();
+		if (prevMat == nullptr)
+		{
+			return;
+		}
+		mat->setTilling(prevMat->getTilling());
+		mat->setOffset(prevMat->getOffset());
+		mat->setColor(prevMat->getColor());
+		mat->setAlbedoTexture(prevMat->getAlbedoTexture());
+		mat->setNormalTexture(prevMat->getNormalTexture());
+		mat->setMetallicTexture(prevMat->getMetallicTexture());
+		mat->setRoughnessTexture(prevMat->getRoughnessTexture());
+		mat->setOclusionTexture(prevMat->getOclusionTexture());
+		mat->setDraw(prevMat->getDraw());
+		mat->setEmission(prevMat->getEmission());
+		mat->setMetallic(prevMat->getMetallic());
+		mat->setRoughness(prevMat->getRoughness());
+		mat->setNormal(prevMat->getNormal());
+		mat->setOclusion(prevMat->getOclusion());
+		mat->setCastShadow(prevMat->getCastShadow());
+		m_currentSceneData->materials.push_back(mat);
+		removeExistMaterial(obj, m_currentSceneData, m_pc->materialManager, m_pc->textureManager, m_gdm);				
+		obj->setMaterial(mat);		
 	}
 }
 
@@ -1634,6 +1821,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		md.normal = sd->materials[i]->getNormal();
 		md.ao = sd->materials[i]->getOclusion();
 		md.emit = sd->materials[i]->getEmission();
+		md.active = sd->materials[i]->getDraw();		
 		for (int j = 0; j < sd->textures.size(); j++)
 		{			
 			if (sd->textures[j] == sd->materials[i]->getAlbedoTexture())
@@ -1657,7 +1845,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 				md.aoMap = j;
 			}
 		}
-		for (int j = 0; j < sd->shader.size(); i++)
+		for (int j = 0; j < sd->shader.size(); j++)
 		{
 			if (sd->shader[j] == sd->materials[i]->getPipeline())
 			{
@@ -1726,7 +1914,19 @@ void Editor::fixedUpdate()
 
 void Editor::update()
 {
-	m_colRGB = HSVtoRGB(fmod(m_pc->time->getTime()*36.0f,360.0f), 1.0f, 1.0f);
+	if (m_pc->inputManager->getKeyDown(GLFW_KEY_INSERT))
+	{
+		m_hide = !m_hide;
+	}
+	if (!m_hide)
+	{
+		m_colRGB = HSVtoRGB(fmod(m_pc->time->getTime() * 36.0f, 360.0f), 1.0f, 1.0f);
+	}
+	if(m_gameChangeScene)
+	{
+		m_gameChangeScene = false;
+		m_tempFlyCamera->setFieldOfView(m_currentFovCS);
+	}
 }
 
 void Editor::stop()
@@ -1761,6 +1961,10 @@ void Editor::init(GraphicsDataMisc* gdm)
 
 void Editor::render(GraphicsDataMisc* gdm)
 {
+	if (m_hide)
+	{
+		return;
+	}
 	ImGuiStyle& style = ImGui::GetStyle();
 	ImVec4 wbg = style.Colors[ImGuiCol_WindowBg];
 	style.Colors[ImGuiCol_WindowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -1843,6 +2047,13 @@ void Editor::render(GraphicsDataMisc* gdm)
 						m_currentSceneData->skyboxPath = "";
 					}
 				}
+				if (ImGui::MenuItem("Shader"))
+				{
+					if (m_currentSceneData != nullptr)
+					{
+						m_openPathShader = true;
+					}
+				}
 				ImGui::EndMenu();
 			}
 		}
@@ -1897,6 +2108,72 @@ void Editor::render(GraphicsDataMisc* gdm)
 		m_openPathFinding = false;
 	}
 
+	if (m_openPathShader)
+	{
+		ImGui::OpenPopup("ShaderPath");	
+		m_pathOpenProject[0] = '\0';
+		m_objectName[0] = '\0';
+		m_pathFindingName[0] = '\0';
+		currentWriteSD.back = false;
+		currentWriteSD.multiS = true;
+		currentWriteSD.transparency = false;
+		currentWriteSD.cullmode = 1;		
+		m_openPathShader = false;
+	}
+	if (ImGui::BeginPopupModal("ShaderPath") && m_currentSceneData != nullptr)
+	{
+		ImGui::InputText("Name ##ShaderPath", m_pathOpenProject, IM_ARRAYSIZE(m_pathOpenProject));
+
+		ImGui::InputText("Fragment Shader##ShaderPath", m_objectName, IM_ARRAYSIZE(m_objectName));
+		ImGui::SameLine();
+		if (ImGui::Button("...##Fragment"))
+		{
+			std::string path = FolderDialog::openFileDialog();
+			strncpy(m_objectName, path.c_str(), sizeof(m_objectName) - 1);
+			m_objectName[sizeof(m_objectName) - 1] = '\0';
+		}
+
+		ImGui::InputText("Vertex Shader##ShaderPath", m_pathFindingName, IM_ARRAYSIZE(m_pathFindingName));
+		ImGui::SameLine();
+		if (ImGui::Button("...##Vertex"))
+		{
+			std::string path = FolderDialog::openFileDialog();
+			strncpy(m_pathFindingName, path.c_str(), sizeof(m_pathFindingName) - 1);
+			m_pathFindingName[sizeof(m_pathFindingName) - 1] = '\0';
+		}
+
+		ImGui::Checkbox("Back##shader",&currentWriteSD.back);
+		ImGui::Checkbox("MultiS##shader", &currentWriteSD.multiS);
+		ImGui::Checkbox("Transparency##shader", &currentWriteSD.transparency);
+		ImGui::DragInt("Cullmode[0,1,2]", &currentWriteSD.cullmode);
+
+		if (ImGui::Button("Apply"))
+		{
+			ShaderData nsd;
+			nsd.name = m_pathOpenProject;
+			nsd.frag = m_objectName;
+			nsd.vert = m_pathFindingName;
+
+			nsd.frag = cropPath(nsd.frag, m_baseProjectLocation);
+			nsd.vert = cropPath(nsd.vert, m_baseProjectLocation);
+
+			nsd.back = currentWriteSD.back;
+			nsd.multiS = currentWriteSD.multiS;
+			nsd.transparency = currentWriteSD.transparency;
+			nsd.cullmode = currentWriteSD.cullmode;
+			m_currentSceneData->shaderData.push_back(nsd);
+			GraphiquePipeline* gp = m_pc->graphiquePipelineManager->createPipeline(m_baseProjectLocation + nsd.frag, m_baseProjectLocation + nsd.vert, nsd.back, nsd.multiS, nsd.transparency, nsd.cullmode);
+			m_currentSceneData->shader.push_back(gp);
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Close"))
+		{
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+
 	if (ImGui::BeginPopupModal("PathFinding") && m_currentSceneData != nullptr)
 	{
 		ImGui::InputText("PathFinding##inputFieldPathOpen", m_pathFindingName, IM_ARRAYSIZE(m_pathFindingName));
@@ -1916,7 +2193,6 @@ void Editor::render(GraphicsDataMisc* gdm)
 			m_generatePathFindingNextPlay = true;
 			m_currentSceneData->path.pathFolder = m_pathFindingName;
 			m_currentSceneData->path.pathFolder = cropPath(m_currentSceneData->path.pathFolder, m_baseProjectLocation);
-			Debug::Log("%s", m_currentSceneData->path.pathFolder.c_str());
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::SameLine();
@@ -2153,58 +2429,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 			else
 			{				
 				globalSave();
-				for (const auto& var : collisionObj)
-				{
-					for (const auto& s : var.second)
-					{
-						CollisionShape* cs = nullptr;
-						if (s.type == 0)//box
-						{
-							cs = new BoxShape(glm::vec3(s.data), s.mass);
-						}
-						else if (s.type == 1)
-						{
-							cs = new SphereShape(s.data.x, s.mass);
-						}
-						else if (s.type == 2)
-						{
-							cs = new CapsuleShape(s.data.x, s.data.y, s.mass);
-						}
-						if (cs != nullptr)
-						{
-							m_allCollisionLoaded.push_back(cs);
-							CollisionWraper* cb = m_pc->physicsEngine->AllocateCollision(cs);
-							m_allCollisionBodyLoaded.push_back(cb);
-							cb->setPosition(s.position);
-							cb->setEulerAngles(s.euler);
-							m_pc->physicsEngine->AddCollision(cb);
-						}
-					}
-				}
-				for (const auto& var : scriptObject)
-				{
-					for (const auto& s : var.second)
-					{
-						Behaviour* b = FACTORY(Behaviour).create(s);
-						var.first->addComponent(b);
-						m_pc->behaviourManager->addBehaviour(b);
-						m_allBehaviourLoaded.push_back(b);
-					}
-				}
-				if (m_generatePathFindingNextPlay)
-				{
-					Behaviour* b = new PathFindingScene(m_currentSceneData->path.pathPosition, m_currentSceneData->path.zoneSize, m_currentSceneData->path.pointCount, m_baseProjectLocation+m_currentSceneData->path.pathFolder, m_currentSceneData->path.pathLiasonPercent);
-					m_allBehaviourLoaded.push_back(b);
-					m_pc->behaviourManager->addBehaviour(b);
-					m_generatePathFindingNextPlay = false;
-				}
-				else if (m_currentSceneData->path.has)
-				{
-					PathFindingScene* b = new PathFindingScene(m_currentSceneData->path.pathPosition, m_currentSceneData->path.zoneSize, m_currentSceneData->path.pointCount, m_baseProjectLocation+m_currentSceneData->path.pathFolder, m_currentSceneData->path.pathLiasonPercent);
-					b->loadFromFile();
-					m_allBehaviourLoaded.push_back(b);
-					m_pc->behaviourManager->addBehaviour(b);
-				}
+				playScene();
 			}
 			m_playMode = 1;
 		}
@@ -2230,33 +2455,20 @@ void Editor::render(GraphicsDataMisc* gdm)
 			ImGui::PopStyleColor();
 			popCol--;
 		}
-		if (m_playMode == 0) {
+		if (m_playMode == 0) 
+		{
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.0f, 0.0f, 1.0f));
 			popCol++;
 		}
 		ImGui::SameLine();
 		if (ImGui::ImageButton(m_icon[8], ImVec2(m_iconModeSize, m_iconModeSize)) && m_playMode != 0)
 		{
-			m_playMode = 0;			
-			for (int i = 0; i < m_allBehaviourLoaded.size(); i++)
-			{
-				m_pc->behaviourManager->removeBehaviour(m_allBehaviourLoaded[i],true);
-				m_allBehaviourLoaded[i]->stop();
-				delete m_allBehaviourLoaded[i];
-			}
-			m_allBehaviourLoaded.clear();					
-			for (int i = 0; i < m_allCollisionBodyLoaded.size(); i++)
-			{
-				m_pc->physicsEngine->ReleaseCollision(m_allCollisionBodyLoaded[i]);				
-			}
-			m_allCollisionBodyLoaded.clear();			
-			for (int i = 0; i < m_allCollisionLoaded.size(); i++)
-			{
-				delete m_allCollisionLoaded[i];
-			}
+			m_playMode = 0;
+			stopScene();
 			m_allCollisionLoaded.clear();
 			clearScene(m_currentSceneData);
 			loadScene(m_baseProjectLocation +m_currentProjectData->lastSceneOpen, m_currentSceneData);
+			m_pc->inputManager->HideMouse(false);
 		}		
 		if (popCol == 1) 
 		{
@@ -2280,6 +2492,11 @@ void Editor::render(GraphicsDataMisc* gdm)
 				if (ImGui::Button("Add Material"))
 				{
 					addMaterialToModel(model);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Add(Duplicate) Material"))
+				{
+					addDuplicateMaterialToModel(model);
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Clear Matertial"))
@@ -2313,6 +2530,42 @@ void Editor::render(GraphicsDataMisc* gdm)
 				Materials* mat = model->getMaterial();
 				if (mat != nullptr)
 				{
+					ImGui::SameLine();
+					int shaderID = -1;
+					for (int i = 0; i < m_currentSceneData->shader.size() && shaderID == -1; i++)
+					{
+						if (mat->getPipeline() == m_currentSceneData->shader[i])
+						{
+							shaderID = i;
+						}
+					}
+					
+					if (ImGui::BeginCombo("##ShaderCombo", shaderID == -1 ? "Default" : m_currentSceneData->shaderData[shaderID].name.c_str()))
+					{
+						int size = m_currentSceneData->shader.size();
+						for (int n = -1; n < size; n++)
+						{
+							const bool is_selected = (shaderID == n);
+							if (ImGui::Selectable(((n == -1 ? "Default" : m_currentSceneData->shaderData[n].name)+"##Shader").c_str(), is_selected))
+							{
+								if (n == -1)
+								{
+									mat->setPipeline(gdm->str_default_pipeline);
+								}
+								else
+								{
+									mat->setPipeline(m_currentSceneData->shader[n]);
+								}
+							}
+
+							if (is_selected)
+							{
+								ImGui::SetItemDefaultFocus();
+							}
+						}
+
+						ImGui::EndCombo();
+					}				
 					bool filter = !m_pc->inputManager->getKey(GLFW_KEY_N);
 					ImGui::Text("Base       ");
 					ImGui::SameLine();
@@ -2495,6 +2748,14 @@ void Editor::render(GraphicsDataMisc* gdm)
 						removeExistTexture(mat->getNormalTexture(), m_currentSceneData, m_pc->textureManager, gdm); 
 						mat->setNormalTexture(nullptr); 
 					}
+					ImGui::SameLine();
+					if (ImGui::Button("Create from Albedo"))
+					{
+						if(gdm->str_default_texture != mat->getAlbedoTexture())
+						{
+							mat->setNormalTexture(m_pc->textureManager->generateNormal(mat->getAlbedoTexture(), mat->getAlbedoTexture()->getFilter()));
+						}						
+					}
 
 					ImGui::Text("Oclusion   ");
 					ImGui::SameLine();
@@ -2546,13 +2807,23 @@ void Editor::render(GraphicsDataMisc* gdm)
 			{
 				if (ImGui::Button("Add Script"))
 				{					
-					scriptObject[m_selectedOBJ].push_back(derivedName[m_scriptCombo]);
+					ScriptData sd;
+					sd.pathName = derivedName[m_scriptCombo];
+					Behaviour* b = (FACTORY(Behaviour).create(sd.pathName));
+					sd.data = b->serialize();
+					delete b;
+					scriptObject[m_selectedOBJ].push_back(sd);
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Remove Script"))
 				{
-					std::vector<std::string>& lso = scriptObject[m_selectedOBJ];
-					lso.erase(std::remove(lso.begin(), lso.end(), derivedName[m_scriptCombo]), lso.end());
+					std::vector<ScriptData>& lso = scriptObject[m_selectedOBJ];
+					std::string sc = derivedName[m_scriptCombo];
+					lso.erase(
+						std::remove_if(lso.begin(), lso.end(),
+							[&sc](const ScriptData& sd) { return sd.pathName == sc; }),
+						lso.end()
+					);
 				}
 				ImGui::SameLine();
 				if (ImGui::BeginCombo("##ScriptCombo", derivedName[m_scriptCombo].c_str()))
@@ -2574,11 +2845,17 @@ void Editor::render(GraphicsDataMisc* gdm)
 					ImGui::EndCombo();
 				}
 			}
-			std::vector<std::string>&  scriptUse = scriptObject[m_selectedOBJ];
+			std::vector<ScriptData>& scriptUse = scriptObject[m_selectedOBJ];
 			ImGui::BeginChild("##ScriptCurrent", ImVec2(0, 200), true);
 			for (int i = 0; i < scriptUse.size(); i++)
 			{
-				ImGui::TextColored(m_colRGB, scriptUse[i].c_str());
+				ImGui::TextColored(m_colRGB, scriptUse[i].pathName.c_str());
+				strncpy(m_scriptBuffer, scriptUse[i].data.c_str(), 4096);
+				m_scriptBuffer[4096 - 1] = '\0';
+				if (ImGui::InputTextMultiline(("##Script_" + std::to_string(i)).c_str(), m_scriptBuffer, 4096,ImVec2(500,200)))
+				{
+					scriptUse[i].data = std::string(m_scriptBuffer);
+				}
 			}
 
 			ImGui::EndChild();
@@ -2664,22 +2941,22 @@ void Editor::render(GraphicsDataMisc* gdm)
 
 			for (int i = 0; i < collisionUse.size(); i++)
 			{
-				ImGui::DragFloat3("Position", &collisionUse[i].position[0]);
+				ImGui::DragFloat3(("Position##Col_"+std::to_string(i)).c_str(), &collisionUse[i].position[0]);
 				if (collisionUse[i].type == 0)
 				{
-					ImGui::DragFloat3("Extend", &collisionUse[i].data[0]);
+					ImGui::DragFloat3(("Extend##Col_" + std::to_string(i)).c_str(), &collisionUse[i].data[0]);
 				}
 				else if (collisionUse[i].type == 1)
 				{
-					ImGui::DragFloat("radius", &collisionUse[i].data.x);
+					ImGui::DragFloat(("radius##Col_" + std::to_string(i)).c_str(), &collisionUse[i].data.x);
 				}
 				else if (collisionUse[i].type == 2)
 				{
-					ImGui::DragFloat("radius", &collisionUse[i].data.x);
-					ImGui::DragFloat("Height", &collisionUse[i].data.y);
+					ImGui::DragFloat(("radius##Col_" + std::to_string(i)).c_str(), &collisionUse[i].data.x);
+					ImGui::DragFloat(("Height##Col_" + std::to_string(i)).c_str(), &collisionUse[i].data.y);
 				}
-				ImGui::DragFloat3("Euler", &collisionUse[i].euler[0]);
-				ImGui::DragFloat("Mass", &collisionUse[i].mass);
+				ImGui::DragFloat3(("Euler##Col_" + std::to_string(i)).c_str(), &collisionUse[i].euler[0]);
+				ImGui::DragFloat(("Mass##Col_" + std::to_string(i)).c_str(), &collisionUse[i].mass);
 				ImGui::Separator();
 			}
 			ImGui::EndChild();
@@ -2857,7 +3134,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 		}	
 		if (m_currentSceneData != nullptr && m_generatePathFindingNextPlay && m_playMode == 1)
 		{
-			if (m_pc->inputManager->getKeyDown(GLFW_KEY_K))
+			if (m_pc->inputManager->getKey(GLFW_KEY_K) && !m_currentSceneData->path.has)
 			{
 				m_currentSceneData->path.has = true;
 				Debug::Log("Scene Add Current path");

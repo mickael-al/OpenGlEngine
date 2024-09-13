@@ -2,6 +2,7 @@
 #include "PhysicsWraper.hpp"
 #include "CollisionShape.hpp"
 #include "Model.hpp"
+#include "Time.hpp"
 
 void BehaviourTest::start()
 {
@@ -30,7 +31,7 @@ void BehaviourTest::update()
 	for (int i = 0; i < countObject; i++)
 	{
 		m_model[i]->setPosition(m_rw[i]->getPosition());
-		m_model[i]->setRotation(m_rw[i]->getRotation());
+		m_model[i]->setRotation(m_rw[i]->getRotation());		
 	}
 }
 

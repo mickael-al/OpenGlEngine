@@ -2,6 +2,7 @@
 #include "FrameBuffer.hpp"
 #include "Debug.hpp"
 #include "GraphicsDataMisc.hpp"
+#include "Textures.hpp"
 
 namespace Ge
 {
@@ -16,7 +17,7 @@ namespace Ge
 
         glGenTextures(1, &m_gPosition);
         glBindTexture(GL_TEXTURE_2D, m_gPosition);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGB, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_gPosition, 0);
@@ -28,16 +29,16 @@ namespace Ge
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_gNormal, 0);
 
-        glGenTextures(1, &m_gColorSpec);
-        glBindTexture(GL_TEXTURE_2D, m_gColorSpec);
+        glGenTextures(1, &m_gColor);
+        glBindTexture(GL_TEXTURE_2D, m_gColor);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_gColorSpec, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_gColor, 0);
 
         glGenTextures(1, &m_gOther);
         glBindTexture(GL_TEXTURE_2D, m_gOther);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RG, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, m_gdm->str_width, m_gdm->str_height, 0, GL_RGB, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, m_gOther, 0);
@@ -48,6 +49,8 @@ namespace Ge
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gDepth, 0);
+
+        gdm->str_depth_texture = new Textures(m_gDepth, m_gdm->str_width, m_gdm->str_height);
 
         unsigned int attachments[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,GL_COLOR_ATTACHMENT3 };
         glDrawBuffers(4, attachments);
@@ -88,18 +91,18 @@ namespace Ge
     }
 
     void FrameBuffer::resize(int width, int height)
-    {
+    {        
         glBindTexture(GL_TEXTURE_2D, m_gPosition);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGB, GL_FLOAT, NULL);
 
         glBindTexture(GL_TEXTURE_2D, m_gNormal);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
 
-        glBindTexture(GL_TEXTURE_2D, m_gColorSpec);
+        glBindTexture(GL_TEXTURE_2D, m_gColor);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
 
         glBindTexture(GL_TEXTURE_2D, m_gOther);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, m_gdm->str_width, m_gdm->str_height, 0, GL_R, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, m_gdm->str_width, m_gdm->str_height, 0, GL_RGB, GL_FLOAT, NULL);
 
         glBindTexture(GL_TEXTURE_2D, m_gDepth);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, m_gdm->str_width, m_gdm->str_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
@@ -143,9 +146,9 @@ namespace Ge
         return m_gNormal;
     }
 
-    unsigned int FrameBuffer::getColorSpec() const
+    unsigned int FrameBuffer::getColor() const
     {
-        return m_gColorSpec;
+        return m_gColor;
     }
 
     unsigned int FrameBuffer::getColorFoward() const
@@ -158,15 +161,21 @@ namespace Ge
         return m_gOther;
     }
 
-    void FrameBuffer::release()
+    unsigned int FrameBuffer::getDepth() const
     {
+        return m_gDepth;
+    }
+
+    void FrameBuffer::release()
+    {        
         glDeleteFramebuffers(1, &m_framebuffer);
         glDeleteTextures(1, &m_gPosition);
         glDeleteTextures(1, &m_gNormal);
-        glDeleteTextures(1, &m_gColorSpec);
-        glDeleteTextures(1, &m_gOther);
+        glDeleteTextures(1, &m_gColor);
+        glDeleteTextures(1, &m_gOther);        
         glDeleteTextures(1, &m_gDepth);
         glDeleteFramebuffers(1, &m_framebufferFoward);
         glDeleteTextures(1, &m_fColor);
+        delete m_gdm->str_depth_texture;
     }
 }

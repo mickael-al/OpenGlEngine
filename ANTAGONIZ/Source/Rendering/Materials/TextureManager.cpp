@@ -1,5 +1,11 @@
+#include "glcore.hpp"
 #include "TextureManager.hpp"
 #include "Textures.hpp"
+#include "Engine.hpp"
+#include "PointeurClass.hpp"
+#include "GraphiquePipeline.hpp"
+#include "ShapeBuffer.hpp"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb-cmake/stb_image.h"
 #define __STDC_LIB_EXT1__
@@ -77,6 +83,39 @@ namespace Ge
 		}
 		Debug::Warn("Le fichier n'existe pas");
 		return nullptr;
+	}
+
+	Textures* TextureManager::generateNormal(Textures* base, bool filter, bool mipmaps)
+	{
+		unsigned int fbo;
+		glGenFramebuffers(1, &fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+		unsigned int normalMap;
+		glGenTextures(1, &normalMap);
+		glBindTexture(GL_TEXTURE_2D, normalMap);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, base->getWidth(), base->getHeight(), 0, GL_RGBA, GL_FLOAT, NULL);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, normalMap, 0);
+		const ptrClass * pc = Engine::getPtrClassAddr();
+		GraphiquePipeline * gpn =  pc->graphiquePipelineManager->createPipeline("../Asset/Shader/albedo_normal.fs.glsl", "../Asset/Shader/albedo_normal.vs.glsl");
+
+		glUseProgram(gpn->getProgram());
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, base->getTextureID());
+		int us = glGetUniformLocation(gpn->getProgram(), "strength");
+		glUniform1f(us, 2.5f);
+		ShapeBuffer * sb = pc->modelManager->getFullScreenTriangle();
+		glBindVertexArray(sb->getVAO());
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sb->getIBO());
+		glDrawElements(GL_TRIANGLES, sb->getIndiceSize(), GL_UNSIGNED_INT, 0);
+
+		pc->graphiquePipelineManager->destroyPipeline(gpn);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		Textures* texture = new Textures(normalMap, base->getWidth(), base->getHeight(), m_textures.size(), filter, mipmaps, m_gdm);
+		m_textures.push_back(texture);
+		m_gdm->str_dataMisc.textureCount = m_textures.size();
+		return texture;
 	}
 
 	Textures* TextureManager::createTexture(unsigned char * pixel, int tw, int th, bool filter,bool mipmaps)

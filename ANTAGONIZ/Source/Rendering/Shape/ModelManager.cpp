@@ -471,6 +471,161 @@ namespace Ge
 		}
 	}
 
+	std::vector<ShapeBuffer*> ModelManager::allocateFBXBufferNoOptimize(const char* path, bool normal_recalculate, std::vector<int> m_loadIdMesh)
+	{
+		std::vector<ShapeBuffer*> sbvec;
+		FILE* fp = fopen(path, "rb");
+
+		if (!fp)
+		{
+			Debug::Warn("cannot load : %s ", path);
+			return sbvec;
+		}
+		fseek(fp, 0, SEEK_END);
+		long file_size = ftell(fp);
+		fseek(fp, 0, SEEK_SET);
+		auto* content = new ofbx::u8[file_size];
+		fread(content, 1, file_size, fp);
+
+		ofbx::LoadFlags flags =
+			ofbx::LoadFlags::TRIANGULATE |
+			//		ofbx::LoadFlags::IGNORE_MODELS |
+			ofbx::LoadFlags::IGNORE_BLEND_SHAPES |
+			ofbx::LoadFlags::IGNORE_CAMERAS |
+			ofbx::LoadFlags::IGNORE_LIGHTS |
+			//		ofbx::LoadFlags::IGNORE_TEXTURES |
+			ofbx::LoadFlags::IGNORE_SKIN |
+			ofbx::LoadFlags::IGNORE_BONES |
+			ofbx::LoadFlags::IGNORE_PIVOTS |
+			//		ofbx::LoadFlags::IGNORE_MATERIALS |
+			ofbx::LoadFlags::IGNORE_POSES |
+			ofbx::LoadFlags::IGNORE_VIDEOS |
+			ofbx::LoadFlags::IGNORE_LIMBS |
+			//		ofbx::LoadFlags::IGNORE_MESHES |
+			ofbx::LoadFlags::IGNORE_ANIMATIONS;
+
+		ofbx::IScene* scene = ofbx::load((ofbx::u8*)content, file_size, (ofbx::u16)flags);
+
+		int size = (m_loadIdMesh.size() > 0) ? m_loadIdMesh.size() : scene->getMeshCount();
+
+		for (int i = 0; i < size; ++i)
+		{
+			std::vector<Vertex> vertices;
+			std::vector<uint32_t> indices;
+
+			const ofbx::Geometry* geom = nullptr;
+			if (m_loadIdMesh.size() > 0)
+			{
+				geom = scene->getMesh(m_loadIdMesh[i] % scene->getMeshCount())->getGeometry();
+			}
+			else
+			{
+				geom = scene->getMesh(i)->getGeometry();
+			}
+
+			vertices.reserve(geom->getVertexCount());
+			indices.reserve(geom->getIndexCount());
+			const ofbx::Vec3* position = geom->getVertices();
+			const ofbx::Vec2* uv = geom->getUVs();
+			const ofbx::Vec3* normals = geom->getNormals();
+			const ofbx::Vec3* tangents = geom->getTangents();
+			const ofbx::Vec4* colors = geom->getColors();
+
+			for (int j = 0; j < geom->getVertexCount(); ++j)
+			{
+				Vertex vertex{};
+				vertex.pos.x = position[j].x;
+				vertex.pos.y = position[j].y;
+				vertex.pos.z = position[j].z;
+
+				vertex.texCoord.x = uv[j].x;
+				vertex.texCoord.y = 1.0f - uv[j].y;
+
+				if (normals != nullptr && !normal_recalculate)
+				{
+					vertex.normal.x = normals[j].x;
+					vertex.normal.y = normals[j].y;
+					vertex.normal.z = normals[j].z;
+				}
+
+				if (tangents != nullptr)
+				{
+					vertex.tangents.x = tangents[j].x;
+					vertex.tangents.y = tangents[j].y;
+					vertex.tangents.z = tangents[j].z;
+				}
+				else
+				{
+					vertex.tangents = { 0, 0, 0 };
+				}
+
+				if (colors != nullptr)
+				{
+					vertex.color.x = colors[j].x;
+					vertex.color.y = colors[j].y;
+					vertex.color.z = colors[j].z;
+				}
+				else
+				{
+					vertex.color = { 1, 1, 1 };
+				}
+
+				vertices.push_back(vertex);
+				indices.push_back(static_cast<uint32_t>(vertices.size()-1));
+			}
+
+			if (tangents == nullptr || normal_recalculate || normals == nullptr)
+			{
+				uint32_t index0, index1, index2;
+				glm::vec3 edge1, edge2, tangent;
+				glm::vec2 deltaUV1, deltaUV2;
+				float r;
+				for (size_t i = 0; i < indices.size(); i += 3)
+				{
+					index0 = indices[i];
+					index1 = indices[i + 1];
+					index2 = indices[i + 2];
+
+					Vertex& vertex0 = vertices[index0];
+					Vertex& vertex1 = vertices[index1];
+					Vertex& vertex2 = vertices[index2];
+
+					if (tangents == nullptr)
+					{
+						edge1 = vertex1.pos - vertex0.pos;
+						edge2 = vertex2.pos - vertex0.pos;
+
+						deltaUV1 = vertex1.texCoord - vertex0.texCoord;
+						deltaUV2 = vertex2.texCoord - vertex0.texCoord;
+
+						r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+						tangent = glm::normalize(r * (deltaUV2.y * edge1 - deltaUV1.y * edge2));
+
+						vertex0.tangents = tangent;
+						vertex1.tangents = tangent;
+						vertex2.tangents = tangent;
+					}
+					if (normal_recalculate || normals == nullptr)
+					{
+						glm::vec3 normal = glm::normalize(glm::cross(vertex1.pos - vertex0.pos, vertex2.pos - vertex0.pos));
+						vertex0.normal = normal;
+						vertex1.normal = normal;
+						vertex2.normal = normal;
+					}
+				}
+			}
+			ShapeBuffer* buffer = (ShapeBuffer*)m_poolBuffer.newObject(vertices, indices, m_gdm);
+			m_shapeBuffers.push_back(buffer);
+			sbvec.push_back(buffer);
+		}
+
+		delete[] content;
+		fclose(fp);
+
+		return sbvec;
+	}
+
 	std::vector<ShapeBuffer*> ModelManager::allocateFBXBuffer(const char* path, bool normal_recalculate, std::vector<int> m_loadIdMesh)
 	{
 		std::vector<ShapeBuffer*> sbvec;

@@ -2,7 +2,14 @@
 
 namespace Ge
 {
-    int8_t* SoundTypeLoader::LoadWavFormat(const char* filePath, uint64_t* size, uint32_t* frequency, int32_t* format)
+    double CalculateDuration(uint64_t data_size, uint32_t sampleRate, int32_t bitsPerSample, int32_t numChannels) 
+    {
+        // Calculer la durée du fichier WAV en secondes
+        double duration = static_cast<double>(data_size) / (numChannels * (bitsPerSample / 8) * sampleRate);
+        return duration;
+    }
+
+    int8_t* SoundTypeLoader::LoadWavFormat(const char* filePath, uint64_t* size, uint32_t* frequency, int32_t* format, double * time)
     {
         RIFF_Header riffHeader;
         WAVE_Format waveFormat;
@@ -60,6 +67,7 @@ namespace Ge
             {
                 *format = (waveFormat.numChannels == 1) ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
             }
+            *time = CalculateDuration(data_size, waveFormat.sampleRate, waveFormat.bitsPerSample, waveFormat.numChannels);            
         }
         delete subChunkID;
         fclose(wavFile);

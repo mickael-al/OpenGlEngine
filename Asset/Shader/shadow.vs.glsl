@@ -25,7 +25,7 @@ layout(std430, binding = 1) buffer UniformBufferObject
 
 struct StructUBM
 {
-	vec3 albedo;
+	vec4 albedo;
 	vec2 offset;
 	vec2 tilling;
 	float metallic;

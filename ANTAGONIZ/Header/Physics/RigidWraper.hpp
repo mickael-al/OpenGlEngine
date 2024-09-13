@@ -23,7 +23,7 @@ namespace Ge
         void SetMass(float mass);
         void setGravity(glm::vec3 const& gravity);
         void SetRestitution(float coef);
-        void SetLinearVelocity(glm::vec3 const& velocity);
+        void SetLinearVelocity(const glm::vec3 velocity);
         void BuildPhysics(CollisionShape* shape, bool hasInertia = true);
         bool IsInitialized();
         glm::vec3 GetLinearVelocity();

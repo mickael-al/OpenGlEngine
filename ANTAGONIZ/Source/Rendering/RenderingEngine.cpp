@@ -246,6 +246,7 @@ namespace Ge
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_shaderDataMisc->getSSBO());
 		bool transparency = false;
 		bool currentDepthTest = true;
+		bool currentDepthWrite = true;
 		for (auto& material : matlist)
 		{
 			auto& mku = instanced_models[material];
@@ -278,6 +279,19 @@ namespace Ge
 				else
 				{
 					glDisable(GL_DEPTH_TEST);
+				}
+			}
+
+			if (currentMaterial->getDepthWrite() != currentDepthWrite)
+			{
+				currentDepthWrite = currentMaterial->getDepthWrite();
+				if (currentDepthWrite)
+				{
+					glDepthMask(GL_TRUE);
+				}
+				else
+				{
+					glDepthMask(GL_FALSE);
 				}
 			}
 			currentPipeline = currentMaterial->getPipeline();
@@ -316,6 +330,11 @@ namespace Ge
 				glEnable(GL_CULL_FACE);
 			}
 		}		
+		if (!currentDepthWrite)
+		{
+			currentDepthWrite = true;
+			glDepthMask(GL_TRUE);
+		}
 		/*  Shadow  */
 		
 		//glEnable(GL_CULL_FACE);
@@ -398,7 +417,7 @@ namespace Ge
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, m_frameBuffer->getNormal());
 		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, m_frameBuffer->getColorSpec());
+		glBindTexture(GL_TEXTURE_2D, m_frameBuffer->getColor());
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, m_frameBuffer->getOther());
 		glActiveTexture(GL_TEXTURE4);

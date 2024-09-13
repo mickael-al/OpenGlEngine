@@ -7,7 +7,7 @@
 
 namespace Ge
 {
-	FlyCamera::FlyCamera(GraphicsDataMisc * gdm) : Camera(gdm)
+	FlyCamera::FlyCamera(GraphicsDataMisc * gdm) : Camera(gdm,0)
 	{
 		m_im = Engine::getPtrClass().inputManager;
 		m_angleY = 0.0f;
@@ -18,6 +18,14 @@ namespace Ge
 
 	void FlyCamera::updateCamera()
 	{
+		if (m_im->getKeyDown(GLFW_KEY_HOME))
+		{
+			m_lock = !m_lock;
+		}
+		if (m_lock)
+		{
+			return;
+		}
 		if (m_im->getKey(340))
 		{
 			m_addMoveSpeed += Time::GetDeltaTime() * m_fastSpeedMult;

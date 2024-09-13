@@ -1,4 +1,6 @@
 #include "FolderDialog.hpp"
+#include <algorithm> // Pour std::transform
+#include <cctype>    // Pour std::tolower, std::toupper
 
 namespace Ge
 {
@@ -32,6 +34,68 @@ namespace Ge
 		return savePngFileLinuxDialog();
 #else
 		return "Plateforme non supportée";
+#endif
+	}
+
+	std::string toLower(const std::string& str) {
+		std::string lowerStr = str;
+		std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(),
+			[](unsigned char c) { return std::tolower(c); });
+		return lowerStr;
+	}
+
+	std::string toUpper(const std::string& str) {
+		std::string upperStr = str;
+		std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(),
+			[](unsigned char c) { return std::toupper(c); });
+		return upperStr;
+	}
+
+
+	std::string FolderDialog::saveFileWindowsDialog(std::string ext)
+	{
+		std::string filePath;
+		OPENFILENAME ofn;
+		TCHAR szFile[MAX_PATH] = { 0 };
+
+		// Convertion de l'extension en minuscule et majuscule
+		std::string lowerExt = toLower(ext);
+		std::string upperExt = toUpper(ext);
+
+		TCHAR currentDir[MAX_PATH];
+		GetCurrentDirectory(MAX_PATH, currentDir);
+
+		ZeroMemory(&ofn, sizeof(OPENFILENAME));
+		ofn.lStructSize = sizeof(OPENFILENAME);
+		ofn.hwndOwner = NULL;
+		ofn.lpstrFile = szFile;
+		ofn.nMaxFile = sizeof(szFile);
+
+		// Modification du titre de la fenêtre et des filtres avec l'extension
+		ofn.lpstrTitle = TEXT(("Enregistrer un fichier"+ upperExt).c_str());
+
+		// Remplacement de "png" par l'extension spécifiée
+		std::string filter = upperExt + " files (*." + lowerExt + ")\0*." + lowerExt + "\0All files (*.*)\0*.*\0";
+		ofn.lpstrFilter = filter.c_str();
+
+		// Remplacement de l'extension par défaut
+		ofn.lpstrDefExt = lowerExt.c_str();
+
+		ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+
+		if (GetSaveFileName(&ofn) == TRUE) {
+			filePath = ofn.lpstrFile;
+		}
+		SetCurrentDirectory(currentDir);
+		return filePath;
+	}
+
+	void FolderDialog::openFolder(std::string path)
+	{
+#ifdef _WIN32
+		ShellExecute(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWDEFAULT);
+#elif __linux__
+
 #endif
 	}
 

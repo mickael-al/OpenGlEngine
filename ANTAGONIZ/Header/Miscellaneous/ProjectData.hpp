@@ -43,6 +43,13 @@ struct EditorConfig
 	JS_OBJ(gameMode, inspector, project, hiearchy, postProcess, lastProjectpathOpen);
 };
 
+struct ScriptData
+{
+	std::string pathName;
+	std::string data;	
+	JS_OBJ(pathName, data);
+};
+
 struct ProjectData
 {
 	char projetName[64];
@@ -62,7 +69,10 @@ struct ProjectData
 };
 
 JS_OBJ_EXT(glm::vec2, x, y);
+#ifndef VEC3_JS
+#define VEC3_JS
 JS_OBJ_EXT(glm::vec3, x, y, z);
+#endif // !VEC3_JS
 JS_OBJ_EXT(glm::vec4, x, y, z,w);
 JS_OBJ_EXT(glm::quat, x, y, z,w);
 JS_OBJ_EXT(PPSetting, bloom, bloom_filter, bloom_threshold, bloom_intensity, exposure);
@@ -98,7 +108,7 @@ struct ModelData
 	int idMaterial;
 	int idBuffer;
 	int idParent;
-	std::vector<std::string> scripts;
+	std::vector<ScriptData> scripts;
 	std::vector<CollisionData> collisions;
 	ModelData()
 	{
@@ -118,18 +128,19 @@ struct BufferData
 
 struct ShaderData
 {
+	std::string name;
 	std::string frag;
 	std::string vert;
 	bool back;
 	bool multiS;
 	bool transparency;
 	int cullmode;
-	JS_OBJ(frag, vert, back, multiS, transparency, cullmode);
+	JS_OBJ(name,frag, vert, back, multiS, transparency, cullmode);
 };
 
 struct MaterialData
 {
-	glm::vec3 albedo;
+	glm::vec4 albedo;
 	glm::vec2 offset;
 	glm::vec2 tilling;
 	float metallic;
@@ -143,6 +154,7 @@ struct MaterialData
 	int RoughnessMap;
 	int aoMap;
 	int shader;
+	bool active;
 	MaterialData()
 	{
 		albedoMap = -1;
@@ -151,8 +163,9 @@ struct MaterialData
 		RoughnessMap = -1;
 		aoMap = -1;
 		shader = -1;
+		active = true;
 	}
-	JS_OBJ(albedo, offset, tilling, metallic, roughness, normal, ao, emit, albedoMap, normalMap, metallicMap, RoughnessMap, aoMap, shader);
+	JS_OBJ(albedo, offset, tilling, metallic, roughness, normal, ao, emit, albedoMap, normalMap, metallicMap, RoughnessMap, aoMap, shader, active);
 };
 
 struct TextureData
@@ -174,7 +187,7 @@ struct LightData
 	bool shadow;
 	int status;
 	int idParent;
-	std::vector<std::string> scripts;
+	std::vector<ScriptData> scripts;
 	std::vector<CollisionData> collisions;
 	LightData()
 	{
@@ -204,7 +217,7 @@ struct AudioSourceData
 	float refDistance;
 	int idBuffer;
 	int idParent;
-	std::vector<std::string> scripts;
+	std::vector<ScriptData> scripts;
 	std::vector<CollisionData> collisions;
 	AudioSourceData()
 	{
@@ -221,7 +234,7 @@ struct EmptyData
 	glm::quat rotation;
 	glm::vec3 scale;
 	int idParent;
-	std::vector<std::string> scripts;
+	std::vector<ScriptData> scripts;
 	std::vector<CollisionData> collisions;
 	EmptyData()
 	{

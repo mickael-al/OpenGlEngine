@@ -31,6 +31,18 @@ namespace Ge
 		return m_defaultMaterial;
 	}
 
+    void MaterialManager::lowDrawPriority(Materials* mat)
+    {
+        auto it = std::find(m_materials.begin(), m_materials.end(), mat);
+
+        if (it != m_materials.end() && it != m_materials.end() - 1)
+        {
+            m_materials.erase(it);
+            m_materials.push_back(mat);
+        }
+        updateStorage();
+    }
+
     Materials * MaterialManager::createMaterial()
     {             
 		Materials * material = m_pool.newObject(0, m_gdm);

@@ -73,9 +73,9 @@ namespace Ge
 		m_queue->push((Command*)command);
 	}
 
-	void RigidWraper::SetLinearVelocity(glm::vec3 const& velocity)
+	void RigidWraper::SetLinearVelocity(const glm::vec3 velocity)
 	{
-		MethodCommand<RigidBody, glm::vec3 const&>* command = new MethodCommand<RigidBody, glm::vec3 const&>(m_rb, &RigidBody::SetLinearVelocity, velocity);
+		MethodCommand<RigidBody,const glm::vec3>* command = new MethodCommand<RigidBody, const glm::vec3>(m_rb, &RigidBody::SetLinearVelocity, velocity);
 		m_queue->push((Command*)command);
 	}
 

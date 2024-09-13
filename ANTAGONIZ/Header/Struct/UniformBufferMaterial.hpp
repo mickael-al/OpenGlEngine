@@ -5,7 +5,7 @@
 
 struct UniformBufferMaterial
 {
-    glm::vec3 albedo;
+    glm::vec4 albedo;
 	alignas(16) glm::vec2 offset;
     glm::vec2 tilling;
     float metallic;

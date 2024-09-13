@@ -13,7 +13,7 @@ namespace Ge
 	class Camera : public GObject
 	{		
 	public:
-		Camera(GraphicsDataMisc * gdm);
+		Camera(GraphicsDataMisc * gdm,int priority);
 		~Camera();
 		void setFieldOfView(float fov);
 		void setNear(float near);

@@ -17,6 +17,8 @@ namespace Ge
 		void setGain(float gain);
 		float getPitch() const;
 		float getGain() const;
+		float getTime() const;
+		void setTime(float t);
 		int SourceState();
 		void setPosition(glm::vec3 pos) override;
 		void setRotation(glm::quat rot) override;

@@ -5,7 +5,7 @@
 #include "UniformBufferLight.hpp"
 #include "ShadowMatrix.hpp"
 
-#define TEXTURE_DIM 2048
+#define TEXTURE_DIM 1024
 #define SHADOW_MAP_CASCADE_COUNT 4
 #define SHADOW_MAP_CUBE_COUNT 6
 #define SHADOW_MAP_SPOT_COUNT 4
@@ -44,7 +44,7 @@ namespace Ge
 		unsigned int m_ssboShadow;
 		bool m_shadow = false;
 		//shadow Dir
-		float cascadeSplitLambda = 0.75f;
+		float cascadeSplitLambda = 0.85f;
 		glm::vec3 frustumCorners[8];
 	};
 }

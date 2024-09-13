@@ -54,6 +54,18 @@ namespace Ge
 		return m_gain;
 	}
 
+	float AudioSource::getTime() const
+	{
+		ALfloat currentTime;
+		alGetSourcef(m_sourceID, AL_SEC_OFFSET, &currentTime);
+		return currentTime;
+	}
+
+	void AudioSource::setTime(float t)
+	{
+		alSourcef(m_sourceID, AL_SEC_OFFSET, t);
+	}
+
 	int AudioSource::SourceState()
 	{
 		ALint sourceState;

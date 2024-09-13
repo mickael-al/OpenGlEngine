@@ -20,7 +20,7 @@ layout(std430, binding = 1) buffer UniformBufferObject
 
 struct StructUBM
 {
-	vec3 albedo;
+	vec4 albedo;
 	vec2 offset;
 	vec2 tilling;
 	float metallic;
@@ -55,12 +55,11 @@ layout(location = 1) in vec3 Color;
 layout(location = 2) in vec3 ViewPos;
 layout(location = 3) in mat3 TBN;
 layout(location = 6) flat in int imaterial;
-layout(location = 7) in float Depth;
 
-layout(location = 0) out vec4 gPosition;
+layout(location = 0) out vec3 gPosition;
 layout(location = 1) out vec4 gNormal;
 layout(location = 2) out vec4 gColorSpec;
-layout(location = 3) out vec2 gOther;
+layout(location = 3) out vec3 gOther;
 
 void main(void)
 {

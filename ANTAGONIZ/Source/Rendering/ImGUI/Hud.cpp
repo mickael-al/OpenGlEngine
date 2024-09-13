@@ -12,6 +12,7 @@
 #include "ImGuizmo.h"
 #include "EngineHeader.hpp"
 #include "PathManager.hpp"
+#include <functional>
 
 namespace Ge
 {
@@ -77,8 +78,43 @@ namespace Ge
 		m_imguiBlock.erase(std::remove(m_imguiBlock.begin(), m_imguiBlock.end(), ib), m_imguiBlock.end());
 	}
 
+	ImFont* Hud::addFont(std::string path,float size)
+	{
+		std::hash<std::string> hash_fn;
+		size_t hash = hash_fn(path)+ (size_t)size;
+		if (m_fontID.find(hash) != m_fontID.end())
+		{
+			return m_fontID[hash].second;
+		}
+		else
+		{
+			ImGuiIO& io = ImGui::GetIO();
+			ImFont * fonts = io.Fonts->AddFontFromFileTTF(path.c_str(), size);
+			unsigned char* tex_pixels = nullptr;
+			int tex_width, tex_height;
+			io.Fonts->GetTexDataAsRGBA32(&tex_pixels, &tex_width, &tex_height);
+			unsigned int tex_id;
+			glGenTextures(1, &tex_id);
+			glBindTexture(GL_TEXTURE_2D, tex_id);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_width, tex_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_pixels);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+			io.Fonts->SetTexID((void*)(intptr_t)tex_id);
+			io.Fonts->ClearTexData();
+			m_fontID[hash] = std::pair<unsigned int, ImFont*>(tex_id, fonts);
+			return fonts;
+		}
+		return nullptr;
+	}
+
 	void Hud::release()
 	{		
+		for (const auto& lf : m_fontID)
+		{			
+			glDeleteTextures(1, &lf.second.first);
+		}
 		m_imguiBlock.clear();
 		ImGui_ImplOpenGL3_Shutdown();
 		ImGui_ImplGlfw_Shutdown();

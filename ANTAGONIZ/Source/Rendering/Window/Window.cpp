@@ -69,6 +69,10 @@ namespace Ge
 		auto win = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
 		win->m_gdm->str_width = width;
 		win->m_gdm->str_height = height;
+		if (width == 0 && height == 0)
+		{
+			return;
+		}
 		win->m_framebufferResized = true;
 		ptrClass pc = Engine::getPtrClass();
 		pc.cameraManager->updateStorage();

@@ -27,6 +27,7 @@ namespace Ge
     public:
         Materials * createMaterial();
 		Materials * getDefaultMaterial();
+		void lowDrawPriority(Materials*mat);
         std::vector<Materials*> & loadMltMaterial(const char* path, bool filter, TextureManager * tm);
         void destroyMaterial(Materials * material);				
     private:

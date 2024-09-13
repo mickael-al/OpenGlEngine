@@ -19,6 +19,7 @@ public:
 	void saveToFile();
 	void loadFromFile();
 	void FillGraph();
+	void help();
 	unsigned int nearPointIndex(glm::vec3 target);
 	bool pathFinding(glm::vec3* startPosition, glm::vec3* endPosition, std::vector<Vec3AStar*>* path);
 
