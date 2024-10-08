@@ -74,6 +74,15 @@ namespace Ge
 		}
 	}
 
+	void Camera::tempProj(glm::mat4 nproj)
+	{
+		m_uniformBufferCamera.camPos = m_transform.position;
+		m_uniformBufferCamera.view = getViewMatrix();
+		m_uniformBufferCamera.proj = nproj;
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ssbo);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(UniformBufferCamera), &m_uniformBufferCamera);
+	}
+
 	void Camera::setFieldOfView(float fov)
 	{
 		m_fov = fov;

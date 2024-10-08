@@ -5,6 +5,7 @@
 #include "glm/glm.hpp"
 struct GraphicsDataMisc;
 struct ptrClass;
+#define XR_MODE
 
 namespace Ge
 {
@@ -21,6 +22,7 @@ namespace Ge
 	class SSAOBuffer;
 	class PostProcess;
 	class Skybox;
+	class OpenVRManager;
 }
 
 namespace Ge
@@ -50,6 +52,7 @@ namespace Ge
 		ShaderDataMisc * m_shaderDataMisc;
 		PostProcess* m_postProcess;
 		Skybox* m_skybox;
+		OpenVRManager* m_openVRManager;
     };
 }
 

@@ -27,6 +27,7 @@ namespace Ge
 		float getNear();
 		float getFar();
 		void mapMemory() override;
+		void tempProj(glm::mat4 nproj);
 		int getPriority();
 		float aspectRatio() const;
 		glm::mat4 getViewMatrix() const;
