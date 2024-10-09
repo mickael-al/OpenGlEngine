@@ -206,7 +206,7 @@ namespace Ge
 			return false;
 		}
 #ifdef XR_MODE
-		if (!m_openVRManager->initialize())
+		if (!m_openVRManager->initialize(m_graphicsDataMisc))
 		{
 			Debug::INITFAILED("OpenXRManager");
 			return false;
@@ -220,7 +220,7 @@ namespace Ge
     void RenderingEngine::release()
     {        	
 #ifdef XR_MODE
-		RenderingEngine::m_openVRManager->shutdown();
+		RenderingEngine::m_openVRManager->release();
 #endif
 		RenderingEngine::m_skybox->release();
 		RenderingEngine::m_postProcess->release();
@@ -245,9 +245,13 @@ namespace Ge
 		m_openVRManager->update();
 		for (int vr = 0; vr < 2; vr++)
 		{
-#endif
 			m_shaderDataMisc->update(m_cameraManager->getCurrentCamera());
 			m_cameraManager->updateFlyCam();
+			m_openVRManager->swapProjection(vr == 0, m_cameraManager->getCurrentCamera());
+#elif
+			m_shaderDataMisc->update(m_cameraManager->getCurrentCamera());
+			m_cameraManager->updateFlyCam();
+#endif			
 			glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer->getFrameBuffer());
 			glViewport(0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height);
 			const glm::vec4& clear = m_ptrClass->settingManager->getClearColor();
@@ -464,16 +468,45 @@ namespace Ge
 			m_postProcess->compute(m_frameBuffer->getFowardFrameBuffer(), m_frameBuffer->getColorFoward(), m_modelManager->getDefferedQuad());
 
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, m_frameBuffer->getFowardFrameBuffer());
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			glBlitFramebuffer(
-				0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height,
-				0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height,
-				GL_COLOR_BUFFER_BIT,
-				GL_NEAREST
-			);
 #ifdef XR_MODE
-			m_openVRManager->submit(vr == 0, m_frameBuffer->getColor());
-		}				
+			if (vr == 0)
+			{
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_openVRManager->getLeftFrameBuffer());
+				glBlitFramebuffer(
+					0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height,
+					0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height,
+					GL_COLOR_BUFFER_BIT,
+					GL_NEAREST
+				);
+				m_openVRManager->submit(true, m_openVRManager->getLeftTexture());
+			}
+			else
+			{
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_openVRManager->getRightFrameBuffer());
+				glBlitFramebuffer(
+					0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height,
+					0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height,
+					GL_COLOR_BUFFER_BIT,
+					GL_NEAREST
+				);
+				m_openVRManager->submit(false, m_openVRManager->getRightTexture());
+			}
+		}	
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBlitFramebuffer(
+			0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height,
+			0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height,
+			GL_COLOR_BUFFER_BIT,
+			GL_NEAREST
+		);
+#elif
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBlitFramebuffer(
+			0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height,
+			0, 0, m_graphicsDataMisc->str_width, m_graphicsDataMisc->str_height,
+			GL_COLOR_BUFFER_BIT,
+			GL_NEAREST
+		);
 #endif
 		m_hud->render();		
 		glfwSwapBuffers(m_graphicsDataMisc->str_window);
