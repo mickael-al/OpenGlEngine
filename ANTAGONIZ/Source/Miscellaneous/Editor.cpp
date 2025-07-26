@@ -543,6 +543,11 @@ std::string extractExtension(const std::string& fullPath)
 	return fullPath.substr(dotPosition);
 }
 
+const std::string& Editor::getProjectLocation() const
+{
+	return m_currentProjectLocation;
+}
+
 std::string Editor::dropTargetImage()
 {
 	std::string path = "";
@@ -2283,6 +2288,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 						m_currentSceneData = sd;
 						loadScene(m_baseProjectLocation+m_currentProjectData->lastSceneOpen, m_currentSceneData);
 					}
+					globalSave();
 					ImGui::CloseCurrentPopup();
 				}
 			}

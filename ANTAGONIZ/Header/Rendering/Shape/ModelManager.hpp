@@ -53,7 +53,7 @@ namespace Ge
 		MemoryPool<Model> m_pool;
 		MemoryPool<ShapeBufferBase> m_poolBuffer;
         std::vector<Model*> m_models;
-		std::unordered_map<Materials*, std::unordered_map<ShapeBuffer*, std::vector<Model*>>> m_instanced;
+		std::unordered_map<Materials*, std::unordered_map<ShapeBuffer*, std::vector<Model*>>> m_instanced;		
         std::vector<ShapeBuffer *> m_shapeBuffers;        
 		GraphicsDataMisc * m_gdm;
 		ShapeBuffer* m_defferedQuad;

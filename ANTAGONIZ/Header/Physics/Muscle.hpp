@@ -14,6 +14,7 @@ namespace Ge
     public:
         Muscle(btDynamicsWorld* world, btRigidBody* bodyA, btRigidBody* bodyB, glm::vec3 pA, glm::vec3 pB, glm::vec3 sA, glm::vec3 sB, float degres, bool adaptePos = true);
         void setContraction(glm::vec3 m_value, float dt);
+        glm::vec3 getContraction() const;
         void setWing(bool state);
         void reset();
         ~Muscle();

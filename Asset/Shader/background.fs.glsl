@@ -15,6 +15,7 @@ void main()
     vec3 envColor = texture(environmentMap, WorldPos).rgb;
     
     gPosition = ViewPos;
-    gColor = vec4(envColor,1.0);
+    gColor = vec4(pow(envColor, vec3(1.0/2.2)),1.0);
+    //gColor = vec4(envColor,1.0);
     gNormal.a = 1.0;
 }

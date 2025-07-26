@@ -62,6 +62,7 @@ namespace Ge
 		void globalSave();
 		void clearCurrentProject();
 		std::string dropTargetImage();
+		const std::string& getProjectLocation() const;
 		void init(GraphicsDataMisc* gdm);
 		void render(GraphicsDataMisc* gdm);
 	private:

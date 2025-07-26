@@ -154,7 +154,7 @@ namespace Ge
 			{
 				glm::vec3(0.0f, 1.0f, 0.0f), // Positive X
 				glm::vec3(0.0f, 1.0f, 0.0f), // Negative X
-				glm::vec3(0.0f, 0.0f, 1.0f),  // Positive Y
+				glm::vec3(0.0f, 0.0f, 1.0f), // Positive Y
 				glm::vec3(0.0f, 0.0f, 1.0f), // Negative Y
 				glm::vec3(0.0f, 1.0f, 0.0f), // Positive Z
 				glm::vec3(0.0f, 1.0f, 0.0f)  // Negative Z
@@ -176,6 +176,11 @@ namespace Ge
 	bool Lights::getshadow() const
 	{
 		return m_shadow;
+	}
+
+	const std::vector<ShadowMatrix>& Lights::getShadowMatrix()
+	{
+		return m_shadowMatrix;
 	}
 
 	void Lights::setRange(float r)

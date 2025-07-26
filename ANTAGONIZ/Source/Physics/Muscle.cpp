@@ -66,9 +66,9 @@ namespace Ge
     void Muscle::setContraction(glm::vec3 m_value,float dt)
     {
         m_localA.getBasis().setEulerZYX(0, 0, 0);
-        m_contractions.x = glm::lerp(m_contractions.x, m_value.x, dt * 5.0f);
-        m_contractions.y = glm::lerp(m_contractions.y, m_value.y, dt * 5.0f);
-        m_contractions.z = glm::lerp(m_contractions.z, m_value.z, dt * 5.0f);
+        m_contractions.x = glm::lerp(m_contractions.x, m_value.x, dt);
+        m_contractions.y = glm::lerp(m_contractions.y, m_value.y, dt);
+        m_contractions.z = glm::lerp(m_contractions.z, m_value.z, dt);
         m_localB.getBasis().setEulerZYX(glm::radians(m_degres * m_contractions.x)- m_ndeg, glm::radians(m_degres * m_contractions.y)- m_ndeg, glm::radians(m_degres * m_contractions.z)- m_ndeg);
         m_joint->setFrames(m_localA, m_localB);        
         if (m_wing)
@@ -76,5 +76,10 @@ namespace Ge
             btVector3 vtv = m_bodyA->getLinearVelocity();
             m_bodyA->setLinearVelocity(vtv+btVector3((m_contractions.x-m_value.x)*dt* 100.0f, abs(m_contractions.y - m_value.y) * dt * 90.0f, (m_contractions.z - m_value.z) * dt * 100.0f));
         }
+    }
+
+    glm::vec3 Muscle::getContraction() const
+    {
+        return m_contractions;
     }
 }

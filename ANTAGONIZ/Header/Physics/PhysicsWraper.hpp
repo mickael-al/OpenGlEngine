@@ -20,6 +20,7 @@ namespace Ge
     class GraphiquePipeline;
     class RigidWraper;
     class CollisionWraper;
+    class MuscleWraper;
     class PhysicsWraper : public Behaviour
     {
     public:
@@ -28,8 +29,8 @@ namespace Ge
         std::vector<RigidWraper*> AllocateRigidbody(CollisionShape* shape, int nb, bool hasInertia = true);
         CollisionWraper* AllocateCollision(CollisionShape* shape);
         std::vector<CollisionWraper*> AllocateCollision(CollisionShape* shape, int nb);
-        Muscle* AllocateMuscle(RigidBody* rb1, RigidBody* rb2, float degres, float scale = 1.0f, bool adaptePos = true);
-        void ReleaseMuscle(Muscle* pBody);
+        MuscleWraper* AllocateMuscle(RigidWraper* rb1, RigidWraper* rb2, float degres, float scale = 1.0f, bool adaptePos = true);
+        void ReleaseMuscle(MuscleWraper* pBody);
         void AddRigidbody(RigidWraper* pbody, int group = 1, int mask = -1);
         void ReleaseRigidbody(RigidWraper* pBody);
         void AddCollision(CollisionWraper* body);

@@ -5,9 +5,9 @@
 
 namespace Ge
 {
-	ComputeShader::ComputeShader(std::string filename)
+	ComputeShader::ComputeShader(std::string filename, std::string define)
 	{
-		GraphiquePipeline::LoadShader(filename, ShaderType::ComputeShaderType, &m_computeShader);
+		GraphiquePipeline::LoadShader(filename, ShaderType::ComputeShaderType, &m_computeShader, define);
 		m_computeProgram = glCreateProgram();
 
 		glAttachShader(m_computeProgram, m_computeShader);

@@ -74,15 +74,6 @@ namespace Ge
 		}
 	}
 
-	void Camera::tempProjView(glm::mat4 &nproj, glm::mat4& nview,glm::vec3& pos)
-	{
-		m_uniformBufferCamera.camPos = m_transform.position = pos;
-		m_uniformBufferCamera.view = nview;
-		m_uniformBufferCamera.proj = nproj;
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ssbo);
-		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(UniformBufferCamera), &m_uniformBufferCamera);
-	}
-
 	void Camera::setFieldOfView(float fov)
 	{
 		m_fov = fov;

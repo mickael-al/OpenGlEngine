@@ -275,6 +275,10 @@ namespace Ge
 				normal[3 * i + 0],
 				normal[3 * i + 1],
 				normal[3 * i + 2] };
+
+			vertex.color.x = 1;
+			vertex.color.y = 1;
+			vertex.color.z = 1;
 			vertices.push_back(vertex);
 		}
 

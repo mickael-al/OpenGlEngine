@@ -24,7 +24,7 @@ namespace Ge
 		bool initialize(GraphicsDataMisc *gdm);
 		void release();
 	public:
-		GraphiquePipeline * createPipeline(const std::string & frag, const std::string & vert, bool back = false, bool multiS = true, bool transparency = false, int cullmode = 1);		
+		GraphiquePipeline * createPipeline(const std::string & frag, const std::string & vert, bool back = false, bool multiS = true, bool transparency = false, int cullmode = 1, std::string define = "");
 		void destroyPipeline(GraphiquePipeline * pipeline);
 		std::vector<GraphiquePipeline *> & GetPipelines();
 		std::vector<CustomRenderer*> & getCustomRenderer();

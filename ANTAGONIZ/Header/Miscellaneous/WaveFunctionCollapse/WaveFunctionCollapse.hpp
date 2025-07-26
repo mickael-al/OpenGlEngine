@@ -7,7 +7,7 @@
 #include <map>
 
 template<int WIDTH, int HEIGHT>
-class WaveFunctionCollapse
+class WaveFunctionCollapse 
 {
 public:
     WaveFunctionCollapse(int** paterne,int sizeX,int sizeY);

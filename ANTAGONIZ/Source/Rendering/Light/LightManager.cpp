@@ -18,7 +18,7 @@ bool LightManager::initialize(GraphicsDataMisc * gdm)
 	m_gdm->str_ssbo.str_shadow = m_ssboShadow;
 	glGenTextures(1, &m_textureShadowArray);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, m_textureShadowArray);	
-	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT24, TEXTURE_DIM, TEXTURE_DIM, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT32, TEXTURE_DIM, TEXTURE_DIM, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -92,7 +92,7 @@ void LightManager::updateStorageShadow()
 	glGenTextures(1, &m_textureShadowArray);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, m_textureShadowArray);
 
-	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT24, TEXTURE_DIM, TEXTURE_DIM, countTotal, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT32, TEXTURE_DIM, TEXTURE_DIM, countTotal, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -141,6 +141,32 @@ void LightManager::updateStorage()
 	{
 		m_lights[i]->setIndex(i);
 		m_lights[i]->mapMemory();
+	}
+}
+
+const std::vector<glm::mat4> LightManager::getShadowMatrix()
+{
+	std::vector<glm::mat4> allsm;
+	for (int i = 0; i < m_lights.size(); i++)
+	{
+		const std::vector<ShadowMatrix>& sm = m_lights[i]->getShadowMatrix();
+		for (int j = 0; j < sm.size(); j++)
+		{
+			allsm.push_back(sm[j].projview);
+		}
+	}
+	return allsm;
+}
+
+void LightManager::getShadowMatrix(std::vector<glm::mat4>* mats)
+{
+	for (int i = 0; i < m_lights.size(); i++)
+	{
+		const std::vector<ShadowMatrix>& sm = m_lights[i]->getShadowMatrix();
+		for (int j = 0; j < sm.size(); j++)
+		{
+			mats->push_back(sm[j].projview);
+		}
 	}
 }
 

@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 	Engine engine;
 	ptrClass e = engine.getPtrClass();
 	e.settingManager->setName("Antagoniz");
-	e.settingManager->setWindowHeight(1024);
+	e.settingManager->setWindowHeight(1017);
 	e.settingManager->setWindowWidth(1920);
 	e.settingManager->setEditor(true);
 	e.settingManager->setEditorPath("../TestProject");

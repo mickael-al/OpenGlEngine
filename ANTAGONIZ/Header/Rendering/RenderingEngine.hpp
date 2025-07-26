@@ -3,9 +3,10 @@
 
 #include "Initializer.hpp"
 #include "glm/glm.hpp"
+#include <functional>
+#include <vector>
 struct GraphicsDataMisc;
 struct ptrClass;
-#define XR_MODE
 
 namespace Ge
 {
@@ -22,7 +23,6 @@ namespace Ge
 	class SSAOBuffer;
 	class PostProcess;
 	class Skybox;
-	class OpenVRManager;
 }
 
 namespace Ge
@@ -36,8 +36,13 @@ namespace Ge
         bool initialize(ptrClass * p_ptrClass);
         void release();
         void drawFrame();
+		inline std::vector<std::function<void(int sid)>> & getRenderCallback()
+		{
+			return callbacks;
+		}
     private:
 		ptrClass * m_ptrClass;
+		std::vector<std::function<void(int sid)>> callbacks;
 		GraphicsDataMisc * m_graphicsDataMisc;
 		FrameBuffer* m_frameBuffer;
 		SSAOBuffer* m_ssaoBuffer;
@@ -52,7 +57,6 @@ namespace Ge
 		ShaderDataMisc * m_shaderDataMisc;
 		PostProcess* m_postProcess;
 		Skybox* m_skybox;
-		OpenVRManager* m_openVRManager;
     };
 }
 

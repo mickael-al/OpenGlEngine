@@ -9,6 +9,7 @@
 #include "Model.hpp"
 #include "CollisionWraper.hpp"
 #include "CollisionBody.hpp"
+#include "MuscleWraper.hpp"
 
 namespace Ge
 {
@@ -94,21 +95,23 @@ namespace Ge
 		return results;
 	}
 
-	Muscle* PhysicsWraper::AllocateMuscle(RigidBody* rb1, RigidBody* rb2, float degres, float scale, bool adaptePos)
+	MuscleWraper* PhysicsWraper::AllocateMuscle(RigidWraper* rb1, RigidWraper* rb2, float degres, float scale, bool adaptePos)
 	{
 		std::promise<Muscle*>* promise = new std::promise<Muscle*>();
 		auto future = promise->get_future();
-		MethodCommandReturn<PhysicsEngine, Muscle*, RigidBody*, RigidBody*, float, float, bool>* command = new MethodCommandReturn<PhysicsEngine, Muscle*, RigidBody*, RigidBody*, float, float, bool>(m_pe, &PhysicsEngine::AllocateMuscle, promise, rb1, rb2, degres, scale, adaptePos);
+		MethodCommandReturn<PhysicsEngine, Muscle*, RigidBody*, RigidBody*, float, float, bool>* command = new MethodCommandReturn<PhysicsEngine, Muscle*, RigidBody*, RigidBody*, float, float, bool>(m_pe, &PhysicsEngine::AllocateMuscle, promise, rb1->getRigidBody(), rb2->getRigidBody(), degres, scale, adaptePos);
 		m_queue->push((Command*)command);
 		Muscle* cb = future.get();
 		delete promise;
-		return cb;
+		return new MuscleWraper(cb, m_queue);
 	}
 
-	void PhysicsWraper::ReleaseMuscle(Muscle* pBody)
+	void PhysicsWraper::ReleaseMuscle(MuscleWraper* pBody)
 	{
-		MethodCommand<PhysicsEngine, Muscle*>* command = new MethodCommand<PhysicsEngine, Muscle*>(m_pe, &PhysicsEngine::ReleaseMuscle, pBody);
+		Muscle* muscle = pBody->getMuscle();
+		MethodCommand<PhysicsEngine, Muscle*>* command = new MethodCommand<PhysicsEngine, Muscle*>(m_pe, &PhysicsEngine::ReleaseMuscle, muscle);
 		m_queue->push((Command*)command);
+		delete pBody;
 	}
 
 	void PhysicsWraper::AddRigidbody(RigidWraper* pbody, int group, int mask)

@@ -8,7 +8,7 @@ namespace Ge
 	class ComputeShader
 	{
 	public:
-		ComputeShader(std::string filename);
+		ComputeShader(std::string filename,std::string define = "");
 		~ComputeShader();
 		void use();
 		void dispatch(int num_groups_x, int num_groups_y, int num_groups_z);

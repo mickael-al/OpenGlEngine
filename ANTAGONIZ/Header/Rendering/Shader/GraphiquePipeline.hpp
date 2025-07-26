@@ -22,13 +22,13 @@ namespace Ge
 	class GraphiquePipeline
 	{
 	public:
-		GraphiquePipeline(GraphicsDataMisc * gdm, ShaderPair * sp);
+		GraphiquePipeline(GraphicsDataMisc * gdm, ShaderPair * sp, std::string define);
 		~GraphiquePipeline();		
 		inline unsigned int getProgram() { return m_program; }
 		ShaderPair * getShaderPair() const;
 	private:
 		friend class ComputeShader;
-		static bool LoadShader(std::string filename, ShaderType type, unsigned int * shader);
+		static bool LoadShader(std::string filename, ShaderType type, unsigned int * shader, std::string defines = "");
 		static bool ValidateShader(unsigned int shader);
 		bool Create();
 	private:

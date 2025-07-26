@@ -72,7 +72,8 @@ namespace Ge
 		ofn.nMaxFile = sizeof(szFile);
 
 		// Modification du titre de la fenêtre et des filtres avec l'extension
-		ofn.lpstrTitle = TEXT(("Enregistrer un fichier"+ upperExt).c_str());
+		std::string txt = ("Enregistrer un fichier" + upperExt);
+		ofn.lpstrTitle = TEXT(txt.c_str());
 
 		// Remplacement de "png" par l'extension spécifiée
 		std::string filter = upperExt + " files (*." + lowerExt + ")\0*." + lowerExt + "\0All files (*.*)\0*.*\0";

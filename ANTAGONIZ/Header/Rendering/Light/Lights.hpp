@@ -33,6 +33,7 @@ namespace Ge
 		void mapMemoryShadow();
 		void setshadow(bool state);
 		bool getshadow() const;
+		const std::vector<ShadowMatrix>& getShadowMatrix();
 		void onGUI() override;
 		virtual ~Lights();		
 	protected:

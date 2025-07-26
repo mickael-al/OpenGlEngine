@@ -27,7 +27,7 @@ namespace Ge
 		unsigned int getSsboShadow() const;
 		unsigned int getTextureShadowArray() const;
 		const std::vector<unsigned int>& getFrameShadowBuffer() const;
-		void updateStorage();
+		void updateStorage();		
 	protected:
 		friend class Lights;
 		void updateStorageShadow();
@@ -39,6 +39,8 @@ namespace Ge
 		DirectionalLight *createDirectionalLight(glm::vec3 euler, glm::vec3 color, std::string name = "DirectionalLight");
 		PointLight *createPointLight(glm::vec3 position, glm::vec3 color, std::string name = "PointLight");
 		void destroyLight(Lights *light);
+		const std::vector<glm::mat4> getShadowMatrix();
+		void getShadowMatrix(std::vector<glm::mat4> * mats);
     private:
 		MemoryPool<Lights> m_pool;
 		GraphicsDataMisc * m_gdm;
