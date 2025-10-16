@@ -41,27 +41,41 @@ void main()
     vec3 corners[2] = vec3[](minPos,minPos + vec3(CHUNK_SIZE));
 
     vec4 clip;
-    uint visible = 0;
-    for (uint i = 0; i < 8; ++i)
+    vec3 normal;
+    float distance;
+    for (uint j = 0; j < 6; j++)
     {
-        vec4 clip = viewProjMatrix * vec4(corners[i & 1].x, corners[(i >> 1) & 1].y, corners[(i >> 2) & 1].z, 1.0);
-#if PROJECTION_MODE == PERSPECTIVE
-        if (abs(clip.x) <= clip.w && abs(clip.y) <= clip.w && clip.z >= 0.0 && clip.z <= clip.w)
+        uint col = j >> 1;
+        if ((j & 1) == 0)
         {
-            visible = 1;
-            break;
+            normal.x = viewProjMatrix[0][3] + viewProjMatrix[0][col];
+            normal.y = viewProjMatrix[1][3] + viewProjMatrix[1][col];
+            normal.z = viewProjMatrix[2][3] + viewProjMatrix[2][col];
+            distance = viewProjMatrix[3][3] + viewProjMatrix[3][col];
         }
-#elif PROJECTION_MODE == ORTHOGRAPHIC
-        vec3 ndc = clip.xyz / clip.w;
-        if (abs(ndc.x) <= 1.0 &&
-            abs(ndc.y) <= 1.0 &&
-            abs(ndc.z) <= 1.0)
+        else
         {
-            visible = 1;
-            break;
+            normal.x = viewProjMatrix[0][3] - viewProjMatrix[0][col];
+            normal.y = viewProjMatrix[1][3] - viewProjMatrix[1][col];
+            normal.z = viewProjMatrix[2][3] - viewProjMatrix[2][col];
+            distance = viewProjMatrix[3][3] - viewProjMatrix[3][col];
         }
-#endif
+        float lengthN = length(normal);
+        normal /= lengthN;
+        distance /= lengthN;
+        uint outCount = 0;
+        for (uint i = 0; i < 8; ++i)
+        {            
+            if (dot(normal, vec3(corners[i & 1].x, corners[(i >> 1) & 1].y, corners[(i >> 2) & 1].z)) + distance < 0.0)
+            {
+                outCount++;
+            }
+        }
+        if (outCount == 8) 
+        {
+            commands[id].instanceCount = 0;
+            return; // tous les points hors plan -> cull
+        }
     }
-
-    commands[id].instanceCount = visible;
+    commands[id].instanceCount = 1;
 }

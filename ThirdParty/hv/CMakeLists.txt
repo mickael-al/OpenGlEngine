@@ -1,2 +1,5 @@
-INCLUDE_DIRECTORIES(${ThirdParty}/hv/include)
-find_library(hv_LIB hv "${ThirdParty}/hv/lib")
+set(ThirdParty "${CMAKE_SOURCE_DIR}/ThirdParty")
+include_directories(${ThirdParty}/hv/include)
+
+set(hv_LIB "${ThirdParty}/hv/lib/")
+

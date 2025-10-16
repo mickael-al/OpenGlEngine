@@ -6,9 +6,11 @@
 #include <stdbool.h>
 #include <stdlib.h> // import rand
 
-#define SEC_WEBSOCKET_VERSION   "Sec-WebSocket-Version"
-#define SEC_WEBSOCKET_KEY       "Sec-WebSocket-Key"
-#define SEC_WEBSOCKET_ACCEPT    "Sec-WebSocket-Accept"
+#define SEC_WEBSOCKET_VERSION       "Sec-WebSocket-Version"
+#define SEC_WEBSOCKET_KEY           "Sec-WebSocket-Key"
+#define SEC_WEBSOCKET_ACCEPT        "Sec-WebSocket-Accept"
+#define SEC_WEBSOCKET_PROTOCOL      "Sec-WebSocket-Protocol"
+#define SEC_WEBSOCKET_EXTENSIONS    "Sec-WebSocket-Extensions"
 
 #define WS_SERVER_MIN_FRAME_SIZE    2
 // 1000 1001 0000 0000
@@ -61,8 +63,12 @@ HV_INLINE int ws_client_build_frame(
     /* bool has_mask = true */
     enum ws_opcode opcode DEFAULT(WS_OPCODE_TEXT),
     bool fin DEFAULT(true)) {
-    char mask[4];
-    *(int*)mask = rand();
+    char mask[4] = {0};
+    int i = 0;
+    int imask = rand();
+    for (i = 0; i < 4; i++) {
+        mask[i] = (imask >> (8 * i)) & 0xff;
+    }
     return ws_build_frame(out, data, data_len, mask, true, opcode, fin);
 }
 

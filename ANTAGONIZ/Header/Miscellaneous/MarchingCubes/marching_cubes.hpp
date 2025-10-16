@@ -6,6 +6,8 @@
 #include "glm/glm.hpp"
 #include "ChunkArray.hpp"
 #include "FixedHashTable64.hpp"
+#define BT_USE_STATIC_LIBS
+#include <btBulletDynamicsCommon.h>
 
 struct VertexBiome
 {
@@ -331,8 +333,8 @@ class MarchingCubes
         };
 
         std::vector<glm::vec3> triangulate_field(float* scalarFunction, unsigned int odSize, float isovalue);
-        void optimized_triangulate_field(float* scalarFunction, unsigned int odSize, float isovalue, ChunkArray<VertexBiome>* vertexPool, ChunkArray<unsigned int>* indexPool, FixedHashTable64 * fht);
-        void optimized_triangulate_field_lod(float* scalarFunction, unsigned int odSize, float isovalue, ChunkArray<unsigned int>* indexPool, FixedHashTable64* fht,unsigned int skip);
+        void optimized_triangulate_field(float* scalarFunction, unsigned int odSize, float isovalue, ChunkArray<VertexBiome>* vertexPool, ChunkArray<unsigned int>* indexPool, FixedHashTable64 * fht);        
+        void optimized_triangulate_field(float* scalarFunction, unsigned int odSize, float isovalue, ChunkArray<btVector3>* vertexPool, ChunkArray<unsigned int>* indexPool, FixedHashTable64* fht, btVector3 basePos,float scale);
 };  
 
 #endif

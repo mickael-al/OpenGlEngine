@@ -244,6 +244,14 @@ namespace Ge
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_modelManager->getSSBO());		
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_materialManager->getSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_shaderDataMisc->getSSBO());
+		for (int i = 0; i < callbacks.size(); i++)
+		{
+			callbacks[i](-1);
+		}
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_cameraManager->getSSBO());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_modelManager->getSSBO());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_materialManager->getSSBO());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_shaderDataMisc->getSSBO());
 		bool transparency = false;
 		bool currentDepthTest = true;
 		bool currentDepthWrite = true;
@@ -330,10 +338,6 @@ namespace Ge
 				glEnable(GL_CULL_FACE);
 			}
 		}		
-		for (int i = 0; i < callbacks.size(); i++)
-		{
-			callbacks[i](-1);
-		}
 		if (!currentDepthWrite)
 		{
 			currentDepthWrite = true;
@@ -445,8 +449,8 @@ namespace Ge
 		glBindVertexArray(sb->getVAO());
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sb->getIBO());
 		glDrawElements(GL_TRIANGLES, sb->getIndiceSize(), GL_UNSIGNED_INT, 0);
-
-		m_postProcess->compute(m_frameBuffer->getFowardFrameBuffer(), m_frameBuffer->getColorFoward(), m_modelManager->getDefferedQuad());
+		
+		m_postProcess->compute(m_frameBuffer->getFowardFrameBuffer(), m_frameBuffer->getColorFoward(), m_frameBuffer->getDepth(), m_modelManager->getDefferedQuad());
 
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_frameBuffer->getFowardFrameBuffer());
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);

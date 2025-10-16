@@ -46,7 +46,7 @@ layout(std430, binding = 2) buffer BufferTextureBiome
 
 layout(binding = 0) uniform sampler2DArray u_textureArray;
 
-const float HEIGHT_BASE = 10000.0;
+const float HEIGHT_BASE = 20.0;
 const uint MATRIX_SIZE = 5u;
 const float INTERPOLATION_EPSILON = 0.01;
 const float EPSIT = 0.01;

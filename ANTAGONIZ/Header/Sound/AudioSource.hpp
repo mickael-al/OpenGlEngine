@@ -28,6 +28,7 @@ namespace Ge
 		void setLoop(bool state);
 		bool getLoop() const;
 		SoundBuffer * getSoundBuffer() const;
+		void setSoundBuffer(SoundBuffer* newBuffer);
 
 		void setRolloffFactor(float rolloffFactor);
 		float getRolloffFactor() const;

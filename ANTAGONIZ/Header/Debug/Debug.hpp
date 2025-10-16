@@ -7,7 +7,7 @@
 
 #ifdef NDEBUG
 #if defined(_WIN32) || defined(_WIN64)
-//#pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup")
+#pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup")
 #elif defined(__APPLE__)
 
 #elif defined(__unix__) || defined(__unix)

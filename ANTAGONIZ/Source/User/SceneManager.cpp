@@ -56,4 +56,21 @@ namespace Ge
 		currentScene = m_mapScene[name];
 		currentScene->load();
 	}
+
+	const std::string& SceneManager::getCurrentSceneName() const
+	{
+		for (auto& d : m_mapScene)
+		{
+			if (d.second == currentScene)
+			{
+				return d.first;
+			}
+		}
+		return "";
+	}
+
+	const Scene* SceneManager::getCurrentScene() const
+	{
+		return currentScene;
+	}
 }

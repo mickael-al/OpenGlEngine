@@ -107,6 +107,11 @@ void RigidBody::SetLinearVelocity(const glm::vec3 velocity)
     m_pBody->setLinearVelocity(btVector3(velocity.x, velocity.y, velocity.z));
 }
 
+void RigidBody::SetAngularVelocity(const glm::vec3 velocity)
+{
+    m_pBody->setAngularVelocity(btVector3(velocity.x, velocity.y, velocity.z));
+}
+
 void RigidBody::ApplyImpulse(glm::vec3 impulse, glm::vec3 real_pos)
 {
     m_pBody->applyImpulse(btVector3(impulse.x, impulse.y, impulse.z), btVector3(real_pos.x, real_pos.y, real_pos.z));
@@ -118,10 +123,16 @@ glm::vec3 RigidBody::GetLinearVelocity()
     return glm::vec3(vel.x(), vel.y(), vel.z());
 }
 
+glm::vec3 RigidBody::GetAngularVelocity()
+{
+    btVector3 vel = m_pBody->getAngularVelocity();
+    return glm::vec3(vel.x(), vel.y(), vel.z());
+}
+
 void RigidBody::forceActivationState(int newState)
 {
     style_idx = newState - 1;
-    m_pBody->forceActivationState(newState);
+    m_pBody->forceActivationState(newState);    
 }
 
 void RigidBody::BuildPhysics(CollisionShape* shape, bool hasInertia)
@@ -150,6 +161,16 @@ bool RigidBody::IsInitialized()
 void RigidBody::SetSleepingThreshold(float linear, float angular)
 {
     m_pBody->setSleepingThresholds(btScalar(linear), btScalar(angular));
+}
+
+void RigidBody::setFriction(float f)
+{
+    m_pBody->setFriction(f);
+}
+
+void RigidBody::activate(bool state)
+{
+    m_pBody->activate(state);
 }
 
 void RigidBody::lockRotation()

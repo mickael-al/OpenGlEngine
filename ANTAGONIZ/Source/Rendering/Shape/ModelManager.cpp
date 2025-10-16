@@ -25,7 +25,7 @@ namespace Ge
 		float normal[] = { 0.0f,0.0f,1.0f,0.0f,0.0f,1.0f, 0.0f,0.0f,1.0f };
 		unsigned int indice[] = { 0,1,2};
 
-		m_fullScreenTriangle = allocateBuffer(pos, texCord, normal, indice, 9, 3);
+		m_fullScreenTriangle = allocateBuffer(pos, texCord, normal, indice, 3, 3);
 		m_fullScreenTriangle->SetupVAO(gdm->str_default_pipeline_forward->getProgram());
 
 		float posQ[] = { -1.0f, 1.0f,0.0f, -1.0f, -1.0f,0.0f , 1.0f, 1.0f,0.0f, 1.0f, -1.0f,0.0f };
@@ -33,7 +33,7 @@ namespace Ge
 		float normalQ[] = { 0.0f,0.0f,1.0f,0.0f,0.0f,1.0f, 0.0f,0.0f,1.0f, 0.0f,0.0f,1.0f };
 		unsigned int indiceQ[] = { 0,1,2,3,2,1 };
 
-		m_defferedQuad = allocateBuffer(posQ, texCordQ, normalQ, indiceQ, 12, 6);
+		m_defferedQuad = allocateBuffer(posQ, texCordQ, normalQ, indiceQ, 4, 6);
 		m_defferedQuad->SetupVAO(gdm->str_default_pipeline_forward->getProgram());
 		Debug::INITSUCCESS("ModelManager");
 		return true;
@@ -257,7 +257,7 @@ namespace Ge
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices(indice, indice + indiceSize);
 
-		vertices.reserve(vertexSize / 3);
+		vertices.reserve(vertexSize);
 		for (int i = 0; i < vertexSize; i++)
 		{
 			Vertex vertex{};

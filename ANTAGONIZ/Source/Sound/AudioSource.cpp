@@ -133,6 +133,31 @@ namespace Ge
 		return m_sb;
 	}
 
+	void AudioSource::setSoundBuffer(SoundBuffer* newBuffer)
+	{
+		if (newBuffer == nullptr)
+		{
+			std::cerr << "[AudioSource] Tentative de changer vers un buffer nul !" << std::endl;
+			return;
+		}
+
+		if (m_sb == newBuffer)
+		{
+			return;
+		}
+
+		ALint state;
+		alGetSourcei(m_sourceID, AL_SOURCE_STATE, &state);
+		if (state == AL_PLAYING)
+		{
+			alSourceStop(m_sourceID);
+		}
+
+		m_sb = newBuffer;
+		alSourcei(m_sourceID, AL_BUFFER, newBuffer->getbufferID());
+	}
+
+
 	void AudioSource::setRolloffFactor(float rolloffFactor)
 	{
 		m_rolloffFactor = rolloffFactor;
@@ -175,6 +200,7 @@ namespace Ge
 
 		if (ImGui::DragFloat("Pitch", &m_pitch, 0.05f, 0.0f))
 		{
+			m_pitch = glm::min(0.0f, m_pitch);
 			setPitch(m_pitch);
 		}
 		if (ImGui::DragFloat("Gain", &m_gain, 0.05f, 0.0f,1.0f))
@@ -215,6 +241,15 @@ namespace Ge
 		{
 			stop();
 		}
+		if (m_sb != nullptr)
+		{
+			float f = getTime();
+			if (ImGui::SliderFloat("Time", &f, 0.0f, m_sb->getTime()))
+			{
+				setTime(glm::min(f, m_sb->getTime()-0.01f));
+			}
+		}
+
 	}
 
 	AudioSource::~AudioSource()

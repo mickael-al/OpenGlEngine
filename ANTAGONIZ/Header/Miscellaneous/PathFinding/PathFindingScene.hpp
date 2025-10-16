@@ -7,6 +7,7 @@
 #include "Vec3AStar.hpp"
 #include "Behaviour.hpp"
 #include "PointeurClass.hpp"
+#include "MortonOctree.hpp"
 
 class PathFindingScene : public Behaviour
 {
@@ -20,9 +21,10 @@ public:
 	void loadFromFile();
 	void FillGraph();
 	void help();
-	unsigned int nearPointIndex(glm::vec3 target);
+	glm::vec3 nearPointIndexPos(const glm::vec3& target);
+	unsigned int nearPointIndex(const glm::vec3 & target);
 	bool pathFinding(glm::vec3* startPosition, glm::vec3* endPosition, std::vector<Vec3AStar*>* path);
-
+	MortonOctree* getMortonOctree();
 	void start();
 	void fixedUpdate();
 	void update();
@@ -53,6 +55,7 @@ private:
 	glm::vec3 m_boundsMax;
 	std::vector<uint64_t> m_morton;
 	std::string m_path;
+	MortonOctree* m_octree = nullptr;
 };
 
 #endif //!__PATH_FINDING_SCENE__

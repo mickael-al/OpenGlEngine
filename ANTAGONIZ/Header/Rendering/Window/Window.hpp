@@ -20,6 +20,9 @@ namespace Ge
 		void release();
 		bool getframebufferResized();
 		void setframebufferResized(bool state);		
+		void centerWindow(int width, int height);
+		void setWindowPosition(int x, int y);
+		void getWindowPosition(int * x, int * y);
 	private:		
 		friend class Window;
 		bool m_framebufferResized = false;

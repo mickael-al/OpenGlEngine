@@ -233,16 +233,16 @@ vec3 hashVec3(uint seed) {
 //float toSigned(float x) //0,1 -> -1,1
 //float toUnsigned(float x) //-1,1 -> 0,1
 
-#define HEIGHT_BASE 10000
-#define HEIGHT_SMOOTH_BASE 32
+#define HEIGHT_BASE 20
+#define HEIGHT_SMOOTH_BASE 16
 #define HEIGHT_MIN_SMOOTH_BASE 16
 
 #define HEIGHT_BASE_NOISE_SCALE 0.00001
 #define SMOOTH_BASE_NOISE_SCALE 0.00001
 //#define HEAT_BASE_NOISE_SCALE 0.0001
 //#define HUMIDITY_BASE_NOISE_SCALE 0.0001
-#define HEAT_BASE_NOISE_SCALE 0.00025
-#define HUMIDITY_BASE_NOISE_SCALE 0.00025
+#define HEAT_BASE_NOISE_SCALE 0.0005
+#define HUMIDITY_BASE_NOISE_SCALE 0.0005
 
 #define HEIGHT_SEED_OFFSET 50000.0
 #define HUMIDITY_SEED_OFFSET 25000.0
@@ -279,7 +279,7 @@ layout(std430, binding = 4) buffer MinMaxBuffer
 };
 
 uniform uint seed;
-uniform uint length;
+uniform uint lengt;
 
 uniform float chunkScale;
 uniform vec3 offset;
@@ -295,7 +295,7 @@ vec2 foretTempere(vec2 uv)//2-2
     float sm = gradientNoise(vec2(5000,-5500) + uv * 0.004);
     sm = clamp(contrast(sm, 1.5f, 0.5f),0.5,1.0);
     float terrainShape = smoothDiscretize(noise, 5.0* gradientNoise(uv * 0.00025), sm); // 5 niveaux discrets lissés
-    return vec2(terrainShape * 35.0,200);
+    return vec2(terrainShape * 15.0,200);
 }
 
 vec2 desertSec(vec2 uv)//rouge 1-4
@@ -303,7 +303,7 @@ vec2 desertSec(vec2 uv)//rouge 1-4
     float noise = Voronoi_float(uv * 0.008,45,1.0f);
     noise += gradientNoise(uv * 0.016) * 0.25;
     noise += gradientNoise(uv * 0.003) * 0.5;
-    return vec2(noise*35.0, 0);
+    return vec2(noise*15.0, 0);
 }
 
 vec2 desertRoche(vec2 uv)//tres Sec 0-4
@@ -313,34 +313,35 @@ vec2 desertRoche(vec2 uv)//tres Sec 0-4
     noise += gradientNoise(uv * 0.0016) * 1;
     noise += gradientNoise(uv * 0.0003) * 2;
     noise /= maxn;
-    return vec2(noise * 1000.0, 0);
+    return vec2(noise * 10.0, 0);
 }
 
 const uint MATRIX_SIZE = 5u;
 
 vec2 getMatrix(vec2 uv, uvec2 p)
 {
-    if (p.x == 0)//tres sec
+    if (length(uv) > 250.0)
     {
-        return desertRoche(uv);
+        return vec2(8.0, 0.0);
     }
-    else if (p.x == 1)//sec
-    {
-        return desertSec(uv);
-    }
-    else if (p.x == 2)//Modere
-    {
-        return foretTempere(uv);
-    }
-    else if (p.x == 3)//Humide
-    {
 
-    }
-    else if (p.x == 4)//Tres Humide
+    float terrainbase = clamp(contrast(gradientNoise(uv * 0.025),10.0,0.5), 0.0, 1.0) * 8.0; 
+    terrainbase = min(terrainbase,clamp(contrast(Voronoi_float(uv * 0.01,45,1.0f), 20.0, 0.4), 0.0, 1.0) * 8.0);
+    if (terrainbase < 1)
     {
-
+        float vald = clamp(contrast(gradientNoise(uv * 0.012), 10.0, 0.5), 0.0, 1.0) * 1.5;
+        if (vald > 1)
+        {
+            vald += clamp(contrast(gradientNoise(uv * 0.05), 10.0, 0.9), 0.0, 1.0) * 8.0;
+        }
+        terrainbase -= vald;
     }
-    return vec2(0.0, 0.0);
+
+    if (terrainbase > 7)
+    {
+        terrainbase += clamp(contrast(gradientNoise(uv * 0.011), 10.0, 0.25), 0.0, 1.0) * 4.0;
+    }
+    return vec2(terrainbase, 0);
 }
 
 vec2 bilinearMatrixSample(vec2 buv, float humidity, float heat)
@@ -375,12 +376,12 @@ void main()
     uint x = gl_GlobalInvocationID.x;
     uint y = gl_GlobalInvocationID.y;
 
-    if (x >= length || y >= length)
+    if (x >= lengt || y >= lengt)
     {
         return;
     }
 
-    uint index = x + y * length;
+    uint index = x + y * lengt;
     vec2 uv = (vec2(x - 1.0, y - 1.0) * chunkScale + offset.xz);
 
     vec3 heightStepOffset = hashVec3(seed) * HEIGHT_SEED_OFFSET;
@@ -395,7 +396,7 @@ void main()
     float heat = perlin((uv + heatStepOffset.xz) * HEAT_BASE_NOISE_SCALE);
 
     float steps = 5.0;
-    float percent = 1.0;
+    float percent = 0.5;
 
     float h = humidity * steps;
     float base = floor(h);

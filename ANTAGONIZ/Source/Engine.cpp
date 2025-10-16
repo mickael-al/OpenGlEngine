@@ -13,8 +13,19 @@
 #include "SoundManager.hpp"
 #include "Editor.hpp"
 #include "PathManager.hpp"
-#include <Windows.h>
 #include "CommandQueue.hpp"
+#if defined(_WIN32) || defined(_WIN64)
+#include <Windows.h>
+#elif defined(__unix__) || defined(__unix)
+#include <cstdint>
+#include <ctime>
+uint64_t GetTickCount64()
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC,&ts);
+	return static_cast<uint64_t>(ts.tv_sec) * 1000 + ts.tv_nsec /1000000;
+}
+#endif
 
 namespace Ge
 {

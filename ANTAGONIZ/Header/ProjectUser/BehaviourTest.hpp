@@ -35,8 +35,9 @@ private:
     ShapeBuffer* m_shape;
 public:
     int countObject = 20;
+    double test = 0;
 };
 
-REGISTER(Behaviour, BehaviourTest, countObject);
+REGISTER(Behaviour, BehaviourTest, countObject, test);
 
 #endif //!__BEHAVIOUR_TEST__

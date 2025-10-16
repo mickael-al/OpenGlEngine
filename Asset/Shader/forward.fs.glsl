@@ -200,6 +200,42 @@ void main()
 	vec4 col = texture(gColor, v_UV).rgba;
 	vec3 other = texture(gOther, v_UV).rgb;//metallic roughness ao emit
 
+	/*
+	for (int i = 0; i < ubd.maxLight; i++)
+	{
+		if (ubl.ubl[i].shadowID >= 0)
+		{
+			uint cascadeIndex = 0;
+			for (uint k = 0; k < SHADOW_MAP_CASCADE_COUNT - 1; ++k)
+			{
+				if (viewPos.z < ubs.s[ubl.ubl[i].shadowID + k].splitDepth)
+				{
+					cascadeIndex = k + 1;
+				}
+			}
+			col = vec4(1, 1, 1, 1);
+			vec4 nc = vec4(1,1,1,1);
+			if (cascadeIndex == 0)
+			{
+				nc = vec4(1,0,0,1);
+			}
+			else if (cascadeIndex == 1)
+			{
+				nc = vec4(0, 1, 0,1);
+			}
+			else if (cascadeIndex == 2)
+			{
+				nc = vec4(0, 0, 1,1);
+			}
+			else if (cascadeIndex == 3)
+			{
+				nc = vec4(0, 1, 1,1);
+			}
+			col *= nc;
+		}
+	}
+	*/
+
 	vec3 color = col.rgb;
 	color = pow(color, vec3(ubd.gamma));
 	vec3 worldPos = (inverse(ubc.view) * vec4(viewPos, 1)).xyz;

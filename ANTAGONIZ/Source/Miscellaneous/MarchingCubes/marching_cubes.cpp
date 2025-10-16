@@ -167,40 +167,40 @@ void MarchingCubes::optimized_triangulate_field(float* scalarFunction, unsigned 
     }
 }
 
-void MarchingCubes::optimized_triangulate_field_lod(float* scalarFunction, unsigned int odSize, float isovalue, ChunkArray<unsigned int>* indexPool, FixedHashTable64* fht, unsigned int skip)
+void MarchingCubes::optimized_triangulate_field(float* scalarFunction, unsigned int odSize, float isovalue, ChunkArray<btVector3>* vertexPool, ChunkArray<unsigned int>* indexPool, FixedHashTable64* fht, btVector3 basePos,float scale)
 {
     unsigned int max = odSize;
     unsigned int max2 = max * max;
     unsigned int i, j, k, l;
     float x, y, z, mu;
     int cubeIndex, intersectionsKey, idx, v1, v2;
-    glm::vec3 tempPos[8];
+    btVector3 tempPos[8];
     float tempVal[8];
-    glm::vec3 intersections[12];
+    btVector3 intersections[12];
     float divider = (1.0f / (float)max) * 65535.0f;
-    VertexBiome* cv = nullptr;
+    btVector3* cv = nullptr;
     unsigned short px, py, pz;
     uint64_t packed = 0ULL;
     uint32_t targetVertex;
 
-    for (i = 0; i + skip < max; i += skip)
+    for (i = 0; i + 1 < max; ++i)
     {
-        for (j = 0; j + skip < max; j += skip)
+        for (j = 0; j + 1 < max; ++j)
         {
-            for (k = 0; k + skip < max; k += skip)
+            for (k = 0; k + 1 < max; ++k)
             {
                 x = i;
                 y = j;
                 z = k;
 
-                tempPos[0] = glm::vec3(x, y, z);
-                tempPos[1] = glm::vec3(x + 1.0f, y, z);
-                tempPos[2] = glm::vec3(x + 1.0f, y, z + 1.0f);
-                tempPos[3] = glm::vec3(x, y, z + 1.0f);
-                tempPos[4] = glm::vec3(x, y + 1.0f, z);
-                tempPos[5] = glm::vec3(x + 1.0f, y + 1.0f, z);
-                tempPos[6] = glm::vec3(x + 1.0f, y + 1.0f, z + 1.0f);
-                tempPos[7] = glm::vec3(x, y + 1.0f, z + 1.0f);
+                tempPos[0] = btVector3(x, y, z);
+                tempPos[1] = btVector3(x + 1.0f, y, z);
+                tempPos[2] = btVector3(x + 1.0f, y, z + 1.0f);
+                tempPos[3] = btVector3(x, y, z + 1.0f);
+                tempPos[4] = btVector3(x, y + 1.0f, z);
+                tempPos[5] = btVector3(x + 1.0f, y + 1.0f, z);
+                tempPos[6] = btVector3(x + 1.0f, y + 1.0f, z + 1.0f);
+                tempPos[7] = btVector3(x, y + 1.0f, z + 1.0f);
 
                 tempVal[0] = scalarFunction[i + j * max + k * max2];
                 tempVal[1] = scalarFunction[(i + 1) + j * max + k * max2];
@@ -224,9 +224,9 @@ void MarchingCubes::optimized_triangulate_field_lod(float* scalarFunction, unsig
                         v1 = edgeToVertices[idx].first;
                         v2 = edgeToVertices[idx].second;
                         mu = (isovalue - tempVal[v1]) / (tempVal[v2] - tempVal[v1]);
-                        intersections[idx].x = mu * (tempPos[v2].x - tempPos[v1].x) + tempPos[v1].x;
-                        intersections[idx].y = mu * (tempPos[v2].y - tempPos[v1].y) + tempPos[v1].y;
-                        intersections[idx].z = mu * (tempPos[v2].z - tempPos[v1].z) + tempPos[v1].z;
+                        intersections[idx][0] = mu * (tempPos[v2][0] - tempPos[v1][0]) + tempPos[v1][0];
+                        intersections[idx][1] = mu * (tempPos[v2][1] - tempPos[v1][1]) + tempPos[v1][1];
+                        intersections[idx][2] = mu * (tempPos[v2][2] - tempPos[v1][2]) + tempPos[v1][2];
                     }
                     idx++;
                     intersectionsKey >>= 1;
@@ -237,16 +237,19 @@ void MarchingCubes::optimized_triangulate_field_lod(float* scalarFunction, unsig
 #pragma unroll
                     for (int n = 0; n < 3; ++n)
                     {
-                        glm::vec3 vp = intersections[triangleTable[cubeIndex][l + n]];
-                        px = static_cast<unsigned short>(vp.x * divider);
-                        py = static_cast<unsigned short>(vp.y * divider);
-                        pz = static_cast<unsigned short>(vp.z * divider);
+                        btVector3 vp = intersections[triangleTable[cubeIndex][l + n]];
+                        px = static_cast<unsigned short>(vp[0] * divider);
+                        py = static_cast<unsigned short>(vp[1] * divider);
+                        pz = static_cast<unsigned short>(vp[2] * divider);
                         packed = (uint64_t(px) << 32) | (uint64_t(py) << 16) | uint64_t(pz);
 
-                        if (!fht->insert_with_index(packed, &targetVertex))
+                        if (fht->insert_with_index(packed, &targetVertex))
                         {
-                            *(indexPool->push_get_ptr()) = targetVertex;
-                        }                        
+                            cv = vertexPool->push_get_ptr();
+                            *cv = vp* scale + basePos;
+                        }
+
+                        *(indexPool->push_get_ptr()) = targetVertex;
                     }
                 }
             }

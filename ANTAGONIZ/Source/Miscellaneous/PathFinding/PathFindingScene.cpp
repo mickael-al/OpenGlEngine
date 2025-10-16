@@ -12,6 +12,7 @@ PathFindingScene::PathFindingScene(glm::vec3 position, glm::vec3 zoneSize, glm::
 	m_pointCount = pointCount;
 	m_liasonPercent = liasonPercent;
 	m_finder = nullptr;
+	m_octree = nullptr;
 	m_boundsMax = glm::vec3(0);
 	m_boundsMin = glm::vec3(0);
 	m_vec3Astars = nullptr;
@@ -25,9 +26,16 @@ PathFindingScene::~PathFindingScene()
 	{
 		delete m_finder;
 		delete[] m_vec3Astars;
+		m_finder = nullptr;
+	}
+	if (m_octree != nullptr)
+	{
+		delete m_octree;
+		m_octree = nullptr;
 	}
 	m_points.clear();
 	m_neighbors.clear();	
+	instance = nullptr;
 }
 
 uint64_t morton3D_64(uint64_t x, uint64_t y, uint64_t z) 
@@ -53,21 +61,22 @@ uint64_t morton3D_64(uint64_t x, uint64_t y, uint64_t z)
 	return x | (y << 1) | (z << 2);
 }
 
-uint64_t scaleAndCast(float min, float max, float target)
-{		
-	if (min == max)
-	{
-		return 0;
-	}
-	//return static_cast<uint64_t>((target - min) * (2097151.0f / (max - min)));
-	//float scaledValue = ((target - min) / (max - min)) * 64.0f;
-	//return static_cast<uint64_t>(scaledValue);
-	return static_cast<uint64_t>((target - min)*16.0f);
-}
-
 uint64_t vec3ToMorton_64(const glm::vec3& vec, const glm::vec3& boundsMin, const glm::vec3& boundsMax)
 {
-	return morton3D_64(scaleAndCast(boundsMin.x, boundsMax.x,vec.x), scaleAndCast(boundsMin.y, boundsMax.y, vec.y), scaleAndCast(boundsMin.z, boundsMax.z, vec.z));
+	const uint64_t MAX = (1ULL << 21) - 1; // 21 bits par coordonnée
+
+	// Normalisation et conversion en entiers
+	uint64_t x = static_cast<uint64_t>(
+		std::clamp((vec.x - boundsMin.x) / (boundsMax.x - boundsMin.x), 0.0f, 1.0f) * MAX
+		);
+	uint64_t y = static_cast<uint64_t>(
+		std::clamp((vec.y - boundsMin.y) / (boundsMax.y - boundsMin.y), 0.0f, 1.0f) * MAX
+		);
+	uint64_t z = static_cast<uint64_t>(
+		std::clamp((vec.z - boundsMin.z) / (boundsMax.z - boundsMin.z), 0.0f, 1.0f) * MAX
+		);
+
+	return morton3D_64(x, y, z);
 }
 
 // Fonction pour comparer deux glm::vec3 selon le code de Morton
@@ -97,6 +106,10 @@ void calculateBounds(const std::vector<glm::vec3>& points, glm::vec3& boundsMin,
 		boundsMax.y = std::max(boundsMax.y, point.y);
 		boundsMax.z = std::max(boundsMax.z, point.z);
 	}
+	const float eps = 0.0001f;
+	if (abs(boundsMax.x - boundsMin.x) <= eps) { boundsMin.x -= eps; boundsMax.x += eps; }
+	if (abs(boundsMax.y - boundsMin.y) <= eps) { boundsMin.y -= eps; boundsMax.y += eps; }
+	if (abs(boundsMax.z - boundsMin.z) <= eps) { boundsMin.z -= eps; boundsMax.z += eps; }
 }
 
 void PathFindingScene::SortTree()
@@ -134,10 +147,12 @@ void PathFindingScene::generateMap()
 				endPosition.y = startPosition.y = y + m_position.y - zoneSizeDivid.y;
 				endPosition.z = startPosition.z = z + m_position.z - zoneSizeDivid.z;
 				endPosition.y -= 1000.0f;
-
-				if (m_pc.physicsEngine->raycast(&startPosition, &endPosition, &hitPosition))
+				if (!m_pc.physicsEngine->isPointInsideCollision(&startPosition))
 				{
-					m_points.push_back(hitPosition);
+					if (m_pc.physicsEngine->raycast(&startPosition, &endPosition, &hitPosition))
+					{
+						m_points.push_back(hitPosition);
+					}
 				}
 			}
 		}
@@ -152,8 +167,135 @@ void PathFindingScene::generateMap()
 
 void PathFindingScene::debugPoint()
 {
-	ShapeBuffer* sb = m_pc.modelManager->allocateBuffer("../Asset/Model/Cube.obj");	
-	m_shapes.push_back(sb);
+	std::vector<float> positions;
+	std::vector<float> texcoords;
+	std::vector<float> normals;
+	std::vector<unsigned int> indices;
+
+	// ====== POINTS ======
+	float s = 0.05f; // demi-taille du cube local autour du point
+
+	for (const glm::vec3& p : m_points)
+	{
+		unsigned int baseIndex = positions.size() / 3;
+
+		// Chaque point 3 quads : XY, YZ, XZ
+
+		// --- Quad XY (face "sol")
+		glm::vec3 xy[4] = {
+			p + glm::vec3(-s, -s, 0),
+			p + glm::vec3(s, -s, 0),
+			p + glm::vec3(s, s, 0),
+			p + glm::vec3(-s, s, 0)
+		};
+		glm::vec3 n_xy(0, 0, 1);
+
+		// --- Quad YZ (face latérale)
+		glm::vec3 yz[4] = {
+			p + glm::vec3(0, -s, -s),
+			p + glm::vec3(0, s, -s),
+			p + glm::vec3(0, s, s),
+			p + glm::vec3(0, -s, s)
+		};
+		glm::vec3 n_yz(1, 0, 0);
+
+		// --- Quad XZ (autre face latérale)
+		glm::vec3 xz[4] = {
+			p + glm::vec3(-s, 0, -s),
+			p + glm::vec3(s, 0, -s),
+			p + glm::vec3(s, 0, s),
+			p + glm::vec3(-s, 0, s)
+		};
+		glm::vec3 n_xz(0, 1, 0);
+
+		auto pushQuad = [&](glm::vec3 q[4], const glm::vec3& n) {
+			unsigned int idx = positions.size() / 3;
+			for (int i = 0; i < 4; ++i) {
+				positions.insert(positions.end(), { q[i].x, q[i].y, q[i].z });
+				texcoords.insert(texcoords.end(), { (i == 1 || i == 2) ? 1.0f : 0.0f, (i >= 2) ? 1.0f : 0.0f });
+				normals.insert(normals.end(), { n.x, n.y, n.z });
+			}
+			indices.insert(indices.end(), {
+				idx, idx + 1, idx + 2,
+				idx, idx + 2, idx + 3
+				});
+		};
+
+		pushQuad(xy, n_xy);
+		pushQuad(yz, n_yz);
+		pushQuad(xz, n_xz);
+	}
+
+	ShapeBuffer* meshPoints = m_pc.modelManager->allocateBuffer(
+		positions.data(), texcoords.data(), normals.data(), indices.data(),
+		positions.size()/3, indices.size());
+
+
+	// ====== SEGMENTS ======
+	positions.clear();
+	texcoords.clear();
+	normals.clear();
+	indices.clear();
+
+	float halfWidth = 0.02f;
+
+	for (int i = 0; i < m_points.size(); i++)
+	{
+		glm::vec3 p1 = m_points[i];
+		for (unsigned int neighborIndex : m_neighbors[i])
+		{
+			if (neighborIndex <= i) { continue; } // éviter doublons}
+
+			glm::vec3 p2 = m_points[neighborIndex];
+			glm::vec3 dir = glm::normalize(p2 - p1);
+
+			// 2 axes perpendiculaires à dir pour croiser les quads
+			glm::vec3 ref(0, 1, 0);
+			if (fabs(glm::dot(ref, dir)) > 0.9f) ref = glm::vec3(1, 0, 0);
+
+			glm::vec3 side1 = glm::normalize(glm::cross(ref, dir)) * halfWidth;
+			glm::vec3 side2 = glm::normalize(glm::cross(dir, side1)) * halfWidth;
+
+			// Fonction utilitaire pour un quad entre p1 et p2
+			auto pushSegmentQuad = [&](const glm::vec3& offset, const glm::vec3& normal) {
+				unsigned int baseIndex = positions.size() / 3;
+
+				glm::vec3 a = p1 - offset;
+				glm::vec3 b = p1 + offset;
+				glm::vec3 c = p2 + offset;
+				glm::vec3 d = p2 - offset;
+
+				positions.insert(positions.end(), {
+					a.x,a.y,a.z,
+					b.x,b.y,b.z,
+					c.x,c.y,c.z,
+					d.x,d.y,d.z
+					});
+
+				texcoords.insert(texcoords.end(), { 0,0, 1,0, 1,1, 0,1 });
+
+				for (int j = 0; j < 4; ++j)
+					normals.insert(normals.end(), { normal.x, normal.y, normal.z });
+
+				indices.insert(indices.end(), {
+					baseIndex, baseIndex + 1, baseIndex + 2,
+					baseIndex, baseIndex + 2, baseIndex + 3
+					});
+			};
+
+			// Quad 1
+			pushSegmentQuad(side1, glm::normalize(glm::cross(dir, side1)));
+			// Quad 2 (croisé)
+			pushSegmentQuad(side2, glm::normalize(glm::cross(dir, side2)));
+		}
+	}
+
+	ShapeBuffer* meshSegments = m_pc.modelManager->allocateBuffer(
+		positions.data(), texcoords.data(), normals.data(), indices.data(),
+		positions.size()/3, indices.size());
+
+	m_shapes.push_back(meshPoints);
+	m_shapes.push_back(meshSegments);
 	Materials* material = m_pc.materialManager->createMaterial();
 	Materials* materialEdge = m_pc.materialManager->createMaterial();
 	m_materials.push_back(material);
@@ -165,37 +307,17 @@ void PathFindingScene::debugPoint()
 	materialEdge->setColor(glm::vec4(0, 0, 1, 1));
 	materialEdge->setMetallic(0.0f);
 	materialEdge->setRoughness(1.0f);
-	float scale_base = 0.1f;
-	for (int i = 0; i < m_points.size(); i++)
-	{
-		Model* m = m_pc.modelManager->createModel(sb);
-		m->setPosition(m_points[i]);
-		m->setMaterial(material);
-		m->setScale(glm::vec3(scale_base));
-		m_models.push_back(m);		
-	}
 
-	for (int i = 0; i < m_points.size(); i++) 
-	{
-		for (unsigned int neighborIndex : m_neighbors[i]) 
-		{
-			glm::vec3 startPos = m_points[i];
-			glm::vec3 endPos = m_points[neighborIndex];
+	GraphiquePipeline* gp = m_pc.graphiquePipelineManager->createPipeline("../Asset/Shader/opaque.fs.glsl", "../Asset/Shader/opaque.vs.glsl", false, true, false, 2);
+	material->setPipeline(gp);
+	materialEdge->setPipeline(gp);
+	Model* m = m_pc.modelManager->createModel(meshPoints);
+	m->setMaterial(material);
+	m_models.push_back(m);
 
-			glm::vec3 midPos = (startPos + endPos) * 0.5f;
-
-			glm::vec3 direction = glm::normalize(endPos - startPos);
-			float distance = glm::distance(startPos, endPos);
-			glm::vec3 scale = glm::vec3(scale_base*0.8f, scale_base*0.8f, distance);
-
-			Model* edgeModel = m_pc.modelManager->createModel(sb);
-			edgeModel->setPosition(midPos);
-			edgeModel->setRotation(glm::quatLookAt(direction, glm::vec3(0, 1, 0)));
-			edgeModel->setScale(scale);
-			edgeModel->setMaterial(materialEdge);
-			m_models.push_back(edgeModel);
-		}
-	}
+	m = m_pc.modelManager->createModel(meshSegments);
+	m->setMaterial(materialEdge);
+	m_models.push_back(m);
 }
 
 
@@ -322,6 +444,11 @@ void PathFindingScene::FillGraph()
 		delete m_finder;
 		delete[] m_vec3Astars;
 	}
+	if (m_octree != nullptr)
+	{
+		delete m_octree;
+		m_octree = nullptr;
+	}
 
 	m_finder = new PathFinder<Vec3AStar>();
 	m_vec3Astars = new Vec3AStar[m_points.size()];
@@ -337,10 +464,41 @@ void PathFindingScene::FillGraph()
 			n->addChild((Node*)(m_vec3Astars+neighborIndex), glm::distance(m_vec3Astars[i].position, m_vec3Astars[neighborIndex].position));			
 		}
 	}
+	m_octree = new MortonOctree(m_points, m_morton, m_boundsMin, m_boundsMax, /*maxDepth=*/16, /*maxLeaf=*/8);
 }
 
-unsigned int PathFindingScene::nearPointIndex(glm::vec3 target)
+glm::vec3 PathFindingScene::nearPointIndexPos(const glm::vec3& target)
 {
+	unsigned int npi = nearPointIndex(target);
+	return  m_vec3Astars[npi].position;
+}
+
+MortonOctree* PathFindingScene::getMortonOctree()
+{
+	return m_octree;
+}
+
+unsigned int PathFindingScene::nearPointIndex(const glm::vec3& target)
+{
+	return m_octree->findNearestIndex(target);
+
+	/*float bestDist = std::numeric_limits<float>::max();
+	unsigned int bestIndex = 0;
+
+	for (unsigned int i = 0; i < m_points.size(); ++i)
+	{
+		float dist = glm::distance(m_points[i], target);
+		if (dist < bestDist)
+		{
+			bestDist = dist;
+			bestIndex = i;
+		}
+	}	
+
+	return bestIndex;*/
+	/*
+
+
 	uint64_t targetMorton = vec3ToMorton_64(target, m_boundsMin, m_boundsMax);
 
 	unsigned int left = 0;
@@ -348,14 +506,14 @@ unsigned int PathFindingScene::nearPointIndex(glm::vec3 target)
 	unsigned int nearestIndex = 0;
 	uint64_t nearestDistance = std::numeric_limits<uint64_t>::max();
 
-	while (left <= right) 
+	while (left <= right)
 	{
 		unsigned int middle = (left + right) / 2;
 		uint64_t currentMorton = m_morton[middle];
 
-		uint64_t currentDistance = abs(static_cast<int>(currentMorton) - static_cast<int>(targetMorton));
+		uint64_t currentDistance = (currentMorton > targetMorton) ? (currentMorton - targetMorton) : (targetMorton - currentMorton);
 
-		if (currentDistance < nearestDistance) 
+		if (currentDistance < nearestDistance)
 		{
 			nearestDistance = currentDistance;
 			nearestIndex = middle;
@@ -367,26 +525,31 @@ unsigned int PathFindingScene::nearPointIndex(glm::vec3 target)
 		}
 		else
 		{
+			if (middle == 0) { break; }// éviter overflow si right devient négatif
 			right = middle - 1;
 		}
 	}
 
-	return nearestIndex;
+	unsigned int toCheck = 32;
+	unsigned int start = (nearestIndex < toCheck) ? 0 : nearestIndex - toCheck;
+	unsigned int end = std::min(static_cast<unsigned int>(m_points.size() - 1), nearestIndex + toCheck);
 
-	/*float nearDistance = FLT_MAX;
-	float minDist;
-	unsigned int index = 0;
-	for (int i = 0; i < m_points.size(); i++)
+	float bestDist = std::numeric_limits<float>::max();
+	unsigned int bestIndex = nearestIndex;
+
+	for (unsigned int i = start; i <= end; ++i) 
 	{
-		minDist = glm::distance(m_points[i], target);
-		if (nearDistance > minDist)
+		float dist = glm::distance(m_points[i], target);
+		if (dist < bestDist) 
 		{
-			nearDistance = minDist;
-			index = i;
-		}		
+			bestDist = dist;
+			bestIndex = i;
+		}
 	}
-	return index;*/
+
+	return bestIndex;*/
 }
+
 
 
 bool PathFindingScene::pathFinding(glm::vec3 * startPosition, glm::vec3 *endPosition, std::vector<Vec3AStar*>* path)
@@ -440,7 +603,7 @@ void PathFindingScene::generateNeighbors()
 				if (distance <= maxDistance) 
 				{
 					hitp = m_points[j];
-					m_pc.physicsEngine->raycast(&m_points[i], &m_points[j], &hitp);
+					//m_pc.physicsEngine->raycast(&m_points[i], &m_points[j], &hitp);
 					if (glm::distance(m_points[i], hitp) >= distance)
 					{
 						m_neighbors[i].push_back(j);

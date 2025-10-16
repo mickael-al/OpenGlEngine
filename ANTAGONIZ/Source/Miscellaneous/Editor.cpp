@@ -43,7 +43,7 @@ using std::fstream;
 using namespace Ge;
 namespace fs = std::filesystem;
 
-ImVec4 HSVtoRGB(float h, float s, float v) {
+inline ImVec4 HSVtoRGB(float h, float s, float v) {
 	int i;
 	float f, p, q, t;
 	if (s == 0.0f) {
@@ -70,6 +70,20 @@ ImVec4 HSVtoRGB(float h, float s, float v) {
 	default:
 		return ImVec4(v, p, q, 1.0f);
 	}
+}
+
+inline bool InputText(const char* label, std::string& str, ImGuiInputTextFlags flags = 0) 
+{
+	static char buffer[1024];
+	strncpy(buffer, str.c_str(), sizeof(buffer));
+	buffer[sizeof(buffer) - 1] = '\0';
+
+	bool changed = ImGui::InputText(label, buffer, sizeof(buffer), flags);
+	if (changed) 
+	{
+		str = buffer;
+	}
+	return changed;
 }
 
 std::string removeFilename(const std::string& path) 
@@ -577,7 +591,7 @@ void Editor::dtv(GObject * obj,int * id)
 	const std::vector<GObject*>& child = obj->getChilds();
 	bool selected = m_selectedOBJ == obj;
 	bool fdk = false;
-
+	bool iclicked = false;
 	if (multiSelect)
 	{
 		fdk = multiSelected.find(baseId) != multiSelected.end();
@@ -600,17 +614,26 @@ void Editor::dtv(GObject * obj,int * id)
 		{
 			ImGui::TreePop();
 		}
+		iclicked = ImGui::IsItemClicked();
 	}
 	else
 	{
-		if (ImGui::TreeNodeEx(obj->getName()->c_str(), selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None))
+		ImGui::PushID(obj);
+		ImGui::PushItemWidth(20.0f);
+		bool op = ImGui::TreeNodeEx("##TreeNode", selected ? ImGuiTreeNodeFlags_Selected : ImGuiTreeNodeFlags_None);		
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
+		ImGui::Selectable(obj->getName()->c_str(), selected, ImGuiSelectableFlags_SpanAllColumns);
+		iclicked = ImGui::IsItemClicked();
+		ImGui::PopID();		
+		if (op)
 		{
 			for (int i = 0; i < child.size(); i++)
 			{
 				dtv(child[i], id);
 			}
 			ImGui::TreePop();
-		}
+		}				
 	}
 	if (multiSelect && fdk && m_selectedOBJ != obj)
 	{
@@ -621,7 +644,7 @@ void Editor::dtv(GObject * obj,int * id)
 		m_selectedOBJ = obj;
 		m_hasSwitch = false;
 	}
-	if (ImGui::IsItemClicked() && !m_oneClickFrame)
+	if (iclicked && !m_oneClickFrame)
 	{
 		m_oneClickFrame = true;
 		m_selectedOBJ = obj;
@@ -821,14 +844,15 @@ void Editor::drawFolderContents(const std::string& basePath,std::string& path)
 				newpath = entry.path().string();
 			}			
 		}
-		else if (entry.path().extension() == ".png" || entry.path().extension() == ".jpeg")
+		else if (entry.path().extension() == ".png" || entry.path().extension() == ".hdr" || entry.path().extension() == ".jpeg")
 		{
 			if (ImGui::ImageButton(m_icon[4], ImVec2(m_iconSize, m_iconSize)))
 			{
 				if (m_pc->inputManager->getKey(GLFW_KEY_L))
 				{
 					m_pc->skybox->loadTextureSkybox(entry.path().string());
-					m_currentSceneData->skyboxPath = cropPath(entry.path().string(), m_baseProjectLocation);
+					std::string eps = entry.path().string();
+					m_currentSceneData->skyboxPath = cropPath(eps, m_baseProjectLocation);
 				}
 			}
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
@@ -927,6 +951,51 @@ void Editor::start()
 		m_icon.push_back((ImTextureID)m_pc->textureManager->createTexture(fn.c_str())->getTextureID());
 	}
 	op = ImGuizmo::TRANSLATE;
+#ifdef EDITOR_RUN_MODE
+	m_editorData->autoLoadProject = true;
+	m_editorData->lastProjectpathOpen = m_pc->settingManager->getEditorPath();
+#endif
+	if (m_editorData->autoLoadProject)
+	{
+		m_pathOpenProject[0] = '\0';
+		if (m_editorData->lastProjectpathOpen.size() != 0)
+		{
+			strncpy(m_pathOpenProject, m_editorData->lastProjectpathOpen.c_str(), sizeof(m_pathOpenProject) - 1);
+			m_pathOpenProject[sizeof(m_pathOpenProject) - 1] = '\0';
+		}
+		if (m_pathOpenProject[0] != '\0')
+		{//TODO: Made fonction for this
+			struct stat sb;
+			m_editorData->lastProjectpathOpen = m_pathOpenProject;
+			if (stat(m_pathOpenProject, &sb) == 0)
+			{
+				globalSave();
+				if (m_currentSceneData != nullptr)
+				{
+					clearScene(m_currentSceneData);
+					m_currentSceneData = nullptr;
+					delete m_currentSceneData;
+				}
+				m_currentProjectData = new ProjectData();
+				loadProject(m_pathOpenProject, m_currentProjectData);
+#ifdef EDITOR_RUN_MODE
+				Debug::Log("%s",m_currentProjectData->lastSceneOpen.c_str());
+				m_currentProjectData->lastSceneOpen = "/Scene/Menu.scene";
+#endif
+				if (!m_currentProjectData->lastSceneOpen.empty())
+				{
+					SceneData* sd = new SceneData();
+					m_currentSceneData = sd;
+					loadScene(m_baseProjectLocation + m_currentProjectData->lastSceneOpen, m_currentSceneData);
+				}
+				globalSave();
+				ImGui::CloseCurrentPopup();
+			}
+		}
+	}
+#ifdef EDITOR_RUN_MODE
+	playScene();
+#endif
 }
 
 void Editor::loadConfig(const std::string& filePath,EditorConfig* ec)
@@ -948,6 +1017,9 @@ void Editor::loadConfig(const std::string& filePath,EditorConfig* ec)
 
 void Editor::saveConfig(const std::string& filePath,EditorConfig* ec)
 {
+#ifdef EDITOR_RUN_MODE
+	return;
+#endif
 	std::string pretty_json = JS::serializeStruct(*ec);
 	std::ofstream file(filePath);
 	if (!file.is_open()) 
@@ -980,11 +1052,19 @@ void Editor::clearCurrentProject()
 	}
 }
 
+
+
 bool Editor::createDirectory(const std::string& path)
 {
+#ifdef _WIN32
 	m_tempFile = path;
 	replaceChar(m_tempFile,'/','\\');
 	return CreateDirectory(m_tempFile.c_str(), NULL);
+#else
+	m_tempFile = path;
+	replaceChar(m_tempFile,'\\','/');
+	return mkdir(m_tempFile.c_str(),0777) == 0;
+#endif
 }
 
 void Editor::loadProject(const std::string& filePath, ProjectData* ec)
@@ -1010,6 +1090,9 @@ void Editor::loadProject(const std::string& filePath, ProjectData* ec)
 
 void Editor::saveProject(const std::string& filePath, ProjectData* ec)
 {
+#ifdef EDITOR_RUN_MODE
+	return;
+#endif
 	std::string projectPath= filePath + "\\" + ec->projetName;
 	m_baseProjectLocation = projectPath;
 	createDirectory(projectPath);
@@ -1061,6 +1144,10 @@ void Editor::clearScene(SceneData* sd)
 {
 	m_selectedOBJ = nullptr;
 	m_switchTreeObj = -1;
+	for (int i = 0; i < sd->models.size(); i++)
+	{
+		sd->models[i]->setParent(nullptr);
+	}
 	for (int i = 0; i < sd->models.size(); i++)
 	{
 		m_pc->modelManager->destroyModel(sd->models[i]);
@@ -1117,8 +1204,35 @@ void Editor::clearScene(SceneData* sd)
 		delete sd->empty[i];
 	}		
 	sd->empty.clear();
+	tagObj.clear();
 	m_pc->physicsEngine->DebugClearCollider();
 	m_guizmo = false;
+}
+
+GObject* Editor::getEntityByScript(Behaviour* b)
+{
+	for (int i = 0; i < m_allBehaviourLoaded.size(); i++)
+	{
+		if (m_allBehaviourLoaded[i].second == b)
+		{
+			return m_allBehaviourLoaded[i].first;
+		}
+	}
+	Debug::Warn("Script not found");
+	return nullptr;
+}
+
+void Editor::detachScriptFromScene(Behaviour* b)
+{	
+	for (int i = 0; i < m_allBehaviourLoaded.size(); i++)
+	{
+		if (m_allBehaviourLoaded[i].second == b)
+		{
+			m_allBehaviourLoaded[i].first->removeComponent(b);
+			m_allBehaviourLoaded.erase(m_allBehaviourLoaded.begin() + i);
+			return;
+		}
+	}
 }
 
 GraphiquePipeline* Editor::getPipelineByScene(const std::string& Name)
@@ -1196,7 +1310,8 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 	JS::ParseContext context(jsonFile);
 	context.parseTo(*sd);
 	sd->name = extractFileName(filePath);
-	sd->currentPath = cropPath(std::string(filePath), m_baseProjectLocation);
+	std::string fp = std::string(filePath);
+	sd->currentPath = cropPath(fp, m_baseProjectLocation);
 	m_currentProjectData->lastSceneOpen = sd->currentPath;
 	sd->empty.clear();
 	scriptObject.clear();
@@ -1210,6 +1325,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 		e->setScale(sd->emptyData[i].scale);
 		scriptObject[(GObject*)e] = sd->emptyData[i].scripts;
 		collisionObj[(GObject*)e] = sd->emptyData[i].collisions;
+		tagObj[(GObject*)e] = sd->emptyData[i].tags;
 		sd->empty.push_back(e);
 	}
 	sd->shader.clear();
@@ -1291,6 +1407,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			m->setScale(sd->modelData[i].scale);
 			scriptObject[(GObject*)m] = sd->modelData[i].scripts;
 			collisionObj[(GObject*)m] = sd->modelData[i].collisions;
+			tagObj[(GObject*)m] = sd->modelData[i].tags;
 			if (sd->modelData[i].idMaterial >= 0)
 			{
 				m->setMaterial(sd->materials[sd->modelData[i].idMaterial]);
@@ -1316,6 +1433,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			sd->dlight.push_back(dl);
 			scriptObject[(GObject*)dl] = sd->lightData[i].scripts;
 			collisionObj[(GObject*)dl] = sd->lightData[i].collisions;
+			tagObj[(GObject*)dl] = sd->lightData[i].tags;
 			allLight.push_back(dl);
 		}
 		else if (sd->lightData[i].status == 1)
@@ -1330,6 +1448,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			sd->plight.push_back(pl);
 			scriptObject[(GObject*)pl] = sd->lightData[i].scripts;
 			collisionObj[(GObject*)pl] = sd->lightData[i].collisions;
+			tagObj[(GObject*)pl] = sd->lightData[i].tags;
 			allLight.push_back(pl);
 		}
 		else if (sd->lightData[i].status == 2)
@@ -1344,6 +1463,7 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			sd->slight.push_back(sl);
 			scriptObject[(GObject*)sl] = sd->lightData[i].scripts;
 			collisionObj[(GObject*)sl] = sd->lightData[i].collisions;
+			tagObj[(GObject*)sl] = sd->lightData[i].tags;
 			allLight.push_back(sl);
 		}
 	}
@@ -1365,11 +1485,12 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 			as->setGain(sd->audioData[i].gain);
 			as->setVelocity(sd->audioData[i].velocity);
 			as->setLoop(sd->audioData[i].loop);
-			as->setLoop(sd->audioData[i].rolloffFactor);
-			as->setLoop(sd->audioData[i].maxDistance);
-			as->setLoop(sd->audioData[i].refDistance);
+			as->setRolloffFactor(sd->audioData[i].rolloffFactor);
+			as->setMaxDistance(sd->audioData[i].maxDistance);
+			as->setRefDistance(sd->audioData[i].refDistance);
 			scriptObject[(GObject*)as] = sd->audioData[i].scripts;
-			collisionObj[(GObject*)as] = sd->lightData[i].collisions;
+			collisionObj[(GObject*)as] = sd->audioData[i].collisions;
+			tagObj[(GObject*)as] = sd->audioData[i].tags;
 			sd->audio.push_back(as);
 		}
 	}
@@ -1400,6 +1521,14 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 	}
 	PPSetting* setting = m_pc->postProcess->getPPSetting();
 	setting->copy(sd->pp);
+
+	for (auto& data : tagObj)
+	{
+		for (int i = 0; i < data.second.size(); i++)
+		{
+			data.first->addTag(data.second[i]);
+		}
+	}
 }
 
 void Editor::globalSave()
@@ -1491,14 +1620,24 @@ void Editor::playScene()
 			var.first->addComponent(b);
 			b->load(s.data);
 			m_pc->behaviourManager->addBehaviour(b);
-			m_allBehaviourLoaded.push_back(b);
+			m_allBehaviourLoaded.push_back({ var.first,b });
 		}
 	}
-	if (m_generatePathFindingNextPlay)
+	if (m_currentSceneData != nullptr)
+	{
+		for (int i = 0; i < m_currentSceneData->audio.size(); i++)
+		{
+			if (m_currentSceneData->audio[i] != nullptr)
+			{
+				m_currentSceneData->audio[i]->play();
+			}
+		}
+	}	
+	if (m_generatePathFindingNextPlay)//TODO: change generation system to auto mode
 	{
 		PathFindingScene* b = new PathFindingScene(m_currentSceneData->path.pathPosition, m_currentSceneData->path.zoneSize, m_currentSceneData->path.pointCount, m_baseProjectLocation + m_currentSceneData->path.pathFolder, m_currentSceneData->path.pathLiasonPercent);
 		b->help();
-		m_allBehaviourLoaded.push_back(b);
+		m_allBehaviourLoaded.push_back({ nullptr,b });
 		m_pc->behaviourManager->addBehaviour(b);
 		m_generatePathFindingNextPlay = false;
 	}
@@ -1506,7 +1645,7 @@ void Editor::playScene()
 	{
 		PathFindingScene* b = new PathFindingScene(m_currentSceneData->path.pathPosition, m_currentSceneData->path.zoneSize, m_currentSceneData->path.pointCount, m_baseProjectLocation + m_currentSceneData->path.pathFolder, m_currentSceneData->path.pathLiasonPercent);
 		b->loadFromFile();
-		m_allBehaviourLoaded.push_back(b);
+		m_allBehaviourLoaded.push_back({ nullptr,b });
 		//m_pc->behaviourManager->addBehaviour(b);
 	}
 }
@@ -1515,9 +1654,9 @@ void Editor::stopScene()
 {
 	for (int i = 0; i < m_allBehaviourLoaded.size(); i++)
 	{
-		m_pc->behaviourManager->removeBehaviour(m_allBehaviourLoaded[i], true);
-		m_allBehaviourLoaded[i]->stop();
-		delete m_allBehaviourLoaded[i];
+		m_pc->behaviourManager->removeBehaviour(m_allBehaviourLoaded[i].second, true);
+		m_allBehaviourLoaded[i].second->stop();
+		delete m_allBehaviourLoaded[i].second;
 	}
 	m_allBehaviourLoaded.clear();
 	for (int i = 0; i < m_allCollisionBodyLoaded.size(); i++)
@@ -1653,6 +1792,9 @@ void Editor::addModelToScene(const std::string& filePath,bool fbx)
 
 void Editor::saveScene(const std::string& filePath, SceneData* sd)
 {
+#ifdef EDITOR_RUN_MODE
+	return;
+#endif
 	Camera * cam = m_pc->cameraManager->getCurrentCamera();
 	sd->freeCamPos = cam->getPosition();
 	sd->freeCamRot = cam->getRotation();
@@ -1676,6 +1818,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		GObject* parent = sd->empty[i]->getParent();
 		ed.scripts = scriptObject[(GObject*)sd->empty[i]];
 		ed.collisions = collisionObj[(GObject*)sd->empty[i]];
+		ed.tags = tagObj[(GObject*)sd->empty[i]];
 		if (parent != nullptr)
 		{
 			for (int j = 0; j < allGObject.size(); j++)
@@ -1706,6 +1849,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		asd.refDistance = sd->audio[i]->getLoop();
 		asd.scripts = scriptObject[(GObject*)sd->audio[i]];
 		asd.collisions = collisionObj[(GObject*)sd->audio[i]];
+		asd.tags = tagObj[(GObject*)sd->audio[i]];
 		for (int j = 0; j < sd->sound.size(); j++)
 		{
 			if (sd->sound[j] == sd->audio[i]->getSoundBuffer())
@@ -1744,6 +1888,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ld.status = 0;
 		ld.scripts = scriptObject[(GObject*)sd->dlight[i]];
 		ld.collisions = collisionObj[(GObject*)sd->dlight[i]];
+		ld.tags = tagObj[(GObject*)sd->dlight[i]];
 		GObject* parent = sd->dlight[i]->getParent();
 		if (parent != nullptr)
 		{
@@ -1772,6 +1917,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ld.status = 1;
 		ld.scripts = scriptObject[(GObject*)sd->plight[i]];
 		ld.collisions = collisionObj[(GObject*)sd->plight[i]];
+		ld.tags = tagObj[(GObject*)sd->plight[i]];
 		GObject* parent = sd->plight[i]->getParent();
 		if (parent != nullptr)
 		{
@@ -1800,6 +1946,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		ld.status = 2;
 		ld.scripts = scriptObject[(GObject*)sd->slight[i]];
 		ld.collisions = collisionObj[(GObject*)sd->slight[i]];
+		ld.tags = tagObj[(GObject*)sd->slight[i]];
 		GObject* parent = sd->slight[i]->getParent();
 		if (parent != nullptr)
 		{
@@ -1870,6 +2017,7 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		md.scale = sd->models[i]->getScale();
 		md.scripts = scriptObject[(GObject*)sd->models[i]];
 		md.collisions = collisionObj[(GObject*)sd->models[i]];
+		md.tags = tagObj[(GObject*)sd->models[i]];
 		for (int j = 0; j < sd->buffer.size(); j++)
 		{
 			if (sd->buffer[j] == sd->models[i]->getShapeBuffer())
@@ -1937,7 +2085,9 @@ void Editor::update()
 void Editor::stop()
 {
 	globalSave();
+#ifndef EDITOR_RUN_MODE
 	saveConfig(PathManager::getHomeDirectory() + "/config.json", m_editorData);
+#endif
 	delete m_editorData;
 	if (m_currentProjectData != nullptr)
 	{
@@ -1964,8 +2114,53 @@ void Editor::init(GraphicsDataMisc* gdm)
 }
 
 
+inline void ShowTagEditor(std::vector<std::string>& tags,GObject * obj) 
+{
+	static char inputBuffer[128] = ""; // buffer pour saisir un nouveau tag
+	ImGui::BeginChild("Tags##Child", ImVec2(0, 0), true);
+	ImGui::Text("Tags");
+	ImGui::Separator();
+
+	// Champ d'entrée pour ajouter un nouveau tag
+	ImGui::InputText("New tag", inputBuffer, IM_ARRAYSIZE(inputBuffer));
+	ImGui::SameLine();
+	if (ImGui::Button("Add")) 
+	{
+		if (strlen(inputBuffer) > 0) {
+			tags.emplace_back(inputBuffer);
+			obj->addTag(inputBuffer);
+			inputBuffer[0] = '\0'; // reset le champ
+		}
+	}
+
+	ImGui::Spacing();
+	ImGui::Text("List :");
+
+	// Affichage des tags existants
+	for (int i = 0; i < tags.size(); ++i) 
+	{
+		ImGui::PushID(i+541856); // éviter les conflits d’ID ImGui
+
+		ImGui::Text("%s", tags[i].c_str());
+		ImGui::SameLine();
+		if (ImGui::Button("Remove")) 
+		{
+			obj->addTag(tags[i]);
+			tags.erase(tags.begin() + i);			
+			ImGui::PopID();
+			break; // sortir pour éviter problème d’itérateur invalide
+		}
+
+		ImGui::PopID();
+	}
+	ImGui::EndChild();
+}
+
 void Editor::render(GraphicsDataMisc* gdm)
 {
+#ifdef EDITOR_RUN_MODE
+	return;
+#endif
 	if (m_hide)
 	{
 		return;
@@ -2010,6 +2205,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 					globalSave();
 				}
 			}
+			ImGui::Checkbox("Auto Load Project", &m_editorData->autoLoadProject);
 			ImGui::EndMenu();
 		}
 		if (m_currentProjectData != nullptr)
@@ -2094,8 +2290,8 @@ void Editor::render(GraphicsDataMisc* gdm)
 		}		
 		if (m_currentProjectData != nullptr)
 		{
-			ImGui::SameLine(ImGui::GetWindowWidth() - ImGui::CalcTextSize(m_currentProjectData->projetName).x-15);
-			ImGui::TextColored(m_colRGB,m_currentProjectData->projetName);
+			ImGui::SameLine(ImGui::GetWindowWidth() - ImGui::CalcTextSize(m_currentProjectData->projetName.c_str()).x-15);
+			ImGui::TextColored(m_colRGB,m_currentProjectData->projetName.c_str());
 		}
 		ImGui::EndMainMenuBar();
 	}
@@ -2108,7 +2304,8 @@ void Editor::render(GraphicsDataMisc* gdm)
 		m_currentSceneData->path.pointCount = glm::vec3(10, 10, 10);
 		m_currentSceneData->path.pathLiasonPercent = 0.1f;		
 		m_currentSceneData->path.has = false;
-		std::string computeName = cropPath(m_currentProjectLocation + "\\" + m_currentSceneData->name + ".path", m_baseProjectLocation);
+		std::string cpl = m_currentProjectLocation + "\\" + m_currentSceneData->name + ".path";
+		std::string computeName = cropPath(cpl, m_baseProjectLocation);
 		strcpy(m_pathFindingName, computeName.c_str());
 		m_openPathFinding = false;
 	}
@@ -2304,14 +2501,12 @@ void Editor::render(GraphicsDataMisc* gdm)
 
 	if (ImGui::BeginPopupModal("New Project", NULL, ImGuiWindowFlags_AlwaysAutoResize))
 	{		
-		ImGui::InputText("Name##inputFieldName", m_currentProjectData->projetName, IM_ARRAYSIZE(m_currentProjectData->projetName));
-		ImGui::InputText("Path##inputFieldPath", m_currentProjectData->projetPath, IM_ARRAYSIZE(m_currentProjectData->projetPath));
+		InputText("Name##inputFieldName", m_currentProjectData->projetName);
+		InputText("Path##inputFieldPath", m_currentProjectData->projetPath);
 		ImGui::SameLine();
 		if (ImGui::Button("..."))
 		{
-			std::string path = FolderDialog::openDialog();
-			strncpy(m_currentProjectData->projetPath, path.c_str(), sizeof(m_currentProjectData->projetPath) - 1);
-			m_currentProjectData->projetPath[sizeof(m_currentProjectData->projetPath) - 1] = '\0';
+			m_currentProjectData->projetPath = FolderDialog::openDialog();
 		}
 
 		if (ImGui::Button("Create", ImVec2(100, 0)) || m_pc->inputManager->getKeyDown(GLFW_KEY_ENTER))
@@ -2319,7 +2514,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 			if (m_currentProjectData->projetName[0] != '\0' && m_currentProjectData->projetPath[0] != '\0')
 			{
 				struct stat sb;
-				if (stat(m_currentProjectData->projetPath, &sb) == 0)
+				if (stat(m_currentProjectData->projetPath.c_str(), &sb) == 0)
 				{
 					globalSave();
 					if (m_currentSceneData != nullptr)
@@ -2374,7 +2569,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 		ImGui::InputText("Name##inputFieldObject", m_objectName, IM_ARRAYSIZE(m_objectName));
 		if (ImGui::Button("Create", ImVec2(100, 0)) || m_pc->inputManager->getKeyDown(GLFW_KEY_ENTER))
 		{
-			if (m_objectName != '\0')
+			if (m_objectName[0] != '\0')
 			{
 				struct stat sb;
 				if (stat(m_currentProjectLocation.c_str(), &sb) == 0)
@@ -2392,7 +2587,8 @@ void Editor::render(GraphicsDataMisc* gdm)
 						m_currentSceneData = sd;
 						m_currentSceneData->path.has = false;
 						sd->name = m_objectName;
-						sd->currentPath = cropPath(m_currentProjectLocation + "\\" + m_objectName + ".scene", m_baseProjectLocation);
+						std::string cpl = m_currentProjectLocation + "\\" + m_objectName + ".scene";
+						sd->currentPath = cropPath(cpl, m_baseProjectLocation);
 						m_currentProjectData->lastSceneOpen = sd->currentPath;
 						sd->dlight.push_back(m_pc->lightManager->createDirectionalLight(glm::vec3(-45,45,0),glm::vec3(1,1,1)));
 						globalSave();
@@ -2429,7 +2625,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 			{
 				for (int i = 0; i < m_allBehaviourLoaded.size(); i++)
 				{
-					m_pc->behaviourManager->addBehaviourWithoutStart(m_allBehaviourLoaded[i]);
+					m_pc->behaviourManager->addBehaviourWithoutStart(m_allBehaviourLoaded[i].second);
 				}
 			}
 			else
@@ -2453,7 +2649,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 			m_playMode = 2;
 			for (int i = 0; i < m_allBehaviourLoaded.size(); i++)
 			{
-				m_pc->behaviourManager->removeBehaviour(m_allBehaviourLoaded[i], true);
+				m_pc->behaviourManager->removeBehaviour(m_allBehaviourLoaded[i].second, true);
 			}
 		}
 		if (popCol == 1) 
@@ -2865,6 +3061,7 @@ void Editor::render(GraphicsDataMisc* gdm)
 			}
 
 			ImGui::EndChild();
+			ShowTagEditor(tagObj[m_selectedOBJ], m_selectedOBJ);
 			std::vector<CollisionData>& collisionUse = collisionObj[m_selectedOBJ];
 			
 			if (ImGui::BeginCombo("##CollisionCombo", collisionType[m_collisionCombo]))
@@ -2984,41 +3181,13 @@ void Editor::render(GraphicsDataMisc* gdm)
 	{
 		ImGui::SetNextWindowSize(ImVec2(300, 300), ImGuiCond_FirstUseEver);
 		ImGui::Begin("Post Process", &m_editorData->postProcess);
-		PPSetting* setting = m_pc->postProcess->getPPSetting();
 		ImGui::Text("Post processing");		
 		m_ambient = m_pc->settingManager->getAmbient();
 		if (ImGui::DragFloat("Ambient", &m_ambient))
 		{
 			m_pc->settingManager->setAmbient(m_ambient);			
 		}
-		if(ImGui::DragFloat("Gamma", setting->gamma))
-		{
-			if (m_currentSceneData != nullptr) { m_currentSceneData->pp.gamma = setting->gamma; }
-		}
-		if (ImGui::DragFloat("Exposure##Bloom", &setting->exposure, 0.1f))
-		{
-			if (m_currentSceneData != nullptr) { m_currentSceneData->pp.exposure = setting->exposure; }
-		}
-		if (ImGui::TreeNodeEx("Bloom"))
-		{
-			if (ImGui::Checkbox("Active##Bloom", &setting->bloom))
-			{
-				if (m_currentSceneData != nullptr) { m_currentSceneData->pp.bloom = setting->bloom; }
-			}
-			if (ImGui::DragFloat("Filter##Bloom", &setting->bloom_filter,0.01f))
-			{
-				if (m_currentSceneData != nullptr) { m_currentSceneData->pp.bloom_filter = setting->bloom_filter; }
-			}
-			if (ImGui::DragFloat("Threshold##Bloom", &setting->bloom_threshold, 0.01f))
-			{
-				if (m_currentSceneData != nullptr) { m_currentSceneData->pp.bloom_threshold = setting->bloom_threshold; }
-			}
-			if (ImGui::DragFloat("Intensity##Bloom", &setting->bloom_intensity, 0.01f))
-			{
-				if (m_currentSceneData != nullptr) { m_currentSceneData->pp.bloom_intensity = setting->bloom_intensity; }
-			}
-			ImGui::TreePop();			
-		}
+		m_pc->postProcess->onGui(m_currentSceneData == nullptr ? nullptr : &m_currentSceneData->pp);
 		
 		ImGui::End();
 	}

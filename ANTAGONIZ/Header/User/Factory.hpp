@@ -60,7 +60,7 @@ class Creator
 public:
     explicit Creator(const std::string& name) 
     {
-        FACTORY(B).registerClass<T>(name);
+        FACTORY(B).template registerClass<T>(name);
     }
 };
 

@@ -114,6 +114,23 @@ namespace Ge
 		delete pBody;
 	}
 
+	StaticMeshCollider* PhysicsWraper::AllocateStaticMeshCollider(btBvhTriangleMeshShape* meshShape)
+	{
+		std::promise<StaticMeshCollider*>* promise = new std::promise<StaticMeshCollider*>();
+		auto future = promise->get_future();
+		MethodCommandReturn<PhysicsEngine, StaticMeshCollider*, btBvhTriangleMeshShape*>* command = new MethodCommandReturn<PhysicsEngine, StaticMeshCollider*, btBvhTriangleMeshShape*>(m_pe, &PhysicsEngine::AllocateStaticMeshCollider, promise, meshShape);
+		m_queue->push((Command*)command);
+		StaticMeshCollider* smc = future.get();
+		delete promise;
+		return smc;
+	}
+
+	void PhysicsWraper::ReleaseStaticMeshCollider(StaticMeshCollider* pBody)
+	{
+		MethodCommand<PhysicsEngine, StaticMeshCollider*>* command = new MethodCommand<PhysicsEngine, StaticMeshCollider*>(m_pe, &PhysicsEngine::ReleaseStaticMeshCollider, pBody);
+		m_queue->push((Command*)command);
+	}
+
 	void PhysicsWraper::AddRigidbody(RigidWraper* pbody, int group, int mask)
 	{
 		RigidBody * body = pbody->getRigidBody();
@@ -149,6 +166,17 @@ namespace Ge
 		std::promise<bool>* promise = new std::promise<bool>();
 		auto future = promise->get_future();
 		MethodCommandReturn<PhysicsEngine, bool, const glm::vec3 *, const glm::vec3 *, glm::vec3 *>* command = new MethodCommandReturn<PhysicsEngine, bool, const glm::vec3*, const glm::vec3*, glm::vec3*>(m_pe, &PhysicsEngine::raycast, promise, start, end, hitPoint);
+		m_queue->push((Command*)command);
+		bool cb = future.get();
+		delete promise;
+		return cb;
+	}
+
+	bool PhysicsWraper::isPointInsideCollision(const glm::vec3* point, float testRadius)
+	{
+		std::promise<bool>* promise = new std::promise<bool>();
+		auto future = promise->get_future();
+		MethodCommandReturn<PhysicsEngine, bool, const glm::vec3*, float>* command = new MethodCommandReturn<PhysicsEngine, bool, const glm::vec3*, float>(m_pe, &PhysicsEngine::isPointInsideCollision, promise, point, testRadius);
 		m_queue->push((Command*)command);
 		bool cb = future.get();
 		delete promise;

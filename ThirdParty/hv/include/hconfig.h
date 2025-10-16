@@ -33,6 +33,14 @@
 #define HAVE_PTHREAD_H 0
 #endif
 
+#ifndef HAVE_ENDIAN_H
+#define HAVE_ENDIAN_H 0
+#endif
+
+#ifndef HAVE_SYS_ENDIAN_H
+#define HAVE_SYS_ENDIAN_H 0
+#endif
+
 #ifndef HAVE_GETTID
 #define HAVE_GETTID 0
 #endif
@@ -65,6 +73,22 @@
 #define HAVE_SEM_TIMEDWAIT 0
 #endif
 
+#ifndef HAVE_PIPE
+#define HAVE_PIPE 0
+#endif
+
+#ifndef HAVE_SOCKETPAIR
+#define HAVE_SOCKETPAIR 0
+#endif
+
+#ifndef HAVE_EVENTFD
+#define HAVE_EVENTFD 0
+#endif
+
+#ifndef HAVE_SETPROCTITLE
+#define HAVE_SETPROCTITLE 0
+#endif
+
 /* #undef WITH_OPENSSL */
 /* #undef WITH_GNUTLS */
 /* #undef WITH_MBEDTLS */
@@ -72,6 +96,7 @@
 /* #undef ENABLE_UDS */
 /* #undef USE_MULTIMAP */
 
+#define WITH_WEPOLL    1
 /* #undef WITH_KCP */
 
 #endif // HV_CONFIG_H_

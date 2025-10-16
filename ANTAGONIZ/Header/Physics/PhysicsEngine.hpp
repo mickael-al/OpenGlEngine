@@ -3,6 +3,7 @@
 
 #include "glm/glm.hpp"
 #include <chrono>
+#define BT_USE_STATIC_LIBS
 #include "btBulletDynamicsCommon.h"
 #include "Debug.hpp"
 #include <vector>
@@ -15,6 +16,7 @@ class RigidBody;
 class CollisionBody;
 class Muscle;
 class CollisionShape;
+class StaticMeshCollider;
 class GObject;
 class CommandQueue;
 
@@ -29,10 +31,13 @@ public:
     CollisionBody* AllocateCollision(CollisionShape* shape);
     Muscle* AllocateMuscle(RigidBody* rb1, RigidBody* rb2, float degres, float scale = 1.0f, bool adaptePos = true);
     void ReleaseMuscle(Muscle* pBody);
+    StaticMeshCollider * AllocateStaticMeshCollider(btBvhTriangleMeshShape* meshShape);
+    void ReleaseStaticMeshCollider(StaticMeshCollider* pBody);
     void AddRigidbody(RigidBody* body,int group = 1,int mask = -1);
     void ReleaseRigidbody(RigidBody * pBody);
     void AddCollision(CollisionBody* body);
-    void ReleaseCollision(CollisionBody* pBody);
+    void ReleaseCollision(CollisionBody* pBody);    
+    bool isPointInsideCollision(const glm::vec3 * point, float testRadius = 0.01f);
     bool raycast(const glm::vec3* start, const glm::vec3* end, glm::vec3* hitPoint);
     const std::vector<RigidBody*> getRigidbody() const;
     const std::vector<CollisionBody*> getCollisionbody() const;
@@ -40,6 +45,7 @@ private:
     std::vector<RigidBody*> m_rigidbody;
     std::vector<CollisionBody*> m_collisionbody;
     std::vector<Muscle*> m_muscle;
+    std::vector<StaticMeshCollider*> m_staticMeshCollider;
     CommandQueue* m_queue;
     btDynamicsWorld* m_pDynamicWorld;
     btBroadphaseInterface               * m_pBroadphaseInterface;

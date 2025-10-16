@@ -30,7 +30,8 @@ struct EditorConfig
 	bool project;
 	bool hiearchy;
 	bool postProcess;
-	std::string lastProjectpathOpen;
+	bool autoLoadProject;
+	std::string lastProjectpathOpen;	
 	EditorConfig()
 	{
 		gameMode = false;
@@ -38,9 +39,10 @@ struct EditorConfig
 		project = false;
 		hiearchy = false;
 		postProcess = false;
+		autoLoadProject = false;
 		lastProjectpathOpen = "";		 
 	}
-	JS_OBJ(gameMode, inspector, project, hiearchy, postProcess, lastProjectpathOpen);
+	JS_OBJ(gameMode, inspector, project, hiearchy, postProcess, autoLoadProject, lastProjectpathOpen);
 };
 
 struct ScriptData
@@ -52,15 +54,15 @@ struct ScriptData
 
 struct ProjectData
 {
-	char projetName[64];
-	char projetPath[256];//base path
+	std::string projetName;
+	std::string projetPath;//base path
 	std::string assetPath;
 	std::string ressourcePath;
 	std::string lastSceneOpen;
 	ProjectData()
 	{
-		projetName[0] = '\0';
-		projetPath[0] = '\0';
+		projetName = "";
+		projetPath = "";
 		assetPath = "";
 		ressourcePath = "";
 		lastSceneOpen = "";
@@ -75,7 +77,7 @@ JS_OBJ_EXT(glm::vec3, x, y, z);
 #endif // !VEC3_JS
 JS_OBJ_EXT(glm::vec4, x, y, z,w);
 JS_OBJ_EXT(glm::quat, x, y, z,w);
-JS_OBJ_EXT(PPSetting, bloom, bloom_filter, bloom_threshold, bloom_intensity, exposure);
+JS_OBJ_EXT(PPSetting, bloom, bloom_filter, bloom_threshold, bloom_intensity, exposure, fog, fog_min_distance, fog_max_distance, fog_mode, fog_color, oil_painting, oilp_radius);
 
 struct CollisionData
 {
@@ -110,13 +112,14 @@ struct ModelData
 	int idParent;
 	std::vector<ScriptData> scripts;
 	std::vector<CollisionData> collisions;
+	std::vector<std::string> tags;
 	ModelData()
 	{
 		idMaterial = -1;
 		idBuffer = -1;
 		idParent = -1;
 	}
-	JS_OBJ(name,position, rotation, scale,idMaterial, idBuffer, idParent, scripts, collisions);
+	JS_OBJ(name,position, rotation, scale,idMaterial, idBuffer, idParent, scripts, collisions, tags);
 };
 
 struct BufferData
@@ -189,11 +192,12 @@ struct LightData
 	int idParent;
 	std::vector<ScriptData> scripts;
 	std::vector<CollisionData> collisions;
+	std::vector<std::string> tags;
 	LightData()
 	{
 		idParent = -1;
 	}
-	JS_OBJ(name, position, rotation, scale, color, range, spotAngle, shadow, status, idParent, scripts, collisions);
+	JS_OBJ(name, position, rotation, scale, color, range, spotAngle, shadow, status, idParent, scripts, collisions, tags);
 };
 
 struct SoundBufferData
@@ -219,12 +223,13 @@ struct AudioSourceData
 	int idParent;
 	std::vector<ScriptData> scripts;
 	std::vector<CollisionData> collisions;
+	std::vector<std::string> tags;
 	AudioSourceData()
 	{
 		idBuffer = -1;
 		idParent = -1;
 	}
-	JS_OBJ(name, position, rotation, scale, pitch, gain, velocity, loop, rolloffFactor, maxDistance, refDistance, idBuffer, idParent, scripts, collisions);
+	JS_OBJ(name, position, rotation, scale, pitch, gain, velocity, loop, rolloffFactor, maxDistance, refDistance, idBuffer, idParent, scripts, collisions, tags);
 };
 
 struct EmptyData
@@ -236,11 +241,12 @@ struct EmptyData
 	int idParent;
 	std::vector<ScriptData> scripts;
 	std::vector<CollisionData> collisions;
+	std::vector<std::string> tags;
 	EmptyData()
 	{
 		idParent = -1;
 	}
-	JS_OBJ(name, position, rotation, scale, idParent, scripts, collisions);
+	JS_OBJ(name, position, rotation, scale, idParent, scripts, collisions, tags);
 };
 
 struct SceneData

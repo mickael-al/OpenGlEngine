@@ -1,5 +1,4 @@
 #include "GEffect.hpp"
-#include "EnumModifier.hpp"
 #include "GNode.hpp"
 
 GEffect::GEffect(const std::string & ressource, const Modifier mod,const float value)

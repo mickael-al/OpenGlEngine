@@ -37,32 +37,6 @@
     #define HV_UNUSED
 #endif
 
-// @param[IN | OUT | INOUT]
-#ifndef IN
-#define IN
-#endif
-
-#ifndef OUT
-#define OUT
-#endif
-
-#ifndef INOUT
-#define INOUT
-#endif
-
-// @field[OPTIONAL | REQUIRED | REPEATED]
-#ifndef OPTIONAL
-#define OPTIONAL
-#endif
-
-#ifndef REQUIRED
-#define REQUIRED
-#endif
-
-#ifndef REPEATED
-#define REPEATED
-#endif
-
 #ifdef __cplusplus
 
 #ifndef EXTERN_C
@@ -135,6 +109,10 @@ struct s
 
 // MSVC ports
 #ifdef _MSC_VER
+
+#pragma warning (disable: 4251) // STL dll
+#pragma warning (disable: 4275) // dll-interface
+
 #if _MSC_VER < 1900 // < VS2015
 
 #ifndef __cplusplus

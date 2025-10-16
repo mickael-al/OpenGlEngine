@@ -79,6 +79,12 @@ namespace Ge
 		m_queue->push((Command*)command);
 	}
 
+	void RigidWraper::SetAngularVelocity(const glm::vec3 velocity)
+	{
+		MethodCommand<RigidBody, const glm::vec3>* command = new MethodCommand<RigidBody, const glm::vec3>(m_rb, &RigidBody::SetAngularVelocity, velocity);
+		m_queue->push((Command*)command);
+	}
+
 	void RigidWraper::BuildPhysics(CollisionShape* shape, bool hasInertia)
 	{
 		MethodCommand<RigidBody, CollisionShape*, bool>* command = new MethodCommand<RigidBody, CollisionShape*, bool>(m_rb, &RigidBody::BuildPhysics, shape, hasInertia);
@@ -93,6 +99,11 @@ namespace Ge
 	glm::vec3 RigidWraper::GetLinearVelocity()
 	{
 		return m_rb->GetLinearVelocity();
+	}
+
+	glm::vec3 RigidWraper::GetAngularVelocity()
+	{
+		return m_rb->GetAngularVelocity();
 	}
 
 	void RigidWraper::ApplyImpulse(glm::vec3 impulse, glm::vec3 real_pos)
@@ -113,9 +124,21 @@ namespace Ge
 		m_queue->push((Command*)command);
 	}
 
+	void RigidWraper::activate(bool state)
+	{
+		MethodCommand<RigidBody, bool>* command = new MethodCommand<RigidBody, bool>(m_rb, &RigidBody::activate, state);
+		m_queue->push((Command*)command);
+	}
+
 	void RigidWraper::lockRotation()
 	{
 		MethodCommand<RigidBody>* command = new MethodCommand<RigidBody>(m_rb, &RigidBody::lockRotation);
+		m_queue->push((Command*)command);
+	}
+
+	void RigidWraper::setFriction(float f)
+	{
+		MethodCommand<RigidBody, float>* command = new MethodCommand<RigidBody, float>(m_rb, &RigidBody::setFriction, f);
 		m_queue->push((Command*)command);
 	}
 

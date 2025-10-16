@@ -5,6 +5,7 @@
 #include <vector>
 #include "Behaviour.hpp"
 
+class btBvhTriangleMeshShape;
 namespace Ge
 {
     class CommandQueue;
@@ -21,6 +22,7 @@ namespace Ge
     class RigidWraper;
     class CollisionWraper;
     class MuscleWraper;
+    class StaticMeshCollider;
     class PhysicsWraper : public Behaviour
     {
     public:
@@ -31,11 +33,14 @@ namespace Ge
         std::vector<CollisionWraper*> AllocateCollision(CollisionShape* shape, int nb);
         MuscleWraper* AllocateMuscle(RigidWraper* rb1, RigidWraper* rb2, float degres, float scale = 1.0f, bool adaptePos = true);
         void ReleaseMuscle(MuscleWraper* pBody);
+        StaticMeshCollider* AllocateStaticMeshCollider(btBvhTriangleMeshShape* meshShape);
+        void ReleaseStaticMeshCollider(StaticMeshCollider* pBody);
         void AddRigidbody(RigidWraper* pbody, int group = 1, int mask = -1);
         void ReleaseRigidbody(RigidWraper* pBody);
         void AddCollision(CollisionWraper* body);
         void ReleaseCollision(CollisionWraper* pBody);
         bool raycast(const glm::vec3* start, const glm::vec3* end, glm::vec3* hitPoint);
+        bool isPointInsideCollision(const glm::vec3* point, float testRadius = 0.01f);
         void DebugDrawCollider();
         void DebugClearCollider();
         void start();

@@ -16,11 +16,7 @@ public:
 
     EventLoopThread(EventLoopPtr loop = NULL) {
         setStatus(kInitializing);
-        if (loop) {
-            loop_ = loop;
-        } else {
-            loop_.reset(new EventLoop);
-        }
+        loop_ = loop ? loop : std::make_shared<EventLoop>();
         setStatus(kInitialized);
     }
 
@@ -48,9 +44,10 @@ public:
                Functor pre = Functor(),
                Functor post = Functor()) {
         if (status() >= kStarting && status() < kStopped) return;
+        if (isRunning()) return;
         setStatus(kStarting);
 
-        thread_.reset(new std::thread(&EventLoopThread::loop_thread, this, pre, post));
+        thread_ = std::make_shared<std::thread>(&EventLoopThread::loop_thread, this, pre, post);
 
         if (wait_thread_started) {
             while (loop_->status() < kRunning) {
@@ -60,6 +57,7 @@ public:
     }
 
     // @param wait_thread_started: if ture this method will block until loop_thread stopped.
+    // stop thread-safe
     void stop(bool wait_thread_stopped = false) {
         if (status() < kStarting || status() >= kStopping) return;
         setStatus(kStopping);
@@ -69,9 +67,7 @@ public:
 
         if (wait_thread_stopped) {
             if (hv_gettid() == loop_tid) return;
-            while (!isStopped()) {
-                hv_delay(1);
-            }
+            join();
         }
     }
 

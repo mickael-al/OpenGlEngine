@@ -92,7 +92,7 @@ namespace Ge
         }
 	}
 
-	void Bloom::compute(unsigned int frameBuffer, unsigned int texture, ShapeBuffer* sb, PPSetting* settings)
+	void Bloom::compute(unsigned int frameBuffer, unsigned int texture,unsigned int depthtexture, ShapeBuffer* sb, PPSetting* settings)
 	{          
         glm::vec2 size((float)m_gdm->str_width, (float)m_gdm->str_height);
         float filterRadius = settings->bloom_filter;
@@ -171,4 +171,28 @@ namespace Ge
         glViewport(0, 0, size.x, size.y);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);        
 	}
+
+    void Bloom::onGui(PPSetting* t, PPSetting* s)
+    {
+        if (ImGui::TreeNodeEx("Bloom"))
+        {
+            if (ImGui::Checkbox("Active##Bloom", &s->bloom))
+            {
+                if (t != nullptr) { t->bloom = s->bloom; }
+            }
+            if (ImGui::DragFloat("Filter##Bloom", &s->bloom_filter, 0.01f))
+            {
+                if (t != nullptr) { t->bloom_filter = s->bloom_filter; }
+            }
+            if (ImGui::DragFloat("Threshold##Bloom", &s->bloom_threshold, 0.01f))
+            {
+                if (t != nullptr) { t->bloom_threshold = s->bloom_threshold; }
+            }
+            if (ImGui::DragFloat("Intensity##Bloom", &s->bloom_intensity, 0.01f))
+            {
+                if (t != nullptr) { t->bloom_intensity = s->bloom_intensity; }
+            }
+            ImGui::TreePop();
+        }
+    }
 }

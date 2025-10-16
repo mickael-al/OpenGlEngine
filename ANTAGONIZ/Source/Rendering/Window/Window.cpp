@@ -54,6 +54,9 @@ namespace Ge
 			glfwSetWindowIcon(this->m_window, 1, &images);
 			stbi_image_free(images.pixels);
 		}
+
+		centerWindow(Width, Height);
+
 		return true;
 	}
 
@@ -63,6 +66,34 @@ namespace Ge
 		glfwTerminate();
 		Debug::RELEASESUCCESS("Window");
 	}
+
+	void Window::centerWindow(int width, int height)
+	{
+		GLFWmonitor* primary = glfwGetPrimaryMonitor();
+		if (!primary || !this->m_window) { return; }
+
+		const GLFWvidmode* vidMode = glfwGetVideoMode(primary);
+		if (!vidMode) return;
+
+		int screenWidth = vidMode->width;
+		int screenHeight = vidMode->height;
+
+		int x = (screenWidth - width) / 2;
+		int y = (screenHeight - height) / 2;
+
+		glfwSetWindowPos(m_window, x, y);
+	}
+
+	void Window::setWindowPosition(int x, int y)
+	{
+		glfwSetWindowPos(m_window, x, y);
+	}
+
+	void Window::getWindowPosition(int* x, int* y)
+	{
+		glfwGetWindowPos(m_window, x, y);
+	}
+
 
 	void Window::framebufferResizeCallback(GLFWwindow* window, int width, int height)
 	{

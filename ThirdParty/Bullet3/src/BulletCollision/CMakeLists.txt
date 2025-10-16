@@ -250,7 +250,6 @@ SET(BulletCollision_HDRS
 	${NarrowPhaseCollision_HDRS}
 )
 
-
 ADD_LIBRARY(BulletCollision ${BulletCollision_SRCS} ${BulletCollision_HDRS})
 SET_TARGET_PROPERTIES(BulletCollision PROPERTIES VERSION ${BULLET_VERSION})
 SET_TARGET_PROPERTIES(BulletCollision PROPERTIES SOVERSION ${BULLET_VERSION})

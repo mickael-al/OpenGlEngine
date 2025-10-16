@@ -2,6 +2,7 @@
 #include "RigidBody.hpp"
 #include "CollisionBody.hpp"
 #include "Muscle.hpp"
+#include "StaticMeshCollider.hpp"
 #include "CommandQueue.hpp"
 
 namespace Ge
@@ -127,6 +128,37 @@ namespace Ge
 		delete pBody;
 	}
 
+	bool PhysicsEngine::isPointInsideCollision(const glm::vec3 * point,float testRadius)
+	{
+		// Crée une petite sphère à la position du point
+		btSphereShape testShape(testRadius);
+
+		// Transforme le point glm::vec3 en btVector3
+		btTransform transform;
+		transform.setIdentity();
+		transform.setOrigin(btVector3(point->x, point->y, point->z));
+
+		// Crée un objet collision temporaire
+		btCollisionObject obj;
+		obj.setCollisionShape(&testShape);
+		obj.setWorldTransform(transform);
+
+		// Structure pour récupérer le résultat du test
+		struct Callback : public btCollisionWorld::ContactResultCallback 
+		{
+			bool hasHit = false;
+			btScalar addSingleResult(btManifoldPoint&, const btCollisionObjectWrapper*, int, int,const btCollisionObjectWrapper*, int, int) override 
+			{
+				hasHit = true;
+				return 0;
+			}
+		} callback;
+
+		m_pDynamicWorld->contactTest(&obj, callback);
+
+		return callback.hasHit; // true = le point est à l'intérieur (ou touche)
+	}
+
 	RigidBody * PhysicsEngine::AllocateRigidbody(CollisionShape* shape, bool hasInertia)
 	{
 		return new RigidBody(m_pDynamicWorld, shape, hasInertia);
@@ -145,6 +177,23 @@ namespace Ge
 		if (position != m_muscle.end())
 		{
 			m_muscle.erase(position);
+		}
+		delete pBody;
+	}
+
+	StaticMeshCollider* PhysicsEngine::AllocateStaticMeshCollider(btBvhTriangleMeshShape* meshShape)
+	{
+		StaticMeshCollider* smc = new StaticMeshCollider(m_pDynamicWorld, meshShape);
+		m_staticMeshCollider.push_back(smc);
+		return smc;
+	}
+
+	void PhysicsEngine::ReleaseStaticMeshCollider(StaticMeshCollider* pBody)
+	{
+		std::vector<StaticMeshCollider*>::iterator position = std::remove(m_staticMeshCollider.begin(), m_staticMeshCollider.end(), pBody);
+		if (position != m_staticMeshCollider.end())
+		{
+			m_staticMeshCollider.erase(position);
 		}
 		delete pBody;
 	}

@@ -1,6 +1,8 @@
 #ifndef __EDITOR__
 #define __EDITOR__
 
+#define EDITOR_RUN_MODE
+
 #include "Behaviour.hpp"
 #include "ImguiBlock.hpp"
 #include "ProjectData.hpp"
@@ -48,6 +50,8 @@ namespace Ge
 		void clearScene(SceneData* sd);	
 		void loadSceneGame(const std::string& filePath, LoadSceneType type);
 		GraphiquePipeline* getPipelineByScene(const std::string& Name);
+		GObject* getEntityByScript(Behaviour * b);
+		void detachScriptFromScene(Behaviour* b);
 		std::vector<Materials*> getMaterialByScene(const std::string& Name);
 		void loadScene(const std::string& filePath, SceneData* sd);		
 		void saveScene(const std::string& filePath, SceneData* sd);
@@ -103,8 +107,8 @@ namespace Ge
 		int m_subDividCollision = 1;
 		std::map<GObject*, std::vector<ScriptData>> scriptObject;
 		std::map<GObject*, std::vector<CollisionData>> collisionObj;
-		std::vector<Behaviour*> m_allBehaviourLoaded;
-		std::vector<Behaviour*> m_allBehaviourPaused;
+		std::map<GObject*, std::vector<std::string>> tagObj;
+		std::vector<std::pair<GObject*,Behaviour*>> m_allBehaviourLoaded;
 		std::vector<CollisionShape*> m_allCollisionLoaded;
 		std::vector<CollisionWraper*> m_allCollisionBodyLoaded;
 		std::vector<const char*> collisionType = {"Box","Sphere","Capsule"};

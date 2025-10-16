@@ -325,9 +325,15 @@ namespace Ge
 		{
 			updateUniformBufferMaterial();
 		}
-		if (ImGui::Checkbox("Show", &m_draw))
+		if (ImGui::Checkbox("Show", &m_draw)){}		
+		if (ImGui::Checkbox("DepthWrite", &m_depthWrite))
 		{
-
+			setDepthWrite(m_depthWrite);
+		}
+		ImGui::SameLine();
+		if (ImGui::Checkbox("DepthTest", &m_depthTest)) 
+		{
+			setDepthTest(m_depthTest);			
 		}
 	}
 }

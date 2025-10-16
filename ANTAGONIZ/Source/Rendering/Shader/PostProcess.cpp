@@ -1,8 +1,10 @@
+#include "glcore.hpp"
 #include "PostProcess.hpp"
 #include "ShapeBuffer.hpp"
 #include "Bloom.hpp"
 #include "Engine.hpp"
 #include "PointeurClass.hpp"
+#include "Fog.hpp"
 
 namespace Ge
 {
@@ -11,6 +13,7 @@ namespace Ge
 		m_gdm = gdm;
 		m_setting = new PPSetting();
 		m_setting->gamma = Engine::getPtrClassAddr()->settingManager->getGammaAddr();
+		m_modules.push_back(new Fog());
 		m_modules.push_back(new Bloom());
 		for (int i = 0; i < m_modules.size(); i++)
 		{
@@ -19,11 +22,33 @@ namespace Ge
 		return true;
 	}
 
-	void PostProcess::compute(unsigned int frameBuffer, unsigned int texture, ShapeBuffer* sb)
+	std::vector<ModulePP*>& PostProcess::getModules()
 	{
+		return m_modules;
+	}
+
+	void PostProcess::onGui(PPSetting* t)
+	{
+		if (ImGui::DragFloat("Gamma", m_setting->gamma))
+		{
+			if (t != nullptr) { t->gamma = m_setting->gamma; }
+		}
+		if (ImGui::DragFloat("Exposure##Bloom", &m_setting->exposure, 0.1f))
+		{
+			if (t != nullptr) { t->exposure = m_setting->exposure; }
+		}
 		for (int i = 0; i < m_modules.size(); i++)
 		{
-			m_modules[i]->compute(frameBuffer, texture, sb, m_setting);
+			m_modules[i]->onGui(t, m_setting);
+		}
+	}
+
+	void PostProcess::compute(unsigned int frameBuffer, unsigned int texture, unsigned int depthTexture, ShapeBuffer* sb)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);//fix ghost triangle bug !!!
+		for (int i = 0; i < m_modules.size(); i++)
+		{
+			m_modules[i]->compute(frameBuffer, texture, depthTexture, sb, m_setting);
 		}
 	}
 

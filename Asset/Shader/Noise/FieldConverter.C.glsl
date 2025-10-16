@@ -193,9 +193,11 @@ float gradientNoise(vec3 p)
     // Remap to [0, 1] if desired, or keep as [-1, 1]
     return result;
 }
+
 /// </GRADIENT3D>
 /// <SIMPLEX3D>
-float noise_randomValue(vec3 p) {
+float noise_randomValue(vec3 p) 
+{
     return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
 }
 
@@ -320,7 +322,7 @@ float applyHeightTransition(float value, float fy, float minY, float maxY, float
     return v; // Pas de modification
 }
 
-#define HEIGHT_BASE 10000
+#define HEIGHT_BASE 20
 const uint MATRIX_SIZE = 5u;
 
 vec2 foretTempere(vec3 uvw)//2-2
@@ -341,27 +343,8 @@ vec2 desertRoche(vec3 uvw)//tres Sec 0-4
 
 vec2 getMatrix(vec3 uvw, uvec3 p)
 {
-    // Exemple de sélection de valeur selon les indices.
-    // Tu peux ajouter ta logique selon la case ici.
-    // p.x = humidité, p.y = chaleur, p.z = hauteur
 
-    if (p.x == 0) {
-        // très sec
-        return desertRoche(uvw);
-    }
-    else if (p.x == 1) {
-        return desertSec(uvw);
-    }
-    else if (p.x == 2) {
-        return foretTempere(uvw);
-    }
-    else if (p.x == 3) {
-        // humide
-    }
-    else if (p.x == 4) {
-        // très humide
-    }
-
+    //return vec2(perlin3D(uvw * 0.01), 0.8f);
     return vec2(0, 1.0f);
 }
 
@@ -423,7 +406,7 @@ layout(std430, binding = 4) buffer FieldValue3D
     float data3D[];
 };
 
-uniform uint length;
+uniform uint lengt;
 uniform float chunkScale;
 uniform vec3 offset;
 
@@ -434,13 +417,13 @@ void main()
     uint y = gl_GlobalInvocationID.y;
     uint z = gl_GlobalInvocationID.z;
 
-    if (x >= length || y >= length || z >= length)
+    if (x >= lengt || y >= lengt || z >= lengt)
     {
         return;
     }
 
-    uint index3d = x + y * length + z * length * length;
-    uint index2d = x + z * length;
+    uint index3d = x + y * lengt + z * lengt * lengt;
+    uint index2d = x + z * lengt;
     vec3 uvw = (vec3(x, y, z) * chunkScale + offset);
 
     float hd = height_data[index2d];

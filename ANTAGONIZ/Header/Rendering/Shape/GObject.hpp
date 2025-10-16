@@ -24,6 +24,7 @@ namespace Ge
 		virtual void setRotation(glm::quat rot);
 		virtual void setLocalPosition(glm::vec3 pos);
 		virtual void setLocalRotation(glm::quat rot);
+		virtual void setLocalEuler(glm::vec3 rot);
 		virtual void setEulerAngles(glm::vec3 eul);
 		virtual void setScale(glm::vec3 scale);
 		virtual void setTarget(glm::vec3 target);
@@ -47,7 +48,7 @@ namespace Ge
 		Transform globalTransform(const glm::vec3& localPosition, const glm::vec3& localEuler, const GObject* parent);
 		void applyTransform(const glm::vec3& localPosition, const glm::quat& localRotation, const GObject* parent);
 		void applyTransform(const glm::vec3& localPosition, const glm::vec3& localEuler, const GObject* parent);
-		void applyLocalTransform(const glm::vec3& globalPosition, const glm::quat& globalRotation, const GObject* parent);
+		void applyLocalTransform(const glm::vec3& globalPosition, const glm::quat& globalRotation, const GObject* parent);		
 		void addComponent(Component * c);
 		void removeComponent(Component * c);
 		static std::vector<GObject *> GetGObjects();
@@ -68,6 +69,7 @@ namespace Ge
 		Transform m_transform{};
 		LocalTransform m_localTransform{};
 		glm::vec3 m_eulerAngles;//only UI
+		glm::vec3 m_localEulerAngles;//only UI
 		std::vector<Component *> m_component;
 		bool m_addList = true;
 	};

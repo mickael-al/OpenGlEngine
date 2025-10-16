@@ -2,6 +2,7 @@
 #define __MEMORY_MANAGER__
 
 #include <iostream>
+#include <cstring>
 #include <vector>
 
 template<typename T>

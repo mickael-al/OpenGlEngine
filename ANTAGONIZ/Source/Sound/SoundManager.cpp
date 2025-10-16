@@ -5,6 +5,8 @@
 #include "AL/alc.h"
 #include "SoundBuffer.hpp"
 #include "AudioSource.hpp"
+#include <vector>
+#include <algorithm>
 
 namespace Ge
 {

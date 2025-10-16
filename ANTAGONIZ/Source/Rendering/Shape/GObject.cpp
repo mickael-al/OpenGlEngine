@@ -161,6 +161,21 @@ namespace Ge
 		}
 	}
 
+	void GObject::setLocalEuler(glm::vec3 rot)
+	{
+		m_localEulerAngles = rot;
+		if (m_parent != nullptr)
+		{
+			m_localTransform.rotation = glm::quat(glm::radians(rot));		
+			applyTransform(m_localTransform.position, m_localTransform.rotation, m_parent);
+			updateGlobal();
+		}
+		else
+		{
+			setRotation(glm::quat(glm::radians(rot)));
+		}
+	}
+
 	void GObject::setScale(glm::vec3 scale)
 	{
 		m_transform.scale = scale;
@@ -318,6 +333,35 @@ namespace Ge
 		applyTransform(localPosition, glm::quat(glm::radians(localEuler)),parent);
 	}
 
+	/*inline glm::vec3 extractScale(const glm::mat4& m)
+	{
+		glm::vec3 scale;
+		scale.x = glm::length(glm::vec3(m[0]));
+		scale.y = glm::length(glm::vec3(m[1]));
+		scale.z = glm::length(glm::vec3(m[2]));
+		return scale;
+	}
+
+	void GObject::applyTransform(const GObject* parent)
+	{
+		glm::mat4 localMat =
+			glm::translate(glm::mat4(1.0f), m_localTransform.position) *
+			glm::mat4_cast(m_localTransform.rotation) *
+			glm::scale(glm::mat4(1.0f), m_transform.scale);
+
+		glm::mat4 parentMat = parent ? parent->getModelMatrix() : glm::mat4(1.0f);
+		glm::mat4 modelMat = parentMat * localMat;
+
+		m_transform.position = glm::vec3(modelMat[3]);
+		m_transform.rotation = glm::quat_cast(modelMat);
+
+		// Pour obtenir le scale correct depuis une matrice (non trivial)
+		m_transform.scale = extractScale(modelMat);
+
+		m_eulerAngles = getEulerAngles();
+		mapMemory();
+	}*/
+
 	void GObject::addComponent(Component *c)
 	{
 		m_component.push_back(c);
@@ -369,6 +413,16 @@ namespace Ge
 		if (ImGui::DragFloat4("Rotation", (float *)&m_transform.rotation, 0.2f))
 		{
 			setRotation(m_transform.rotation);
+		}
+
+		if (ImGui::DragFloat3("LocalPosition", (float*)&m_localTransform.position, 0.2f))
+		{
+			setLocalPosition(m_localTransform.position);
+		}
+
+		if (ImGui::DragFloat3("LocalEulerAngles", (float*)&m_localEulerAngles, 0.2f))
+		{
+			setLocalEuler(m_localEulerAngles);
 		}
 
 		if (ImGui::DragFloat3("Scale", (float *)&m_transform.scale, 0.2f))

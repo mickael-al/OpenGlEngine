@@ -1,5 +1,4 @@
 # Parametre Repertoire
-
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Debug)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Setting)
@@ -38,6 +37,10 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Struct)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ThirdParty/Bullet3/src)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Physics)
 
+INCLUDE_DIRECTORIES(${ThirdParty}/hv/include)
+#Network
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/ANTAGONIZ/Header/Network)
+
 #File
 FILE(GLOB_RECURSE ENGINE_SOURCES *.cpp *.c)
 FILE(GLOB_RECURSE ENGINE_HEADERS *.hpp *.h *.inl)
@@ -45,4 +48,4 @@ ADD_EXECUTABLE(ANTAGONIZ ${ENGINE_SOURCES} ${ENGINE_HEADERS})
 
 find_package(OpenGL REQUIRED)
 
-TARGET_LINK_LIBRARIES(ANTAGONIZ PRIVATE GLEW glfw glfw3 termcolor tinyobjloader OpenFBX stb glm ImGUI OpenAL LinearMath Bullet3Common BulletInverseDynamics BulletCollision BulletDynamics BulletSoftBody ${OPENGL_LIBRARIES})
+TARGET_LINK_LIBRARIES(ANTAGONIZ PRIVATE glew32s glfw glfw3 termcolor tinyobjloader OpenFBX stb glm ImGUI OpenAL BulletSoftBody BulletInverseDynamics BulletDynamics BulletCollision Bullet3Common LinearMath "${ThirdParty}/hv/lib/Release/hv.lib" ${OPENGL_LIBRARIES} ${COMPILER_DEPENDENCIES})

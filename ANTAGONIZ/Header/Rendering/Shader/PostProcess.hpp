@@ -12,11 +12,13 @@ namespace Ge
 	{
 	public:
 		PPSetting* getPPSetting();
+		void onGui(PPSetting*target);
+		std::vector<ModulePP*> & getModules();
 	protected:
 		friend class RenderingEngine;
 		bool initialize(GraphicsDataMisc* gdm);		
-		void compute(unsigned int frameBuffer, unsigned int texture, ShapeBuffer * fullScreenTriangle);
-		void release();
+		void compute(unsigned int frameBuffer, unsigned int texture, unsigned int depthTexture, ShapeBuffer * fullScreenTriangle);
+		void release();		
 	private:
 		friend class Window;
 		void resize(int width, int height);

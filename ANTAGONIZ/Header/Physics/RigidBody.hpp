@@ -28,13 +28,17 @@ public:
     void setGravity(glm::vec3 const& gravity);
     void SetRestitution(float coef);
     void SetLinearVelocity(const glm::vec3 velocity);
+    void SetAngularVelocity(const glm::vec3 velocity);
     void BuildPhysics(CollisionShape* shape,bool hasInertia = true);
     bool IsInitialized();
     glm::vec3 GetLinearVelocity();
+    glm::vec3 GetAngularVelocity();
     void ApplyImpulse(glm::vec3 impulse, glm::vec3 real_pos);
     void forceActivationState(int newState);
     void SetSleepingThreshold(float linear, float angular);
     void lockRotation();
+    void activate(bool state);
+    void setFriction(float f);
     const CollisionShape* getCollisionShape() const;
     void onGUI() override;
     void mapMemory() override;

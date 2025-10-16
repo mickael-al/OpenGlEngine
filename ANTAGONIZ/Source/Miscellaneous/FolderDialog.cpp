@@ -51,8 +51,17 @@ namespace Ge
 		return upperStr;
 	}
 
+	void FolderDialog::openFolder(std::string path)
+	{
+#ifdef _WIN32
+		ShellExecute(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWDEFAULT);
+#elif __linux__
 
-	std::string FolderDialog::saveFileWindowsDialog(std::string ext)
+#endif
+	}
+
+#ifdef _WIN32
+std::string FolderDialog::saveFileWindowsDialog(std::string ext)
 	{
 		std::string filePath;
 		OPENFILENAME ofn;
@@ -91,16 +100,7 @@ namespace Ge
 		return filePath;
 	}
 
-	void FolderDialog::openFolder(std::string path)
-	{
-#ifdef _WIN32
-		ShellExecute(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWDEFAULT);
-#elif __linux__
 
-#endif
-	}
-
-#ifdef _WIN32
 	std::string FolderDialog::openWindowsFileDialog()
 	{
 		std::string folderPath;

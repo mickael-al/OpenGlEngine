@@ -5,7 +5,11 @@
 #include "hplatform.h"
 
 #ifdef ENABLE_UDS
+#ifdef OS_WIN
+    #include <afunix.h> // import struct sockaddr_un
+#else
     #include <sys/un.h> // import struct sockaddr_un
+#endif
 #endif
 
 #ifdef _MSC_VER
@@ -28,7 +32,11 @@ HV_EXPORT const char* socket_strerror(int err);
 
 #ifdef OS_WIN
 
-typedef int socklen_t;
+typedef SOCKET  hsocket_t;
+typedef int     socklen_t;
+
+void WSAInit();
+void WSADeinit();
 
 HV_INLINE int blocking(int sockfd) {
     unsigned long nb = 0;
@@ -39,15 +47,14 @@ HV_INLINE int nonblocking(int sockfd) {
     return ioctlsocket(sockfd, FIONBIO, &nb);
 }
 
-#ifndef poll
-#define poll        WSAPoll
-#endif
-
 #undef  EAGAIN
 #define EAGAIN      WSAEWOULDBLOCK
 
 #undef  EINPROGRESS
 #define EINPROGRESS WSAEINPROGRESS
+
+#undef  EINTR
+#define EINTR       WSAEINTR
 
 #undef  ENOTSOCK
 #define ENOTSOCK    WSAENOTSOCK
@@ -57,12 +64,29 @@ HV_INLINE int nonblocking(int sockfd) {
 
 #else
 
-#define blocking(s)     fcntl(s, F_SETFL, fcntl(s, F_GETFL) & ~O_NONBLOCK)
-#define nonblocking(s)  fcntl(s, F_SETFL, fcntl(s, F_GETFL) |  O_NONBLOCK)
+typedef int     hsocket_t;
 
-typedef int         SOCKET;
+#ifndef SOCKET
+#define SOCKET int
+#endif
+
+#ifndef INVALID_SOCKET
 #define INVALID_SOCKET  -1
-#define closesocket(fd) close(fd)
+#endif
+
+HV_INLINE int blocking(int s) {
+    return fcntl(s, F_SETFL, fcntl(s, F_GETFL) & ~O_NONBLOCK);
+}
+
+HV_INLINE int nonblocking(int s) {
+    return fcntl(s, F_SETFL, fcntl(s, F_GETFL) |  O_NONBLOCK);
+}
+
+#ifndef closesocket
+HV_INLINE int closesocket(int sockfd) {
+    return close(sockfd);
+}
+#endif
 
 #endif
 
@@ -88,7 +112,7 @@ HV_INLINE bool is_ipaddr(const char* host) {
 
 // @param host: domain or ip
 // @retval 0:succeed
-HV_EXPORT int Resolver(const char* host, sockaddr_u* addr);
+HV_EXPORT int ResolveAddr(const char* host, sockaddr_u* addr);
 
 HV_EXPORT const char* sockaddr_ip(sockaddr_u* addr, char *ip, int len);
 HV_EXPORT uint16_t sockaddr_port(sockaddr_u* addr);
@@ -131,12 +155,12 @@ HV_EXPORT int Bind(int port, const char* host DEFAULT(ANYADDR), int type DEFAULT
 HV_EXPORT int Listen(int port, const char* host DEFAULT(ANYADDR));
 
 // @return connfd
-// Resolver -> socket -> nonblocking -> connect
+// ResolveAddr -> socket -> nonblocking -> connect
 HV_EXPORT int Connect(const char* host, int port, int nonblock DEFAULT(0));
 // Connect(host, port, 1)
 HV_EXPORT int ConnectNonblock(const char* host, int port);
 // Connect(host, port, 1) -> select -> blocking
-#define DEFAULT_CONNECT_TIMEOUT 5000 // ms
+#define DEFAULT_CONNECT_TIMEOUT 10000 // ms
 HV_EXPORT int ConnectTimeout(const char* host, int port, int ms DEFAULT(DEFAULT_CONNECT_TIMEOUT));
 
 #ifdef ENABLE_UDS
@@ -160,7 +184,7 @@ HV_INLINE int tcp_nopush(int sockfd, int on DEFAULT(1)) {
 #elif defined(TCP_CORK)
     return setsockopt(sockfd, IPPROTO_TCP, TCP_CORK, (const char*)&on, sizeof(int));
 #else
-    return -10;
+    return 0;
 #endif
 }
 
@@ -185,6 +209,14 @@ HV_INLINE int udp_broadcast(int sockfd, int on DEFAULT(1)) {
     return setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, (const char*)&on, sizeof(int));
 }
 
+HV_INLINE int ip_v6only(int sockfd, int on DEFAULT(1)) {
+#ifdef IPV6_V6ONLY
+    return setsockopt(sockfd, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&on, sizeof(int));
+#else
+    return 0;
+#endif
+}
+
 // send timeout
 HV_INLINE int so_sndtimeo(int sockfd, int timeout) {
 #ifdef OS_WIN
@@ -202,6 +234,51 @@ HV_INLINE int so_rcvtimeo(int sockfd, int timeout) {
 #else
     struct timeval tv = {timeout/1000, (timeout%1000)*1000};
     return setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+#endif
+}
+
+// send buffer size
+HV_INLINE int so_sndbuf(int sockfd, int len) {
+    return setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, (const char*)&len, sizeof(int));
+}
+
+// recv buffer size
+HV_INLINE int so_rcvbuf(int sockfd, int len) {
+    return setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, (const char*)&len, sizeof(int));
+}
+
+HV_INLINE int so_reuseaddr(int sockfd, int on DEFAULT(1)) {
+#ifdef SO_REUSEADDR
+    // NOTE: SO_REUSEADDR allow to reuse sockaddr of TIME_WAIT status
+    return setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*)&on, sizeof(int));
+#else
+    return 0;
+#endif
+}
+
+HV_INLINE int so_reuseport(int sockfd, int on DEFAULT(1)) {
+#ifdef SO_REUSEPORT
+    // NOTE: SO_REUSEPORT allow multiple sockets to bind same port
+    return setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, (const char*)&on, sizeof(int));
+#else
+    return 0;
+#endif
+}
+
+HV_INLINE int so_linger(int sockfd, int timeout DEFAULT(1)) {
+#ifdef SO_LINGER
+    struct linger linger;
+    if (timeout >= 0) {
+        linger.l_onoff = 1;
+        linger.l_linger = timeout;
+    } else {
+        linger.l_onoff = 0;
+        linger.l_linger = 0;
+    }
+    // NOTE: SO_LINGER change the default behavior of close, send RST, avoid TIME_WAIT
+    return setsockopt(sockfd, SOL_SOCKET, SO_LINGER, (const char*)&linger, sizeof(linger));
+#else
+    return 0;
 #endif
 }
 

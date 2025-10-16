@@ -18,7 +18,7 @@ void BehaviourTest::start()
 	for (int i = 0; i < countObject; i++)
 	{
 		m_model.push_back(m_pc->modelManager->createModel(m_shape));
-	}	
+	}
 }
 
 void BehaviourTest::fixedUpdate() 

@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include "Debug.hpp"
+using namespace Ge;
 
 Texture2DArrayGL::Texture2DArrayGL(int w, int h, int numLayers,unsigned int internalFmt,unsigned int fmt,unsigned int pixelType)
 {
@@ -29,8 +31,8 @@ Texture2DArrayGL::Texture2DArrayGL(int w, int h, int numLayers,unsigned int inte
 bool Texture2DArrayGL::loadLayer(const std::string& filePath, int layerIndex, bool flip) 
 {
     if (layerIndex < 0 || layerIndex >= layers) 
-    {
-        std::cerr << "Layer index out of range\n";
+    {        
+        Debug::Error("Layer index out of range");
         return false;
     }
 
@@ -39,13 +41,13 @@ bool Texture2DArrayGL::loadLayer(const std::string& filePath, int layerIndex, bo
     unsigned char* data = stbi_load(filePath.c_str(), &imgW, &imgH, &channels, 4);
     if (!data) 
     {
-        std::cerr << "Failed to load image: " << filePath << "\n";
+        Debug::Warn("Failed to load image: %s", filePath.c_str());        
         return false;
     }
 
     if (imgW != width || imgH != height) 
     {
-        std::cerr << "Image dimensions do not match array size: " << filePath << "\n";
+        Debug::Error("Image dimensions do not match array size: %s", filePath.c_str());
         stbi_image_free(data);
         return false;
     }

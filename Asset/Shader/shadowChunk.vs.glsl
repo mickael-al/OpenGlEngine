@@ -1,7 +1,5 @@
 #version 460
 
-#define CHUNK_SCALE 32.0
-
 struct StructShadow
 {
 	mat4 projview;
@@ -51,7 +49,7 @@ layout(location = 2) in uint a_Pos2; // encoded Normal
 
 void main()
 {	
-	float divPos = (1.0 / 65535.0) * CHUNK_SCALE;
+	float divPos = (1.0 / 65535.0) * CHUNK_SIZE;
 	uint bid = gl_BaseInstance * 3;
 	vec3 offsetPos = vec3(bc.data[bid], bc.data[bid + 1], bc.data[bid + 2]);
 

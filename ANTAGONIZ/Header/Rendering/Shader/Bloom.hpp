@@ -20,7 +20,8 @@ namespace Ge
 	public:
 		bool initialize(GraphicsDataMisc* gdm);
 		void resize(int width, int height);
-		void compute(unsigned int frameBuffer, unsigned int texture, ShapeBuffer* sb, PPSetting* settings);
+		void compute(unsigned int frameBuffer, unsigned int texture, unsigned int depthtexture, ShapeBuffer* sb, PPSetting* settings);
+		void onGui(PPSetting* target, PPSetting* current);
 		void release();
 	private:
 		GraphicsDataMisc* m_gdm;

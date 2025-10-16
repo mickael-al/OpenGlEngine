@@ -8,7 +8,7 @@
 template<typename T>
 class ChunkArray 
 {
-    static_assert(std::is_trivial<T>::value, "ChunkArray requires a trivial type T");
+    //static_assert(std::is_trivial<T>::value, "ChunkArray requires a trivial type T");
 public:
     explicit ChunkArray(size_t chunkSize = 8192) : m_capacity(chunkSize), m_size(0)
     {

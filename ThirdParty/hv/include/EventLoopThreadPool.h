@@ -2,6 +2,7 @@
 #define HV_EVENT_LOOP_THREAD_POOL_HPP_
 
 #include "EventLoopThread.h"
+#include "hbase.h"
 
 namespace hv {
 
@@ -27,13 +28,29 @@ public:
         thread_num_ = num;
     }
 
-    EventLoopPtr nextLoop() {
-        if (loop_threads_.empty()) return NULL;
-        return loop_threads_[++next_loop_idx_ % loop_threads_.size()]->loop();
+    EventLoopPtr nextLoop(load_balance_e lb = LB_RoundRobin) {
+        size_t numLoops = loop_threads_.size();
+        if (numLoops == 0) return NULL;
+        size_t idx = 0;
+        if (lb == LB_RoundRobin) {
+            if (++next_loop_idx_ >= numLoops) next_loop_idx_ = 0;
+            idx = next_loop_idx_ % numLoops;
+        } else if (lb == LB_Random) {
+            idx = hv_rand(0, numLoops - 1);
+        } else if (lb == LB_LeastConnections) {
+            for (size_t i = 1; i < numLoops; ++i) {
+                if (loop_threads_[i]->loop()->connectionNum < loop_threads_[idx]->loop()->connectionNum) {
+                    idx = i;
+                }
+            }
+        } else {
+            // Not Implemented
+        }
+        return loop_threads_[idx]->loop();
     }
 
     EventLoopPtr loop(int idx = -1) {
-        if (idx >= 0 && idx < loop_threads_.size()) {
+        if (idx >= 0 && idx < (int)loop_threads_.size()) {
             return loop_threads_[idx]->loop();
         }
         return nextLoop();
@@ -50,20 +67,16 @@ public:
     void start(bool wait_threads_started = false,
                std::function<void(const EventLoopPtr&)> pre = NULL,
                std::function<void(const EventLoopPtr&)> post = NULL) {
+        if (thread_num_ == 0) return;
         if (status() >= kStarting && status() < kStopped) return;
         setStatus(kStarting);
 
-        if (thread_num_ == 0) {
-            setStatus(kRunning);
-            return;
-        }
-
-        std::shared_ptr<std::atomic<int>> started_cnt(new std::atomic<int>(0));
-        std::shared_ptr<std::atomic<int>> exited_cnt(new std::atomic<int>(0));
+        auto started_cnt = std::make_shared<std::atomic<int>>(0);
+        auto exited_cnt  = std::make_shared<std::atomic<int>>(0);
 
         loop_threads_.clear();
         for (int i = 0; i < thread_num_; ++i) {
-            EventLoopThreadPtr loop_thread(new EventLoopThread);
+            auto loop_thread = std::make_shared<EventLoopThread>();
             const EventLoopPtr& loop = loop_thread->loop();
             loop_thread->start(false,
                 [this, started_cnt, pre, &loop]() {
@@ -92,6 +105,7 @@ public:
     }
 
     // @param wait_threads_started: if ture this method will block until all loop_threads stopped.
+    // stop thread-safe
     void stop(bool wait_threads_stopped = false) {
         if (status() < kStarting || status() >= kStopping) return;
         setStatus(kStopping);
@@ -101,9 +115,7 @@ public:
         }
 
         if (wait_threads_stopped) {
-            while (!isStopped()) {
-                hv_delay(1);
-            }
+            join();
         }
     }
 

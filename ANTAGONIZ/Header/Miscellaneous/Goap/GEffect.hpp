@@ -2,9 +2,9 @@
 #define __G_GEffect__
 
 #include <string>
+#include "EnumModifier.hpp"
 
 class GNode;
-enum Modifier;
 
 class GEffect
 {
