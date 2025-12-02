@@ -15,9 +15,10 @@ out vec3 o_FragColor;
 
 void main()
 {
-    vec4 col = texture(u_texture, fs_in.uv) * fs_in.color;
+
+    vec4 col = texture(u_texture, fs_in.uv/vec2(2,2)) * fs_in.color;
     if (fs_in.uv.x > 1.0 || fs_in.uv.y > 1.0 || col.a <= 0.01) { discard; }
 
-    vec3 dst = texture(fragTexture, gl_FragCoord.xy * u_invResolution).rgb;
+    vec3 dst = texture(fragTexture, gl_FragCoord.xy * u_invResolution).rgb;    
     o_FragColor = col.rgb * col.a + dst * (1.0 - col.a);
 }

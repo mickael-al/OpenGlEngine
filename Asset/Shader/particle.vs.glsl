@@ -96,7 +96,9 @@ void main()
     vec3 pos = ReadPosition(particleID);
     float scale = ReadScale(particleID);
     vs_out.color = ReadColor(particleID);
-    if (scale <= 0 || scale >= particle.data[u_offsetSettings + 13])
+    vs_out.color.a = clamp(vs_out.color.a, 0.0f, 1.0f);
+    float maxScale = max(particle.data[u_offsetSettings + 12], particle.data[u_offsetSettings + 13]);
+    if (scale <= 0 || scale >= maxScale)
     {
         return;
     }
@@ -114,10 +116,10 @@ void main()
 
         vec3 dir = normalize(vel);
         vec3 worldUp = vec3(1.0, 0.0, 0.0);
-        /*if (abs(dot(dir, worldUp)) > 0.95)
+        if (abs(dot(dir, worldUp)) > 0.95)
         {
             worldUp = vec3(0.0, 1.0, 0.0);
-        }*/
+        }
 
         camRight = normalize(cross(worldUp, dir));
         camUp = normalize(cross(dir, camRight));
