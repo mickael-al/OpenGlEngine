@@ -65,8 +65,9 @@ namespace Ge
 	{	
 		if (m_gdm->current_camera == this)
 		{
-			m_uniformBufferCamera.camPos = m_transform.position;
-			m_uniformBufferCamera.view = getViewMatrix();
+			m_uniformBufferCamera.camPos = m_transform.position;			
+			m_uniformBufferCamera.invView = getModelMatrix();
+			m_uniformBufferCamera.view = glm::inverse(m_uniformBufferCamera.invView);			
 			m_uniformBufferCamera.proj = getProjectionMatrix();
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ssbo);
 			glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(UniformBufferCamera), &m_uniformBufferCamera);

@@ -20,6 +20,7 @@ namespace Ge
 			m_gdm->str_default_pipeline = createPipeline("../Asset/Shader/opaque.fs.glsl", "../Asset/Shader/opaque.vs.glsl");
 			m_gdm->str_default_pipeline_forward = createPipeline("../Asset/Shader/forward.fs.glsl", "../Asset/Shader/forward.vs.glsl");
 			m_gdm->str_default_pipeline_shadow = createPipeline("../Asset/Shader/shadow.fs.glsl", "../Asset/Shader/shadow.vs.glsl");
+			m_gdm->str_default_pipeline_forward_transparency = createPipeline("../Asset/Shader/forward_transparency.fs.glsl", "../Asset/Shader/forward_transparency.vs.glsl", false, true, true, 1);
 		}
 		return true;
 	}

@@ -96,7 +96,14 @@ namespace Ge
 				char* infoLog = new char[infoLen + 1];
 
 				glGetProgramInfoLog(m_program, infoLen, NULL, infoLog);
-				Debug::Error("Erreur de lien du programme: %s",infoLog);
+				if (infoLen < BUFFER_SIZE)
+				{
+					Debug::Error("Erreur de lien du programme: %s", infoLog);
+				}
+				else
+				{
+					std::cerr << infoLog << std::endl;
+				}
 
 				delete(infoLog);
 			}

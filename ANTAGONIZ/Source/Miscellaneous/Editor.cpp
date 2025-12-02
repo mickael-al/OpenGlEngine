@@ -43,6 +43,8 @@ using std::fstream;
 using namespace Ge;
 namespace fs = std::filesystem;
 
+const char* const PipelineMode[] = {"Transparency","Default" };
+
 inline ImVec4 HSVtoRGB(float h, float s, float v) {
 	int i;
 	float f, p, q, t;
@@ -1351,7 +1353,10 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 		mat->setNormal(sd->materialData[i].normal);
 		mat->setOclusion(sd->materialData[i].ao);
 		mat->setEmission(sd->materialData[i].emit);
-		mat->setDraw(sd->materialData[i].active);
+		mat->setDraw(sd->materialData[i].active);		
+		mat->setDepthTest(sd->materialData[i].depthTest);
+		mat->setDepthWrite(sd->materialData[i].depthWrite);
+		mat->setCastShadow(sd->materialData[i].castShadow);
 		if (sd->materialData[i].albedoMap != -1)
 		{
 			mat->setAlbedoTexture(sd->textures[sd->materialData[i].albedoMap]);
@@ -1372,9 +1377,16 @@ void Editor::loadScene(const std::string& filePath, SceneData* sd)
 		{
 			mat->setOclusionTexture(sd->textures[sd->materialData[i].aoMap]);
 		}
-		if (sd->materialData[i].shader != -1)
+		switch (sd->materialData[i].shader)
 		{
+		case -2:
+			mat->setPipeline(m_gdm->str_default_pipeline_forward_transparency);
+			break;
+		case -1:
+			break;
+		default:
 			mat->setPipeline(sd->shader[sd->materialData[i].shader]);
+			break;
 		}
 		sd->materials.push_back(mat);
 	}
@@ -1973,7 +1985,11 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 		md.normal = sd->materials[i]->getNormal();
 		md.ao = sd->materials[i]->getOclusion();
 		md.emit = sd->materials[i]->getEmission();
-		md.active = sd->materials[i]->getDraw();		
+		md.active = sd->materials[i]->getDraw();
+		md.depthTest = sd->materials[i]->getDepthTest();
+		md.depthWrite = sd->materials[i]->getDepthWrite();
+		md.castShadow = sd->materials[i]->getCastShadow();
+
 		for (int j = 0; j < sd->textures.size(); j++)
 		{			
 			if (sd->textures[j] == sd->materials[i]->getAlbedoTexture())
@@ -1997,12 +2013,19 @@ void Editor::saveScene(const std::string& filePath, SceneData* sd)
 				md.aoMap = j;
 			}
 		}
-		for (int j = 0; j < sd->shader.size(); j++)
+		if (sd->materials[i]->getPipeline() == m_gdm->str_default_pipeline_forward_transparency)
 		{
-			if (sd->shader[j] == sd->materials[i]->getPipeline())
+			md.shader = -2;
+		}
+		else
+		{
+			for (int j = 0; j < sd->shader.size(); j++)
 			{
-				md.shader = j;
-				j = sd->shader.size();
+				if (sd->shader[j] == sd->materials[i]->getPipeline())
+				{
+					md.shader = j;
+					j = sd->shader.size();
+				}
 			}
 		}
 		sd->materialData.push_back(md);
@@ -2734,29 +2757,41 @@ void Editor::render(GraphicsDataMisc* gdm)
 				{
 					ImGui::SameLine();
 					int shaderID = -1;
-					for (int i = 0; i < m_currentSceneData->shader.size() && shaderID == -1; i++)
+					const GraphiquePipeline* targetPipeline = mat->getPipeline();					
+					if(gdm->str_default_pipeline_forward_transparency == targetPipeline)
 					{
-						if (mat->getPipeline() == m_currentSceneData->shader[i])
+						shaderID = -2;
+					}
+					else
+					{
+						for (int i = 0; i < m_currentSceneData->shader.size() && shaderID == -1; i++)
 						{
-							shaderID = i;
+							if (mat->getPipeline() == m_currentSceneData->shader[i])
+							{
+								shaderID = i;
+							}
 						}
 					}
 					
-					if (ImGui::BeginCombo("##ShaderCombo", shaderID == -1 ? "Default" : m_currentSceneData->shaderData[shaderID].name.c_str()))
+					if (ImGui::BeginCombo("##ShaderCombo", shaderID < 0 ? PipelineMode[shaderID+2] : m_currentSceneData->shaderData[shaderID].name.c_str()))
 					{
 						int size = m_currentSceneData->shader.size();
-						for (int n = -1; n < size; n++)
+						for (int n = -2; n < size; n++)
 						{
 							const bool is_selected = (shaderID == n);
-							if (ImGui::Selectable(((n == -1 ? "Default" : m_currentSceneData->shaderData[n].name)+"##Shader").c_str(), is_selected))
+							if (ImGui::Selectable(((n < 0 ? PipelineMode[n + 2] : m_currentSceneData->shaderData[n].name)+"##Shader").c_str(), is_selected))
 							{
-								if (n == -1)
+								switch (n)
 								{
+								case -2:
+									mat->setPipeline(gdm->str_default_pipeline_forward_transparency);
+									break;
+								case -1:
 									mat->setPipeline(gdm->str_default_pipeline);
-								}
-								else
-								{
+									break;
+								default:
 									mat->setPipeline(m_currentSceneData->shader[n]);
+									break;
 								}
 							}
 

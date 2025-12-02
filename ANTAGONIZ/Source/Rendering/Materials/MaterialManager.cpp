@@ -38,7 +38,22 @@ namespace Ge
         if (it != m_materials.end() && it != m_materials.end() - 1)
         {
             m_materials.erase(it);
-            m_materials.push_back(mat);
+            GraphiquePipeline* gp = mat->getPipeline();
+            if (gp != nullptr && gp->getShaderPair()->transparency)
+            {
+                m_materials.push_back(mat);
+            }
+            else
+            {
+                auto insertIt = std::find_if(m_materials.begin(), m_materials.end(),
+                    [](Materials* m)
+                    {
+                        GraphiquePipeline* gp = m->getPipeline();
+                        return gp != nullptr && gp->getShaderPair()->transparency;
+                    });
+
+                m_materials.insert(insertIt, mat);
+            }
         }
         updateStorage();
     }
@@ -78,10 +93,36 @@ namespace Ge
 
 	void MaterialManager::updateMaterialExecutionOrder()
 	{
-		std::sort(m_materials.begin(), m_materials.end(), [](const Materials* a, const Materials* b) 
-		{
-			return !a->getDepthTest() || a->getPipeline()->getShaderPair()->transparency < b->getPipeline()->getShaderPair()->transparency;
-		});
+        std::sort(m_materials.begin(), m_materials.end(),
+            [](const Materials* a, const Materials* b)
+            {
+                const bool aTransp = a->getPipeline()->getShaderPair()->transparency;
+                const bool bTransp = b->getPipeline()->getShaderPair()->transparency;
+
+                const bool aNoDepth = !a->getDepthTest();
+                const bool bNoDepth = !b->getDepthTest();
+
+                //Les objets avec depth test avant ceux sans (NoDepth à la fin)
+                if (aNoDepth != bNoDepth)
+                {
+                    return !aNoDepth && bNoDepth; // ceux qui ont depth test d'abord
+                }
+
+                //Ensuite, opaques avant transparents
+                if (aTransp != bTransp)
+                {
+                    return !aTransp && bTransp;
+                }
+
+                //Si tous deux transparents, trier par alpha decroisant -> rendering read strat 
+                if (aTransp && bTransp)
+                {
+                    return a->getColor().a > b->getColor().a;
+                }
+
+                //Sinon, pas d'ordre particulier
+                return false;
+            });
 		updateStorage();
 	}
 

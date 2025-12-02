@@ -158,6 +158,9 @@ struct MaterialData
 	int aoMap;
 	int shader;
 	bool active;
+	bool depthTest;
+	bool depthWrite;
+	bool castShadow;	
 	MaterialData()
 	{
 		albedoMap = -1;
@@ -167,8 +170,11 @@ struct MaterialData
 		aoMap = -1;
 		shader = -1;
 		active = true;
+		depthTest = true;
+		depthWrite = true;
+		castShadow = true;
 	}
-	JS_OBJ(albedo, offset, tilling, metallic, roughness, normal, ao, emit, albedoMap, normalMap, metallicMap, RoughnessMap, aoMap, shader, active);
+	JS_OBJ(albedo, offset, tilling, metallic, roughness, normal, ao, emit, albedoMap, normalMap, metallicMap, RoughnessMap, aoMap, shader, active, depthTest, depthWrite, castShadow);
 };
 
 struct TextureData

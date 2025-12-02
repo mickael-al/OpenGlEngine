@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 	e.settingManager->setWindowHeight(1017);
 	e.settingManager->setWindowWidth(1920);
 	e.settingManager->setEditor(true);
-	e.settingManager->setEditorPath("../GuessWho");
+	e.settingManager->setEditorPath("../Boomology");
 	Version vers;
 	vers.majeur = 7;
 	vers.mineur = 0;

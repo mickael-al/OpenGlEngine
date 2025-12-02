@@ -1,7 +1,7 @@
 #ifndef __EDITOR__
 #define __EDITOR__
 
-#define EDITOR_RUN_MODE
+//#define EDITOR_RUN_MODE
 
 #include "Behaviour.hpp"
 #include "ImguiBlock.hpp"

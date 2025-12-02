@@ -5,6 +5,7 @@ layout(std430, binding = 0) buffer UniformBufferCamera
 {
 	vec3 camPos;
 	mat4 view;
+	mat4 invView;
 	mat4 proj;
 } ubc;
 

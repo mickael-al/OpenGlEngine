@@ -96,10 +96,10 @@ float edge = edgeDetect(texCoord);
 }
 */
 
-/*void main()
+void main()
 {
    fragColor = oilPaintEffect(texCoord);
-}*/
+}
 
 
 float hash(vec2 p) {
@@ -153,7 +153,7 @@ float softEdges(vec2 uv) {
     }
     return clamp(edge * 2.0, 0.0, 1.0); // amplification du contraste
 }
-
+/*
 void main() {
     // Appliquer un flou doux
     vec3 blurred = blurredColor(texCoord, 2.5);
@@ -171,4 +171,4 @@ void main() {
     mixColor *= 1.0 - edge * 0.5;
 
     fragColor = mixColor;
-}
+}*/

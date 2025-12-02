@@ -18,11 +18,13 @@ public:
 	ImageData(const char* src, const char* dst);
 	ImageData(const char * path);
 	ImageData(ImageData * id, int width,int height);	
+	ImageData(int width, int height,int channel, std::string path);
 	~ImageData();
 	Color** getColor() const;
 	int getWidth() const;
 	int getHeight() const;
 	int getChannelCount() const;
+	void setChannelCount(int channelCount);
 	bool isLoad() const;//isload
 	void write();
 	std::string getPath() const;

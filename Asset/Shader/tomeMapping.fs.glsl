@@ -9,10 +9,15 @@ uniform float intensity;
 in vec2 texCoord;
 layout(location = 0) out vec3 upsample;
 
+vec3 adjustSaturation(vec3 color, float saturation)
+{
+    float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    return mix(vec3(luminance), color, saturation);
+}
 void main()
 {
     vec3 original = texture(originalImage, texCoord).rgb;
-    
+    original = adjustSaturation(original,1.2);//TODO Remove and add pp 
     if (intensity == 0.0f)
     {
         upsample = original;

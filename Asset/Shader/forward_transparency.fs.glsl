@@ -13,6 +13,33 @@ layout(std430, binding = 0) buffer UniformBufferCamera
 	mat4 proj;
 } ubc;
 
+struct StructUBM
+{
+	vec4 albedo;
+	vec2 offset;
+	vec2 tilling;
+	float metallic;
+	float roughness;
+	float normal;
+	float ao;
+	float emit;
+};
+
+layout(std430, binding = 2) buffer UniformBufferMaterials
+{
+	StructUBM ubm[];
+} ubm;
+
+layout(std430, binding = 3) buffer UniformBufferDivers
+{
+	int maxLight;
+	float u_time;
+	float gamma;
+	float ambiant;
+	float fov;
+	bool ortho;
+} ubd;
+
 struct StructUBL
 {
 	vec3 position;
@@ -24,20 +51,10 @@ struct StructUBL
 	int shadowID;
 };
 
-layout(std430, binding = 1) buffer UniformBufferLight
+layout(std430, binding = 4) buffer UniformBufferLight
 {
 	StructUBL ubl[];
 } ubl;
-
-layout(std430, binding = 2) buffer UniformBufferDivers
-{
-	int maxLight;
-	float u_time;
-	float gamma;
-	float ambiant;
-	float fov;
-	bool ortho;
-} ubd;
 
 struct StructShadow
 {
@@ -46,15 +63,10 @@ struct StructShadow
 	float splitDepth;
 };
 
-layout(std430, binding = 3) buffer UniformBufferShadow
+layout(std430, binding = 5) buffer UniformBufferShadow
 {
 	StructShadow s[];
 } ubs;
-
-layout(std430, binding = 4) buffer UniformBufferSSAO
-{
-	vec3 samples[];
-} ubssao;
 
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
@@ -108,15 +120,22 @@ const mat4 biasMat = mat4(
 	0.5, 0.5, 0.5, 1.0
 );
 
-layout(binding = 0) uniform sampler2D gPosition;
-layout(binding = 1) uniform sampler2D gNormal;
-layout(binding = 2) uniform sampler2D gColor;
-layout(binding = 3) uniform sampler2D gOther;
-layout(binding = 4) uniform sampler2DArray shadowDepth;
-layout(binding = 5) uniform sampler2D texNoise;
+layout(binding = 0) uniform sampler2D albedoTexture;
+layout(binding = 1) uniform sampler2D normalTexture;
+layout(binding = 2) uniform sampler2D metallicTexture;
+layout(binding = 3) uniform sampler2D roughnessTexture;
+layout(binding = 4) uniform sampler2D oclusionTexture;
+layout(binding = 5) uniform sampler2DArray shadowDepth;
 layout(binding = 6) uniform samplerCube irradianceMap;
 layout(binding = 7) uniform samplerCube prefilterMap;
 layout(binding = 8) uniform sampler2D brdfLUT;
+layout(binding = 9) uniform sampler2D fragTexture;
+
+layout(location = 0) in vec2 fragTexCoord;
+layout(location = 1) in vec3 Color;
+layout(location = 2) in vec3 WorldPos;
+layout(location = 3) in mat3 TBN;
+layout(location = 6) flat in int imaterial;
 
 float calculateBias(vec4 shadowCoord, vec3 normal, vec3 lightDir)
 {
@@ -162,86 +181,28 @@ float filterPCF(vec4 sc, uint cascadeIndex, float bias)
 	return shadowFactor / count;
 }
 
-in vec2 v_UV;
-
-float SSAO(vec3 viewPos, vec3 normal)
-{
-	ivec2 ts = textureSize(gPosition,0);
-	vec3 randomVec = normalize(texture(texNoise, v_UV * vec2(float(ts.x) / 4.0, float(ts.y) / 4.0)).xyz);
-
-	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
-	vec3 bitangent = cross(normal, tangent);
-	mat3 TBN = mat3(tangent, bitangent, normal);
-	float occlusion = 0.0;
-	float radius = 0.5;	
-	float bias = 0.025;
-
-	for (int i = 0; i < 64; ++i)
-	{
-		vec3 samplePos = TBN * ubssao.samples[i];
-		samplePos = viewPos + samplePos * radius;
-		vec4 offset = vec4(samplePos, 1.0);
-		offset = ubc.proj * offset;    // from view to clip-space		
-		offset.xyz /= offset.w;               // perspective divide
-		offset.xyz = offset.xyz * 0.5 + 0.5;
-		float sampleDepth = texture(gPosition, offset.xy).z;
-		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0);
-		float rangeCheck = smoothstep(0.0, 1.0, radius / abs(viewPos.z - sampleDepth));
-		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0) * rangeCheck;
-	}
-	return 1.0 - (occlusion / 64);
-}
+uniform vec2 u_invResolution;
 
 out vec3 o_FragColor;
 
 void main()
 {	
-	vec3 viewPos = texture(gPosition, v_UV).rgb;
-	vec4 normal = texture(gNormal, v_UV).rgba;
-	vec4 col = texture(gColor, v_UV).rgba;
-	vec3 other = texture(gOther, v_UV).rgb;//metallic roughness ao emit
+	vec4 col = texture(albedoTexture, fragTexCoord) * ubm.ubm[imaterial].albedo * vec4(Color, 1.0);
+	vec3 norm = texture(normalTexture, fragTexCoord).rgb;
+	norm = mix(vec3(0.5, 0.5, 1.0), norm, ubm.ubm[imaterial].normal);
+	norm = normalize(norm * 2.0 - 1.0);
+	norm = normalize(TBN * norm);
+	vec2 aoe = texture(oclusionTexture, fragTexCoord).rg;
+	vec4 normal = vec4(norm, ubm.ubm[imaterial].emit * aoe.y);
+	vec3 other = vec3(ubm.ubm[imaterial].metallic * texture(metallicTexture, fragTexCoord).r,
+		ubm.ubm[imaterial].roughness * texture(roughnessTexture, fragTexCoord).r,
+		ubm.ubm[imaterial].ao * aoe.x);
 
-	/*
-	for (int i = 0; i < ubd.maxLight; i++)
-	{
-		if (ubl.ubl[i].shadowID >= 0)
-		{
-			uint cascadeIndex = 0;
-			for (uint k = 0; k < SHADOW_MAP_CASCADE_COUNT - 1; ++k)
-			{
-				if (viewPos.z < ubs.s[ubl.ubl[i].shadowID + k].splitDepth)
-				{
-					cascadeIndex = k + 1;
-				}
-			}
-			col = vec4(1, 1, 1, 1);
-			vec4 nc = vec4(1,1,1,1);
-			if (cascadeIndex == 0)
-			{
-				nc = vec4(1,0,0,1);
-			}
-			else if (cascadeIndex == 1)
-			{
-				nc = vec4(0, 1, 0,1);
-			}
-			else if (cascadeIndex == 2)
-			{
-				nc = vec4(0, 0, 1,1);
-			}
-			else if (cascadeIndex == 3)
-			{
-				nc = vec4(0, 1, 1,1);
-			}
-			col *= nc;
-		}
-	}
-	*/
-
+	vec3 viewPos = (ubc.view * vec4(WorldPos,1.0)).xyz;
 	vec3 color = col.rgb;
 	color = pow(color, vec3(ubd.gamma));
-	vec3 worldPos = (ubc.invView * vec4(viewPos, 1)).xyz;
 
-	vec3 V = normalize(ubc.camPos - worldPos);
+	vec3 V = normalize(ubc.camPos - WorldPos);
 
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, color, other.x);
@@ -252,8 +213,8 @@ void main()
 		for (int i = 0; i < ubd.maxLight; i++)
 		{
 			float shadow = 1.0;
-			vec3 L = normalize(ubl.ubl[i].position - worldPos);
-			float distance = length(ubl.ubl[i].position - worldPos);
+			vec3 L = normalize(ubl.ubl[i].position - WorldPos);
+			float distance = length(ubl.ubl[i].position - WorldPos);
 			float attenuation = 1.0 / (distance * distance);
 			vec3 radiance = ubl.ubl[i].color * attenuation * ubl.ubl[i].range;
 			if (ubl.ubl[i].status == 0)
@@ -290,7 +251,7 @@ void main()
 							cascadeIndex = k + 1;
 						}
 					}
-					vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + cascadeIndex].projview) * vec4(worldPos, 1.0);
+					vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + cascadeIndex].projview) * vec4(WorldPos, 1.0);
 					float bias = calculateBias(shadowCoord, normal.rgb, L);
 					shadow = filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + cascadeIndex, bias);
 				}
@@ -302,7 +263,7 @@ void main()
 				{
 					for (uint k = 0; k < SHADOW_MAP_CUBE_COUNT && shadow > 0.5f; ++k)
 					{
-						vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + k].projview) * vec4(worldPos, 1.0);
+						vec4 shadowCoord = (biasMat * ubs.s[ubl.ubl[i].shadowID + k].projview) * vec4(WorldPos, 1.0);
 						float bias = calculateBias(shadowCoord, normal.rgb, L);
 						shadow *= filterPCF(shadowCoord / shadowCoord.w, ubl.ubl[i].shadowID + k, bias);
 					}
@@ -346,12 +307,13 @@ void main()
 
 		vec3 ambient = (kD * diffuse + specular) * other.z;
 
-		color = ambient + Lo * SSAO(viewPos, normal.rgb);
+		color = ambient + Lo;
 	}
 	else
 	{
 		color = normal.a * color;
 	}
 
-	o_FragColor = color;
+	vec3 dst = texture(fragTexture, gl_FragCoord.xy * u_invResolution).rgb;
+	o_FragColor = color * col.a + dst * (1.0 - col.a);
 }

@@ -233,11 +233,12 @@ namespace Ge
 		m_skybox->render(m_cameraManager->getSSBO());
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);//!!! DO NOT DELETE THIS LINE !!! : total destruction of the application and end of the universe and the parallel universe
+		glDepthMask(GL_TRUE);
 		glDisable(GL_BLEND);
 
 		std::unordered_map<Materials*, std::unordered_map<ShapeBuffer*, std::vector<Model*>>> & instanced_models = m_modelManager->getInstancedModels();		
 		const std::vector<Materials *> & matlist = m_materialManager->getMaterials();
-		Materials * currentMaterial = nullptr;
+		bool transparency = !callbacksTransparency.empty();
 		ShapeBuffer * currentShape = nullptr;
 		GraphiquePipeline * currentPipeline = nullptr;
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_cameraManager->getSSBO());
@@ -248,38 +249,44 @@ namespace Ge
 		{
 			callbacks[i](-1);
 		}
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_cameraManager->getSSBO());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_modelManager->getSSBO());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_materialManager->getSSBO());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_shaderDataMisc->getSSBO());
-		bool transparency = false;
+		if (!callbacks.empty())
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_cameraManager->getSSBO());
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_modelManager->getSSBO());
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_materialManager->getSSBO());
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_shaderDataMisc->getSSBO());
+		}
 		bool currentDepthTest = true;
 		bool currentDepthWrite = true;
 		for (auto& material : matlist)
-		{
+		{			
+			if (material == nullptr || !material->getDraw() || material->getColor().a == 0.0f)
+			{
+				continue;
+			}
+			currentPipeline = material->getPipeline();
+			unsigned int program = currentPipeline->getProgram();
+			glUseProgram(program);
+			ShaderPair* sp = currentPipeline->getShaderPair();
+			if (sp->transparency)
+			{
+				transparency = true;
+				break;
+			}
 			auto& mku = instanced_models[material];
-			currentMaterial = material;
-			if (currentMaterial == nullptr)
-			{
-				continue;
-			}
-			if (!currentMaterial->getDraw() || currentMaterial->getColor().a == 0.0f)
-			{
-				continue;
-			}
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, currentMaterial->getAlbedoTexture()->getTextureID());
+			glBindTexture(GL_TEXTURE_2D, material->getAlbedoTexture()->getTextureID());
 			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, currentMaterial->getNormalTexture()->getTextureID());
+			glBindTexture(GL_TEXTURE_2D, material->getNormalTexture()->getTextureID());
 			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, currentMaterial->getMetallicTexture()->getTextureID());
+			glBindTexture(GL_TEXTURE_2D, material->getMetallicTexture()->getTextureID());
 			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_2D, currentMaterial->getRoughnessTexture()->getTextureID());
+			glBindTexture(GL_TEXTURE_2D, material->getRoughnessTexture()->getTextureID());
 			glActiveTexture(GL_TEXTURE4);
-			glBindTexture(GL_TEXTURE_2D, currentMaterial->getOclusionTexture()->getTextureID());
-			if (currentMaterial->getDepthTest() != currentDepthTest)
+			glBindTexture(GL_TEXTURE_2D, material->getOclusionTexture()->getTextureID());
+			if (material->getDepthTest() != currentDepthTest)
 			{
-				currentDepthTest = currentMaterial->getDepthTest();
+				currentDepthTest = material->getDepthTest();
 				if (currentDepthTest)
 				{
 					glEnable(GL_DEPTH_TEST);
@@ -290,34 +297,18 @@ namespace Ge
 				}
 			}
 
-			if (currentMaterial->getDepthWrite() != currentDepthWrite)
+			if (material->getDepthWrite() != currentDepthWrite)
 			{
-				currentDepthWrite = currentMaterial->getDepthWrite();
-				if (currentDepthWrite)
-				{
-					glDepthMask(GL_TRUE);
-				}
-				else
-				{
-					glDepthMask(GL_FALSE);
-				}
+				currentDepthWrite = material->getDepthWrite();
+				glDepthMask(currentDepthWrite ? GL_TRUE : GL_FALSE);
 			}
-			currentPipeline = currentMaterial->getPipeline();
-			unsigned int program = currentPipeline->getProgram();
-			glUseProgram(program);	
-			ShaderPair * sp = currentPipeline->getShaderPair();
-			if (currentPipeline->getShaderPair()->transparency && !transparency)
-			{
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				transparency = true;
-			}
+
 			if (sp->cullMode == 2)
 			{
 				glDisable(GL_CULL_FACE);
 			}
 
-			std::vector<unsigned int> & assbo = currentMaterial->getAditionalSSBO();
+			std::vector<unsigned int> & assbo = material->getAditionalSSBO();
 			for (int j = 0; j < assbo.size(); j++)
 			{
 				glBindBufferBase(GL_SHADER_STORAGE_BUFFER, j+4, assbo[j]);				
@@ -330,7 +321,7 @@ namespace Ge
 					glBindVertexArray(currentShape->getVAO());
 					glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, currentShape->getIBO());
 					glUniform1i(glGetUniformLocation(program, "offsetUbo"), buffer.second[0]->getIndex());
-					glDrawElementsInstanced(GL_TRIANGLES, currentShape->getIndiceSize(), GL_UNSIGNED_INT, nullptr, buffer.second.size() + currentMaterial->getAditionalInstanced());
+					glDrawElementsInstanced(GL_TRIANGLES, currentShape->getIndiceSize(), GL_UNSIGNED_INT, nullptr, buffer.second.size() + material->getAditionalInstanced());
 				}
 			}
 			if (sp->cullMode == 2)
@@ -343,12 +334,15 @@ namespace Ge
 			currentDepthWrite = true;
 			glDepthMask(GL_TRUE);
 		}
+		if (transparency)
+		{
+			glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+		}
 		/*  Shadow  */
 		
-		//glEnable(GL_CULL_FACE);
 		glDisable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
-	//	glCullFace(GL_FRONT);
 		glDisable(GL_BLEND);		
 		const std::vector<unsigned int>& frameBufferDepthShadow = m_lightManager->getFrameShadowBuffer();
 		for (int i = 0; i < frameBufferDepthShadow.size(); i++)
@@ -366,32 +360,22 @@ namespace Ge
 			int shadowU = glGetUniformLocation(program, "offsetShadow");
 
 			for (auto& material : matlist)
-			{
-				auto& mku = instanced_models[material];
-				currentMaterial = material;
-				if (currentMaterial == nullptr)
+			{						
+				if (material == nullptr || !material->getDraw() || !material->getCastShadow() || material->getColor().a == 0.0f)
 				{
 					continue;
 				}
-				if (!currentMaterial->getDraw() || !currentMaterial->getCastShadow() || currentMaterial->getColor().a == 0.0f)
+				if (material->getDepthTest() != currentDepthTest)
 				{
-					continue;
-				}
-				if (currentMaterial->getDepthTest() != currentDepthTest)
-				{
-					currentDepthTest = currentMaterial->getDepthTest();
+					currentDepthTest = material->getDepthTest();
 					if (!currentDepthTest)
 					{
 						continue;
 					}
 				}
+				auto& mku = instanced_models[material];
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, currentMaterial->getAlbedoTexture()->getTextureID());
-				ShaderPair* sp = currentMaterial->getPipeline()->getShaderPair();
-				/*if (sp->cullMode == 2)
-				{
-					//glDisable(GL_CULL_FACE);
-				}*/
+				glBindTexture(GL_TEXTURE_2D, material->getAlbedoTexture()->getTextureID());
 				for (auto& buffer : mku)
 				{
 					if (buffer.second.size() > 0)
@@ -401,13 +385,9 @@ namespace Ge
 						glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, currentShape->getIBO());
 						glUniform1i(uboU, buffer.second[0]->getIndex());
 						glUniform1i(shadowU, i);
-						glDrawElementsInstanced(GL_TRIANGLES, currentShape->getIndiceSize(), GL_UNSIGNED_INT, nullptr, buffer.second.size() + currentMaterial->getAditionalInstanced());
+						glDrawElementsInstanced(GL_TRIANGLES, currentShape->getIndiceSize(), GL_UNSIGNED_INT, nullptr, buffer.second.size() + material->getAditionalInstanced());
 					}
 				}
-				/*if (sp->cullMode == 2)
-				{
-					//glEnable(GL_CULL_FACE);
-				}*/
 			}
 			for (int j = 0; j < callbacks.size(); j++)
 			{
@@ -416,9 +396,8 @@ namespace Ge
 		}
 		glCullFace(GL_BACK);
 		/*  Shadow  */
-
+		
 		glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer->getFowardFrameBuffer());		
-		glDisable(GL_DEPTH_TEST);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_cameraManager->getSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_lightManager->getSSBO());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_shaderDataMisc->getSSBO());
@@ -450,6 +429,95 @@ namespace Ge
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sb->getIBO());
 		glDrawElements(GL_TRIANGLES, sb->getIndiceSize(), GL_UNSIGNED_INT, 0);
 		
+		if (transparency)
+		{			
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_frameBuffer->getDepth(), 0);
+			glEnable(GL_DEPTH_TEST);
+			glEnable(GL_CULL_FACE);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_modelManager->getSSBO());
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_materialManager->getSSBO());
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_shaderDataMisc->getSSBO());
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_lightManager->getSSBO());
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, m_lightManager->getSsboShadow());		
+			glActiveTexture(GL_TEXTURE5);
+			glBindTexture(GL_TEXTURE_2D_ARRAY, m_lightManager->getTextureShadowArray());
+			glActiveTexture(GL_TEXTURE9);
+			glBindTexture(GL_TEXTURE_2D, m_frameBuffer->getColorFoward());
+			glm::vec2 invRes(1.0f / m_graphicsDataMisc->str_width, 1.0f / m_graphicsDataMisc->str_height);
+			
+			for (int i = matlist.size() - 1; i > 0; --i)
+			{
+				Materials* mat = matlist[i];
+				if (mat == nullptr || !mat->getDraw() || mat->getColor().a == 0.0f)
+				{
+					continue;
+				}
+				currentPipeline = mat->getPipeline();
+				unsigned int program = currentPipeline->getProgram();
+				glUseProgram(program);
+				ShaderPair* sp = currentPipeline->getShaderPair();
+				if (!sp->transparency)
+				{
+					break;
+				}
+				if (mat->getDepthWrite() != currentDepthWrite)
+				{
+					currentDepthWrite = mat->getDepthWrite();
+					glDepthMask(currentDepthWrite ? GL_TRUE : GL_FALSE);
+				}
+				auto& mku = instanced_models[mat];
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, mat->getAlbedoTexture()->getTextureID());
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, mat->getNormalTexture()->getTextureID());
+				glActiveTexture(GL_TEXTURE2);
+				glBindTexture(GL_TEXTURE_2D, mat->getMetallicTexture()->getTextureID());
+				glActiveTexture(GL_TEXTURE3);
+				glBindTexture(GL_TEXTURE_2D, mat->getRoughnessTexture()->getTextureID());
+				glActiveTexture(GL_TEXTURE4);
+				glBindTexture(GL_TEXTURE_2D, mat->getOclusionTexture()->getTextureID());				
+
+				if (sp->cullMode == 2)
+				{
+					glDisable(GL_CULL_FACE);
+				}
+
+				std::vector<unsigned int>& assbo = mat->getAditionalSSBO();
+				for (int j = 0; j < assbo.size(); j++)
+				{
+					glBindBufferBase(GL_SHADER_STORAGE_BUFFER, j + 6, assbo[j]);
+				}
+				for (auto& buffer : mku)
+				{
+					if (buffer.second.size() > 0)
+					{
+						currentShape = buffer.first;
+						glBindVertexArray(currentShape->getVAO());
+						glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, currentShape->getIBO());
+						glUniform1i(glGetUniformLocation(program, "offsetUbo"), buffer.second[0]->getIndex());
+						glUniform2fv(glGetUniformLocation(program, "u_invResolution"), 1, &invRes.x);
+						glDrawElementsInstanced(GL_TRIANGLES, currentShape->getIndiceSize(), GL_UNSIGNED_INT, nullptr, buffer.second.size() + mat->getAditionalInstanced());
+						glTextureBarrier();
+					}
+				}
+				if (sp->cullMode == 2)
+				{
+					glEnable(GL_CULL_FACE);
+				}
+			}
+			for (int i = 0; i < callbacksTransparency.size(); i++)
+			{
+				callbacksTransparency[i](invRes);
+			}
+			glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+			if (!currentDepthWrite)
+			{
+				currentDepthWrite = true;
+				glDepthMask(GL_TRUE);
+			}
+		}
+
 		m_postProcess->compute(m_frameBuffer->getFowardFrameBuffer(), m_frameBuffer->getColorFoward(), m_frameBuffer->getDepth(), m_modelManager->getDefferedQuad());
 
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_frameBuffer->getFowardFrameBuffer());
@@ -462,6 +530,11 @@ namespace Ge
 		);
 		
 		m_hud->render();		
+		if (transparency)
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer->getFrameBuffer());
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_frameBuffer->getDepth(), 0);
+		}
 		glfwSwapBuffers(m_graphicsDataMisc->str_window);
     }
 }

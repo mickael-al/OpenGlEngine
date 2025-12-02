@@ -10,6 +10,7 @@
 #include "MaterialManager.hpp"
 #include "Engine.hpp"
 #include "PointeurClass.hpp"
+#include "ShaderPair.hpp"
 
 namespace Ge
 {
@@ -42,9 +43,14 @@ namespace Ge
 	}
 
 	void Materials::setColor(glm::vec4 color)
-	{
+	{		
+		//bool order = m_ubm.albedo.a != color.a && m_pipeline != nullptr && m_pipeline->getShaderPair()->transparency;
 		m_ubm.albedo = color;
 		updateUniformBufferMaterial();
+		/*if (order)
+		{
+			m_pc->materialManager->updateMaterialExecutionOrder();
+		}*/
 	}
 
 	void Materials::setMetallic(float metal)
@@ -334,6 +340,11 @@ namespace Ge
 		if (ImGui::Checkbox("DepthTest", &m_depthTest)) 
 		{
 			setDepthTest(m_depthTest);			
+		}
+		ImGui::SameLine();
+		if (ImGui::Checkbox("CastShadow", &m_castShadow))
+		{
+			setCastShadow(m_castShadow);
 		}
 	}
 }

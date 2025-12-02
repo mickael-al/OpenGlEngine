@@ -40,9 +40,14 @@ namespace Ge
 		{
 			return callbacks;
 		}
+		inline std::vector<std::function<void(const glm::vec2& invResolution)>>& getRenderTransparencyCallback()
+		{
+			return callbacksTransparency;
+		}
     private:
 		ptrClass * m_ptrClass;
 		std::vector<std::function<void(int sid)>> callbacks;
+		std::vector<std::function<void(const glm::vec2 & invResolution)>> callbacksTransparency;
 		GraphicsDataMisc * m_graphicsDataMisc;
 		FrameBuffer* m_frameBuffer;
 		SSAOBuffer* m_ssaoBuffer;

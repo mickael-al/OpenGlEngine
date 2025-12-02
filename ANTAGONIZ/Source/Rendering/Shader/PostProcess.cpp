@@ -5,6 +5,7 @@
 #include "Engine.hpp"
 #include "PointeurClass.hpp"
 #include "Fog.hpp"
+//#include "OilPainting.hpp"
 
 namespace Ge
 {
@@ -15,6 +16,7 @@ namespace Ge
 		m_setting->gamma = Engine::getPtrClassAddr()->settingManager->getGammaAddr();
 		m_modules.push_back(new Fog());
 		m_modules.push_back(new Bloom());
+		//m_modules.push_back(new OilPainting());
 		for (int i = 0; i < m_modules.size(); i++)
 		{
 			m_modules[i]->initialize(gdm);

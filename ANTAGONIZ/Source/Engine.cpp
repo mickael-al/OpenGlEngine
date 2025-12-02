@@ -143,7 +143,7 @@ namespace Ge
 			m_behaviourManager->addBehaviour(m_editor);
 		}
         m_sceneManager->loadEntryScene();
-        Engine::update();        
+        Engine::update();
     }   
 
     void Engine::update()

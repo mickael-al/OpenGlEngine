@@ -22,6 +22,20 @@ ImageData::ImageData(ImageData* id, int width, int height)
     m_isload = true;
 }
 
+ImageData::ImageData(int width, int height, int channel, std::string path)
+{
+    m_channel_count = channel;
+    m_height = height;
+    m_width = width;
+    m_path = path;
+    m_color = new Color * [m_height];
+    for (int i = 0; i < m_height; i++)
+    {
+        m_color[i] = new Color[m_width];
+    }
+    m_isload = true;
+}
+
 ImageData::ImageData(const char * file_name)
 {
     unsigned char* data = stbi_load(file_name, &m_width, &m_height, &m_channel_count, 0);
@@ -94,6 +108,11 @@ int ImageData::getHeight() const
 int ImageData::getChannelCount() const 
 { 
     return m_channel_count; 
+}
+
+void ImageData::setChannelCount(int channelCount)
+{
+    m_channel_count = channelCount;
 }
 
 bool ImageData::isLoad() const

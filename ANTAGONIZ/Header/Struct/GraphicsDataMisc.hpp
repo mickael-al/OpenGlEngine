@@ -26,6 +26,7 @@ struct GraphicsDataMisc
 	Materials * str_default_material;
 	GraphiquePipeline * str_default_pipeline;
 	GraphiquePipeline * str_default_pipeline_forward;
+	GraphiquePipeline * str_default_pipeline_forward_transparency;
 	GraphiquePipeline * str_default_pipeline_shadow;
 	Camera* current_camera;
 	DataMisc str_dataMisc;

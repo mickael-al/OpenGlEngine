@@ -24,7 +24,7 @@ namespace Ge
 
         glGenTextures(1, &m_gNormal);
         glBindTexture(GL_TEXTURE_2D, m_gNormal);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_gNormal, 0);
@@ -71,8 +71,7 @@ namespace Ge
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);        
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_fColor, 0);
 
         unsigned int attachmentsF[1] = { GL_COLOR_ATTACHMENT0 };
@@ -96,7 +95,7 @@ namespace Ge
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGB, GL_FLOAT, NULL);
 
         glBindTexture(GL_TEXTURE_2D, m_gNormal);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
 
         glBindTexture(GL_TEXTURE_2D, m_gColor);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_gdm->str_width, m_gdm->str_height, 0, GL_RGBA, GL_FLOAT, NULL);
@@ -172,7 +171,7 @@ namespace Ge
         glDeleteTextures(1, &m_gPosition);
         glDeleteTextures(1, &m_gNormal);
         glDeleteTextures(1, &m_gColor);
-        glDeleteTextures(1, &m_gOther);        
+        glDeleteTextures(1, &m_gOther);      
         glDeleteTextures(1, &m_gDepth);
         glDeleteFramebuffers(1, &m_framebufferFoward);
         glDeleteTextures(1, &m_fColor);
