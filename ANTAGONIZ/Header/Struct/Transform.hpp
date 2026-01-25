@@ -11,10 +11,4 @@ struct Transform
     glm::vec3 scale;
 };
 
-struct LocalTransform
-{
-    glm::vec3 position;
-    glm::quat rotation;
-};
-
 #endif //!__ENGINE_TRANSFORM__
